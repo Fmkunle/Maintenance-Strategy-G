@@ -33,3 +33,45 @@ The UI sets in this project will be created progressively and guided through ite
 ## Next Step
 
 Begin by defining the first demo screen or UI set to be built.
+
+## GitHub Workflow
+
+Use these commands from the project folder when you want to push changes to GitHub:
+
+```powershell
+cd "c:\Users\f777250\OneDrive - Fortescue Metals Group\Documents\Personal\Maintenance-Strategy-G"
+git add .
+git commit -m "Describe your update here"
+git push
+```
+
+If this is the first time setting up the repository locally, use:
+
+```powershell
+cd "c:\Users\f777250\OneDrive - Fortescue Metals Group\Documents\Personal\Maintenance-Strategy-G"
+git init
+git branch -M main
+git remote add origin https://github.com/Fmkunle/Maintenance-Strategy-G.git
+git add .
+git commit -m "Initial commit"
+git push -u origin main
+```
+
+## Run In Codespaces
+
+To run the demo from a GitHub Codespace:
+
+1. Open the GitHub repository.
+2. Select `Code`.
+3. Select `Codespaces`.
+4. Create or open the Codespace for the `main` branch.
+5. In the Codespaces terminal, run:
+
+```bash
+python -m http.server 8000
+```
+
+6. Open the `Ports` tab in Codespaces.
+7. Open the forwarded URL for port `8000`.
+
+This will serve `index.html` in the browser.
