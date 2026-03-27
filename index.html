@@ -6,43 +6,129 @@
   <title>Maintenance Strategy Generator Demo</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body data-theme="dark">
+<body data-theme="light">
   <div class="app-shell">
     <aside class="sidebar">
-      <button class="sidebar-logo" aria-label="AgenticAI home">
+      <div class="sidebar__brand">
+        <button class="sidebar-logo" aria-label="AgenticAI home">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+            <path d="M9 8v8M15 8l-4 4 4 4"></path>
+          </svg>
+        </button>
+        <div class="sidebar__brand-copy">
+          <strong>AgenticAI</strong>
+          <span>Reliability workspace</span>
+        </div>
+      </div>
+
+      <button class="org-switcher" aria-label="Current workspace">
+        <span>Namin</span>
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="4" y="4" width="16" height="16" rx="4"></rect>
-          <path d="M9 8v8M15 8l-4 4 4 4"></path>
+          <path d="M6 9l6 6 6-6"></path>
         </svg>
       </button>
+
       <nav class="sidebar-nav" aria-label="Primary">
-        <button class="nav-icon is-active" aria-label="Workspace">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
-          </svg>
+        <button class="nav-pill is-active">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+            </svg>
+          </span>
+          <span>Home</span>
         </button>
-        <button class="nav-icon" aria-label="Dashboard">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 19h16M7 16V9M12 16V5M17 16v-4"></path>
-          </svg>
-        </button>
-        <button class="nav-icon" aria-label="Projects">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 7h6l2 2h8v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path>
-          </svg>
-        </button>
-        <button class="nav-icon" aria-label="Safety">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"></path>
-          </svg>
+        <button class="nav-pill">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h6l2 2h8v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path>
+            </svg>
+          </span>
+          <span>Projects</span>
         </button>
       </nav>
-      <div class="sidebar-footer">
-        <button class="nav-icon accent" aria-label="AI tools">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3v6M12 15v6M5.6 6.6l4.2 4.2M14.2 14.2l4.2 4.2M3 12h6M15 12h6"></path>
-          </svg>
+
+      <div class="sidebar__section-label">Administration</div>
+      <nav class="sidebar-nav sidebar-nav--stacked" aria-label="Administration">
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"></path>
+            </svg>
+          </span>
+          <span>Admin Dashboard</span>
         </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20a7 7 0 0 1 14 0"></path>
+            </svg>
+          </span>
+          <span>Users</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 5h12v14H6zM9 9h6M9 13h6"></path>
+            </svg>
+          </span>
+          <span>Organizations</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M17 7.5c0-1.9-1.8-3.5-5-3.5s-5 1.6-5 3.5 1.4 2.9 5 3.5 5 1.6 5 3.5-1.8 3.5-5 3.5-5-1.6-5-3.5"></path>
+            </svg>
+          </span>
+          <span>AI Config</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 8a4 4 0 1 1 0 8a4 4 0 0 1 0-8z"></path>
+              <path d="M4 12h2M18 12h2M12 4v2M12 18v2"></path>
+            </svg>
+          </span>
+          <span>Platform Settings</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 8h12M6 12h12M6 16h8"></path>
+            </svg>
+          </span>
+          <span>Demo Requests</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16v12H4z"></path>
+              <path d="M4 8l8 6 8-6"></path>
+            </svg>
+          </span>
+          <span>SMTP / Email</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-row nav-row--footer">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M7 4v16M17 4v16"></path>
+            </svg>
+          </span>
+          <span>Customize layout</span>
+        </button>
+        <section class="upgrade-card">
+          <div class="upgrade-card__title">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13 2L4 14h6l-1 8 9-12h-6z"></path>
+            </svg>
+            <strong>Upgrade plan</strong>
+          </div>
+          <p>Unlock more projects, AI features, and exports.</p>
+          <button class="upgrade-button">View plans</button>
+        </section>
       </div>
     </aside>
 
@@ -94,22 +180,22 @@
                 </div>
                 <div class="hero-copy">
                   <div class="hero-copy__topline">
-                    <h2 id="selectedToolTitle">Maintenance Strategy Generator</h2>
+                    <h2 id="selectedToolTitle">AI-Assisted FMEA Builder</h2>
                     <span class="badge badge-ai">AI-ready</span>
                   </div>
                   <p id="selectedToolDescription">
-                    Build adaptive maintenance strategies from asset context, risk signals, and decision guardrails.
+                    Generate structured failure modes, effects, and actions with guardrails.
                   </p>
                   <div class="hero-meta">
-                    <span>Condition-aware logic</span>
-                    <span>Strategy pathways</span>
-                    <span>Demo ready</span>
+                    <span>SAE J1739 compatible</span>
+                    <span>RPN heatmap</span>
+                    <span>Export ready</span>
                   </div>
                 </div>
               </div>
 
               <div class="hero-actions">
-                <button id="primaryAction" class="primary-button">Create maintenance strategy</button>
+                <button id="primaryAction" class="primary-button">Create new FMEA</button>
                 <button class="secondary-button">Open existing</button>
               </div>
             </section>
@@ -121,28 +207,15 @@
               </div>
 
               <div class="tool-grid" role="list" aria-label="Available tools">
-                <button class="tool-card tool-card--selectable is-selected" data-tool="maintenance" role="listitem">
+                <button class="tool-card is-disabled" data-tool="maintenance" role="listitem">
                   <div class="tool-card__icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M14.5 5.5a3 3 0 0 1 4 4l-2 2-4-4zM4 20l4.5-1 8-8-3.5-3.5-8 8z"></path>
                     </svg>
                   </div>
                   <div class="tool-card__copy">
-                    <h4>Maintenance Strategy Generator</h4>
+                    <h4>Basic Maintenance Strategy Generator</h4>
                     <p>Adaptive maintenance pathways for asset criticality and operating context.</p>
-                  </div>
-                  <span class="badge badge-live">Selected</span>
-                </button>
-
-                <button class="tool-card is-disabled" data-tool="pareto" role="listitem">
-                  <div class="tool-card__icon">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>
-                    </svg>
-                  </div>
-                  <div class="tool-card__copy">
-                    <h4>Quick Pareto + Weibull Analysis</h4>
-                    <p>Reliability pattern detection from failure history and operating age.</p>
                   </div>
                   <span class="badge">Soon</span>
                 </button>
@@ -160,7 +233,20 @@
                   <span class="badge">Soon</span>
                 </button>
 
-                <button class="tool-card is-disabled" data-tool="fmea" role="listitem">
+                <button class="tool-card is-disabled" data-tool="pareto" role="listitem">
+                  <div class="tool-card__icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>
+                    </svg>
+                  </div>
+                  <div class="tool-card__copy">
+                    <h4>Quick Pareto + Weibull Analysis</h4>
+                    <p>Reliability pattern detection from failure history and operating age.</p>
+                  </div>
+                  <span class="badge">Soon</span>
+                </button>
+
+                <button class="tool-card tool-card--selectable is-selected" data-tool="fmea" role="listitem">
                   <div class="tool-card__icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
@@ -168,9 +254,9 @@
                   </div>
                   <div class="tool-card__copy">
                     <h4>AI-Assisted FMEA Builder</h4>
-                    <p>Structured failure mode workflows with controls, actions, and scoring.</p>
+                    <p>Generate structured failure modes, effects, and actions with guardrails.</p>
                   </div>
-                  <span class="badge">Live in parent app</span>
+                  <span class="badge badge-live">Selected</span>
                 </button>
               </div>
             </section>
@@ -188,16 +274,16 @@
 
               <div class="action-list">
                 <button class="action-card">
-                  <strong>Import strategy inputs</strong>
-                  <span>Load asset context, duty, and maintenance history.</span>
+                  <strong>Import Excel/CSV</strong>
+                  <span>Bring an existing FMEA and upgrade it.</span>
                 </button>
                 <button class="action-card">
                   <strong>Start from a template</strong>
-                  <span>Use fixed plant, mobile, or utilities strategy starters.</span>
+                  <span>Common equipment and process libraries.</span>
                 </button>
                 <button class="action-card">
                   <strong>Ask Copilot</strong>
-                  <span>Suggest tasks, intervals, and escalation decisions.</span>
+                  <span>Suggest causes and controls for this failure mode.</span>
                 </button>
               </div>
             </section>
@@ -211,31 +297,31 @@
               <div class="recent-list">
                 <button class="recent-item">
                   <div class="recent-item__title-row">
-                    <strong>Conveyor Drive Strategy</strong>
+                    <strong>FMEA-CocoaCola-Sept2025</strong>
                     <span class="risk-chip risk-chip--high">High</span>
                   </div>
-                  <span>Drive train | Planned shutdown window</span>
+                  <span>FTSA &bull; Compressor &bull; 140 failure modes</span>
                 </button>
                 <button class="recent-item">
                   <div class="recent-item__title-row">
-                    <strong>Magnetite Pump Train</strong>
+                    <strong>Magnetite Tramp Iron Removal</strong>
                     <span class="risk-chip risk-chip--medium">Medium</span>
                   </div>
-                  <span>Slurry system | Other</span>
+                  <span>Magnetic Separator &bull; Other</span>
                 </button>
                 <button class="recent-item">
                   <div class="recent-item__title-row">
-                    <strong>Gas Turbine Strategy</strong>
+                    <strong>Gas Turbine FMEA</strong>
                     <span class="risk-chip risk-chip--high">High</span>
                   </div>
-                  <span>Power island | 48 strategy tasks</span>
+                  <span>Power Island &bull; 48 failure modes</span>
                 </button>
                 <button class="recent-item">
                   <div class="recent-item__title-row">
-                    <strong>FlexSAF Utilities</strong>
+                    <strong>FlexSAF - Maint</strong>
                     <span class="risk-chip risk-chip--critical">Critical</span>
                   </div>
-                  <span>Steam and condensate | Deferred decision</span>
+                  <span>Supersonic Jet &bull; Other</span>
                 </button>
               </div>
             </section>

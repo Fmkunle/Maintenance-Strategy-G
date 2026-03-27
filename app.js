@@ -1,9 +1,15 @@
 const toolDefinitions = {
   maintenance: {
-    title: "Maintenance Strategy Generator",
+    title: "Basic Maintenance Strategy Generator",
     description:
       "Build adaptive maintenance strategies from asset context, risk signals, and decision guardrails.",
     action: "Create maintenance strategy",
+  },
+  fmea: {
+    title: "AI-Assisted FMEA Builder",
+    description:
+      "Generate structured failure modes, effects, and actions with guardrails.",
+    action: "Create new FMEA",
   },
 };
 
