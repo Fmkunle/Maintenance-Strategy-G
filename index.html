@@ -186,7 +186,7 @@
                   <p id="selectedToolDescription">
                     Generate structured failure modes, effects, and actions with guardrails.
                   </p>
-                  <div class="hero-meta">
+                  <div id="selectedToolMeta" class="hero-meta">
                     <span>SAE J1739 compatible</span>
                     <span>RPN heatmap</span>
                     <span>Export ready</span>
@@ -196,28 +196,28 @@
 
               <div class="hero-actions">
                 <button id="primaryAction" class="primary-button">Create new FMEA</button>
-                <button class="secondary-button">Open existing</button>
+                <button id="secondaryAction" class="secondary-button">Open existing</button>
               </div>
             </section>
 
             <section class="tools-section">
               <div class="section-heading section-heading--compact">
                 <h3>Tools</h3>
-                <p>Start with FMEA; more tools coming soon.</p>
+                <p>Start with FMEA or strategy generation; more tools coming soon.</p>
               </div>
 
               <div class="tool-grid" role="list" aria-label="Available tools">
-                <button class="tool-card is-disabled" data-tool="maintenance" role="listitem">
+                <button class="tool-card tool-card--selectable" data-tool="maintenance" role="listitem">
                   <div class="tool-card__icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M14.5 5.5a3 3 0 0 1 4 4l-2 2-4-4zM4 20l4.5-1 8-8-3.5-3.5-8 8z"></path>
                     </svg>
                   </div>
                   <div class="tool-card__copy">
-                    <h4>Basic Maintenance Strategy Generator</h4>
+                    <h4>Maintenacne Strategy Generator</h4>
                     <p>Adaptive maintenance pathways for asset criticality and operating context.</p>
                   </div>
-                  <span class="badge">Soon</span>
+                  <span class="badge">Ready</span>
                 </button>
 
                 <button class="tool-card is-disabled" data-tool="cba" role="listitem">

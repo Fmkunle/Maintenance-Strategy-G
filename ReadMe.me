@@ -55,6 +55,13 @@ git remote add origin https://github.com/Fmkunle/Maintenance-Strategy-G.git
 git add .
 git commit -m "Initial commit"
 git push -u origin main
+
+Excluding nextgenmaint-newui-main
+Add-Content .gitignore "nextgenmaint-newui-main/"
+git add .
+git commit -m "Prepare Codespaces test"
+git push origin $(git branch --show-current)
+
 ```
 
 ## Run In Codespaces
