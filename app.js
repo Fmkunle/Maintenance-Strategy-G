@@ -11,6 +11,18 @@ const toolDefinitions = {
     action: "Create new strategy",
     secondaryAction: "Open existing",
   },
+  cba: {
+    title: "Reliability Insights",
+    description:
+      "Surfaces cost, risk, and operational trade-offs in your maintenance strategy.",
+    meta: [
+      "Cost impact",
+      "Risk gaps",
+      "Labour allocation",
+    ],
+    action: "Open insights",
+    secondaryAction: "Open existing",
+  },
   fmea: {
     title: "AI-Assisted FMEA Builder",
     description:
