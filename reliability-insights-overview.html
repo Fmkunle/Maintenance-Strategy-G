@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reliability Insights Overview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="light">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <a class="sidebar-logo" href="index.html" aria-label="AgenticAI home">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+            <path d="M9 8v8M15 8l-4 4 4 4"></path>
+          </svg>
+        </a>
+        <div class="sidebar__brand-copy">
+          <strong>AgenticAI</strong>
+          <span>Reliability workspace</span>
+        </div>
+      </div>
+
+      <button class="org-switcher" aria-label="Current workspace">
+        <span>Namin</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6"></path>
+        </svg>
+      </button>
+
+      <nav class="sidebar-nav" aria-label="Primary">
+        <a class="nav-pill" href="index.html">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+            </svg>
+          </span>
+          <span>Home</span>
+        </a>
+        <button class="nav-pill is-active">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>
+            </svg>
+          </span>
+          <span>Reliability Insights</span>
+        </button>
+      </nav>
+
+      <div class="sidebar__section-label">Administration</div>
+      <nav class="sidebar-nav sidebar-nav--stacked" aria-label="Administration">
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"></path>
+            </svg>
+          </span>
+          <span>Admin Dashboard</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20a7 7 0 0 1 14 0"></path>
+            </svg>
+          </span>
+          <span>Users</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 5h12v14H6zM9 9h6M9 13h6"></path>
+            </svg>
+          </span>
+          <span>Organizations</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M17 7.5c0-1.9-1.8-3.5-5-3.5s-5 1.6-5 3.5 1.4 2.9 5 3.5 5 1.6 5 3.5-1.8 3.5-5 3.5-5-1.6-5-3.5"></path>
+            </svg>
+          </span>
+          <span>AI Config</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a class="nav-row nav-row--footer" href="advanced-analysis.html">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M7 4v16M17 4v16"></path>
+            </svg>
+          </span>
+          <span>Advanced analysis</span>
+        </a>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="search-shell">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6"></circle>
+            <path d="M20 20l-4.35-4.35"></path>
+          </svg>
+          <input type="search" placeholder="Search assets or areas..." aria-label="Search">
+          <span class="shortcut">Ctrl+K</span>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="themeToggle" class="icon-button" aria-label="Toggle theme">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+          </button>
+          <button class="icon-button" aria-label="Profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20a7 7 0 0 1 14 0"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace workspace--wide">
+        <section class="page-header page-header--minimal">
+          <div class="page-header__copy">
+            <span class="section-label">Site overview</span>
+            <h1>Reliability Insights</h1>
+            <p>Surfaces cost, risk, and operational trade-offs in your maintenance strategy.</p>
+          </div>
+          <div class="page-header__actions page-header__actions--minimal">
+            <a class="header-link" href="advanced-analysis.html">Open advanced analysis</a>
+          </div>
+        </section>
+
+        <section class="axis-grid axis-grid--calm" aria-label="Value axes">
+          <a class="axis-card axis-card--economic axis-card--calm" href="advanced-analysis.html#economic">
+            <div class="axis-card__header">
+              <span class="axis-card__eyebrow">Economic</span>
+            </div>
+            <strong class="axis-card__headline">$2.4M value available</strong>
+            <div class="axis-card__support">
+              <p>83 over-maintained assets are carrying more cost than consequence justifies.</p>
+              <p>$940k of PM spend is still tied to low-return work.</p>
+            </div>
+            <span class="axis-card__cta">View economic issues</span>
+          </a>
+
+          <a class="axis-card axis-card--risk axis-card--calm" href="advanced-analysis.html#risk">
+            <div class="axis-card__header">
+              <span class="axis-card__eyebrow">Risk</span>
+            </div>
+            <strong class="axis-card__headline">37 exposures need attention</strong>
+            <div class="axis-card__support">
+              <p>11 safety-critical gaps remain weakly controlled in high-consequence duties.</p>
+              <p>Estimated production exposure is $5.8M if gaps persist.</p>
+            </div>
+            <span class="axis-card__cta">View risk issues</span>
+          </a>
+
+          <a class="axis-card axis-card--operational axis-card--calm" href="advanced-analysis.html#operational">
+            <div class="axis-card__header">
+              <span class="axis-card__eyebrow">Operational</span>
+            </div>
+            <strong class="axis-card__headline">54 actions are constrained</strong>
+            <div class="axis-card__support">
+              <p>19 improvements depend on shutdown access before they can move.</p>
+              <p>Labour, route, and packaging issues are slowing delivery of known value.</p>
+            </div>
+            <span class="axis-card__cta">View operational issues</span>
+          </a>
+        </section>
+
+        <section class="insights-calm-grid">
+          <div class="insights-calm-main">
+            <section class="focus-visual" aria-labelledby="focus-title">
+              <div class="section-heading section-heading--compact">
+                <h3 id="focus-title">Where to focus first</h3>
+                <p>Most value is concentrated in a few areas where cost, exposure, and delivery pressure intersect.</p>
+              </div>
+
+              <div class="focus-visual__rows">
+                <div class="focus-row">
+                  <div class="focus-row__label">
+                    <strong>Processing plant</strong>
+                    <span>Highest combined value and risk pressure</span>
+                  </div>
+                  <div class="focus-row__track">
+                    <span class="focus-row__fill focus-row__fill--risk" style="width: 86%;"></span>
+                  </div>
+                </div>
+
+                <div class="focus-row">
+                  <div class="focus-row__label">
+                    <strong>Mobile fleet</strong>
+                    <span>Strong economic upside with moderate execution drag</span>
+                  </div>
+                  <div class="focus-row__track">
+                    <span class="focus-row__fill focus-row__fill--economic" style="width: 71%;"></span>
+                  </div>
+                </div>
+
+                <div class="focus-row">
+                  <div class="focus-row__label">
+                    <strong>Tailings and water</strong>
+                    <span>Fewer issues, but consequences remain higher when gaps persist</span>
+                  </div>
+                  <div class="focus-row__track">
+                    <span class="focus-row__fill focus-row__fill--operational" style="width: 58%;"></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="opportunities-block">
+              <div class="section-heading section-heading--compact">
+                <h3>Priority opportunities</h3>
+                <p>Three opportunities worth opening first.</p>
+              </div>
+
+              <div class="priority-list priority-list--minimal">
+                <article class="priority-item priority-item--minimal">
+                  <div class="priority-item__main">
+                    <div class="priority-item__title-row">
+                      <strong>Crushing and conveying</strong>
+                      <span class="axis-pill axis-pill--economic">Economic</span>
+                    </div>
+                    <h4>Reduce low-return weekly inspections on conveyor drives</h4>
+                    <p>$420k upside · Route redesign needed</p>
+                  </div>
+                  <a class="priority-item__cta" href="advanced-analysis.html#priority-opportunities">Open</a>
+                </article>
+
+                <article class="priority-item priority-item--minimal">
+                  <div class="priority-item__main">
+                    <div class="priority-item__title-row">
+                      <strong>Paste plant</strong>
+                      <span class="axis-pill axis-pill--risk">Risk</span>
+                    </div>
+                    <h4>Restore missing monitoring coverage on safety-critical bund systems</h4>
+                    <p>High exposure · Data quality is the gating issue</p>
+                  </div>
+                  <a class="priority-item__cta" href="advanced-analysis.html#priority-opportunities">Open</a>
+                </article>
+
+                <article class="priority-item priority-item--minimal">
+                  <div class="priority-item__main">
+                    <div class="priority-item__title-row">
+                      <strong>Load and haul</strong>
+                      <span class="axis-pill axis-pill--operational">Operational</span>
+                    </div>
+                    <h4>Unlock deferred interventions blocked by labour capacity</h4>
+                    <p>$360k upside · Shutdown and fitter access remain tight</p>
+                  </div>
+                  <a class="priority-item__cta" href="advanced-analysis.html#priority-opportunities">Open</a>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <aside class="summary-panel">
+            <div class="section-heading section-heading--compact">
+              <h3>Delivery snapshot</h3>
+              <p>The main blockers are practical, not analytical.</p>
+            </div>
+
+            <div class="summary-panel__group">
+              <span class="summary-panel__label">Primary blockers</span>
+              <ul class="summary-panel__list">
+                <li>Labour capacity is limiting 18 recommended changes.</li>
+                <li>19 actions still require shutdown access.</li>
+                <li>Route redesign and packaging effort are delaying rollout.</li>
+              </ul>
+            </div>
+
+            <div class="summary-panel__group">
+              <span class="summary-panel__label">Confidence</span>
+              <p>Most recommendations are medium to high confidence. Lower confidence is mainly tied to incomplete failure history and master-data quality.</p>
+            </div>
+
+            <div class="summary-panel__confidence">
+              <span>High 52</span>
+              <span>Medium 49</span>
+              <span>Low 27</span>
+            </div>
+          </aside>
+        </section>
+
+        <div class="insights-footer-link">
+          <a class="header-link" href="advanced-analysis.html">Open advanced analysis for assumptions, supporting data, and recommendation logic</a>
+        </div>
+
+        <footer class="workspace-footer">
+          <p><strong>Reliability Insights</strong> | Summary-first overview for maintenance managers and reliability teams</p>
+          <p>Optimized for value leakage, exposure, actionability, and navigation into deeper analysis</p>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
