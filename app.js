@@ -1,3 +1,4 @@
+// Central copy and navigation config for the home-page tool selector.
 const toolDefinitions = {
   maintenance: {
     title: "Maintenance Strategy Generator",
@@ -10,6 +11,7 @@ const toolDefinitions = {
     ],
     action: "Create new strategy",
     secondaryAction: "Open existing",
+    actionHref: null,
   },
   cba: {
     title: "Reliability Insights",
@@ -22,6 +24,7 @@ const toolDefinitions = {
     ],
     action: "Open insights",
     secondaryAction: "Open existing",
+    actionHref: "reliability-insights.html",
   },
   fmea: {
     title: "AI-Assisted FMEA Builder",
@@ -34,6 +37,7 @@ const toolDefinitions = {
     ],
     action: "Create new FMEA",
     secondaryAction: "Open existing",
+    actionHref: null,
   },
 };
 
@@ -45,43 +49,84 @@ const selectedToolMeta = document.getElementById("selectedToolMeta");
 const primaryAction = document.getElementById("primaryAction");
 const secondaryAction = document.getElementById("secondaryAction");
 const toolCards = document.querySelectorAll(".tool-card--selectable");
+const themeStorageKey = "agenticai-theme";
+let activeToolKey =
+  document.querySelector(".tool-card--selectable.is-selected")?.dataset.tool ?? "fmea";
+
+// Keep theme preference consistent as users move between the overview pages.
+const applyTheme = (theme) => {
+  if (!body) {
+    return;
+  }
+
+  body.dataset.theme = theme;
+};
+
+const storedTheme = window.localStorage.getItem(themeStorageKey);
+if (storedTheme === "dark" || storedTheme === "light") {
+  applyTheme(storedTheme);
+}
 
 themeToggle?.addEventListener("click", () => {
-  body.dataset.theme = body.dataset.theme === "dark" ? "light" : "dark";
+  const nextTheme = body.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(nextTheme);
+  window.localStorage.setItem(themeStorageKey, nextTheme);
 });
 
-toolCards.forEach((card) => {
-  card.addEventListener("click", () => {
-    toolCards.forEach((toolCard) => {
-      toolCard.classList.remove("is-selected");
+// Sync the selected tool tile with the hero card content and CTA behavior.
+const applyToolSelection = (toolKey, selectedCard) => {
+  const tool = toolDefinitions[toolKey];
+  if (!tool) {
+    return;
+  }
 
-      const badge = toolCard.querySelector(".badge");
-      if (badge) {
-        badge.textContent = "Ready";
-        badge.classList.remove("badge-live");
-      }
-    });
+  activeToolKey = toolKey;
 
-    card.classList.add("is-selected");
+  toolCards.forEach((toolCard) => {
+    toolCard.classList.toggle("is-selected", toolCard === selectedCard);
 
-    const toolKey = card.dataset.tool;
-    const tool = toolDefinitions[toolKey];
-    if (!tool) {
-      return;
-    }
-
-    const badge = card.querySelector(".badge");
+    const badge = toolCard.querySelector(".badge");
     if (badge) {
-      badge.textContent = "Selected";
-      badge.classList.add("badge-live");
+      badge.textContent = toolCard === selectedCard ? "Selected" : "Ready";
+      badge.classList.toggle("badge-live", toolCard === selectedCard);
     }
+  });
 
+  if (selectedToolTitle) {
     selectedToolTitle.textContent = tool.title;
+  }
+  if (selectedToolDescription) {
     selectedToolDescription.textContent = tool.description;
+  }
+  if (selectedToolMeta) {
     selectedToolMeta.innerHTML = tool.meta
       .map((item) => `<span>${item}</span>`)
       .join("");
+  }
+  if (primaryAction) {
     primaryAction.textContent = tool.action;
+    primaryAction.dataset.href = tool.actionHref ?? "";
+  }
+  if (secondaryAction) {
     secondaryAction.textContent = tool.secondaryAction;
+  }
+};
+
+toolCards.forEach((card) => {
+  card.addEventListener("click", () => {
+    applyToolSelection(card.dataset.tool, card);
   });
+});
+
+const selectedCard = document.querySelector(`.tool-card--selectable[data-tool="${activeToolKey}"]`);
+if (selectedCard) {
+  applyToolSelection(activeToolKey, selectedCard);
+}
+
+// Some tools stay on the landing page; others launch a dedicated workflow page.
+primaryAction?.addEventListener("click", () => {
+  const targetHref = toolDefinitions[activeToolKey]?.actionHref || primaryAction.dataset.href;
+  if (targetHref) {
+    window.location.href = targetHref;
+  }
 });

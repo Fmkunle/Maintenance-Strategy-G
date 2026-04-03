@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reliability Insights Advanced Analysis</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="light">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <a class="sidebar-logo" href="index.html" aria-label="AgenticAI home">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+            <path d="M9 8v8M15 8l-4 4 4 4"></path>
+          </svg>
+        </a>
+        <div class="sidebar__brand-copy">
+          <strong>AgenticAI</strong>
+          <span>Reliability workspace</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Primary">
+        <a class="nav-pill" href="index.html">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+            </svg>
+          </span>
+          <span>Home</span>
+        </a>
+        <a class="nav-pill is-active" href="reliability-insights.html">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>
+            </svg>
+          </span>
+          <span>Advanced Analysis</span>
+        </a>
+      </nav>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="search-shell">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6"></circle>
+            <path d="M20 20l-4.35-4.35"></path>
+          </svg>
+          <input type="search" placeholder="Search supporting logic..." aria-label="Search">
+          <span class="shortcut">Ctrl+K</span>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="themeToggle" class="icon-button" aria-label="Toggle theme">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+          </button>
+          <a class="secondary-button insights-link-button" href="reliability-insights.html">Back to overview</a>
+        </div>
+      </header>
+
+      <main class="workspace workspace--wide">
+        <section class="page-header">
+          <div class="page-header__copy">
+            <span class="section-label">Deep dive</span>
+            <h1>Reliability Insights Advanced Analysis</h1>
+            <p>Supporting data, reasoning, assumptions, and recommendation logic behind the overview dashboard.</p>
+          </div>
+          <div class="page-header__actions">
+            <button class="secondary-button">Export workbook</button>
+          </div>
+        </section>
+
+        <div class="analysis-grid">
+          <section id="economic" class="panel-card">
+            <div class="section-heading section-heading--compact">
+              <h3>Economic reasoning</h3>
+              <p>Drivers behind value-available estimates and cost leakage ranking.</p>
+            </div>
+            <div class="analysis-callouts">
+              <article class="analysis-callout">
+                <strong>$2.4M recoverable value</strong>
+                <p>Modelled from PM optimization, avoided repeat work, and reduced low-value planned activity.</p>
+              </article>
+              <article class="analysis-callout">
+                <strong>83 over-maintained assets</strong>
+                <p>Assets with high PM effort but low observed failure cost or weak consequence linkage.</p>
+              </article>
+            </div>
+          </section>
+
+          <section id="risk" class="panel-card">
+            <div class="section-heading section-heading--compact">
+              <h3>Risk reasoning</h3>
+              <p>Exposure drivers, control gaps, and consequence logic used in prioritization.</p>
+            </div>
+            <div class="analysis-callouts">
+              <article class="analysis-callout">
+                <strong>11 safety-critical gaps</strong>
+                <p>Failure paths with inadequate detection or preventive control in high-consequence duties.</p>
+              </article>
+              <article class="analysis-callout">
+                <strong>$5.8M production exposure</strong>
+                <p>Estimated from downtime assumptions, redundancy levels, and lost throughput scenarios.</p>
+              </article>
+            </div>
+          </section>
+
+          <section id="operational" class="panel-card">
+            <div class="section-heading section-heading--compact">
+              <h3>Operational reasoning</h3>
+              <p>Constraints and delivery assumptions affecting execution feasibility.</p>
+            </div>
+            <div class="analysis-callouts">
+              <article class="analysis-callout">
+                <strong>19 shutdown-dependent changes</strong>
+                <p>Strategy improvements that require outage access and coordination with production windows.</p>
+              </article>
+              <article class="analysis-callout">
+                <strong>Labour bottlenecks remain dominant</strong>
+                <p>Fitter and planner availability continues to defer the highest-value interventions.</p>
+              </article>
+            </div>
+          </section>
+
+          <section id="priority-opportunities" class="panel-card">
+            <div class="section-heading section-heading--compact">
+              <h3>Priority opportunity logic</h3>
+              <p>How the top opportunities were ranked for manager review.</p>
+            </div>
+            <div class="logic-list">
+              <div class="logic-row">
+                <strong>Value</strong>
+                <span>Combines direct maintenance cost, avoided downtime, and intervention timing.</span>
+              </div>
+              <div class="logic-row">
+                <strong>Risk</strong>
+                <span>Weights safety, environment, production, and detectability of control gaps.</span>
+              </div>
+              <div class="logic-row">
+                <strong>Actionability</strong>
+                <span>Accounts for shutdown access, task packaging effort, labour constraints, and data readiness.</span>
+              </div>
+              <div class="logic-row">
+                <strong>Confidence</strong>
+                <span>Downweights recommendations where history, master data, or task standards are incomplete.</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <footer class="workspace-footer">
+          <p><strong>Advanced Analysis</strong> | Deeper reasoning behind the Reliability Insights overview</p>
+          <p>Use this page to validate assumptions before approving strategy changes</p>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

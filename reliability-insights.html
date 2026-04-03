@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reliability Insights Overview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="light">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <a class="sidebar-logo" href="index.html" aria-label="AgenticAI home">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+            <path d="M9 8v8M15 8l-4 4 4 4"></path>
+          </svg>
+        </a>
+        <div class="sidebar__brand-copy">
+          <strong>AgenticAI</strong>
+          <span>Reliability workspace</span>
+        </div>
+      </div>
+
+      <button class="org-switcher" aria-label="Current workspace">
+        <span>Namin</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6"></path>
+        </svg>
+      </button>
+
+      <nav class="sidebar-nav" aria-label="Primary">
+        <a class="nav-pill" href="index.html">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+            </svg>
+          </span>
+          <span>Home</span>
+        </a>
+        <button class="nav-pill is-active">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>
+            </svg>
+          </span>
+          <span>Reliability Insights</span>
+        </button>
+      </nav>
+
+      <div class="sidebar__section-label">Administration</div>
+      <nav class="sidebar-nav sidebar-nav--stacked" aria-label="Administration">
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"></path>
+            </svg>
+          </span>
+          <span>Admin Dashboard</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20a7 7 0 0 1 14 0"></path>
+            </svg>
+          </span>
+          <span>Users</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 5h12v14H6zM9 9h6M9 13h6"></path>
+            </svg>
+          </span>
+          <span>Organizations</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M17 7.5c0-1.9-1.8-3.5-5-3.5s-5 1.6-5 3.5 1.4 2.9 5 3.5 5 1.6 5 3.5-1.8 3.5-5 3.5-5-1.6-5-3.5"></path>
+            </svg>
+          </span>
+          <span>AI Config</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a class="nav-row nav-row--footer" href="advanced-analysis.html">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M7 4v16M17 4v16"></path>
+            </svg>
+          </span>
+          <span>Advanced analysis</span>
+        </a>
+        <section class="upgrade-card">
+          <div class="upgrade-card__title">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13 2L4 14h6l-1 8 9-12h-6z"></path>
+            </svg>
+            <strong>Control tower</strong>
+          </div>
+          <p>Prioritize value leakage, exposure, and actionability across the site.</p>
+          <a class="upgrade-button insights-link-button" href="advanced-analysis.html">Open deep dive</a>
+        </section>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="search-shell">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6"></circle>
+            <path d="M20 20l-4.35-4.35"></path>
+          </svg>
+          <input type="search" placeholder="Search assets, areas, or issues..." aria-label="Search">
+          <span class="shortcut">Ctrl+K</span>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="themeToggle" class="icon-button" aria-label="Toggle theme">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+          </button>
+          <button class="icon-button" aria-label="Share insights">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 8a3 3 0 1 0-2.83-4H12a3 3 0 0 0 .17 1L8.9 8.27a3 3 0 0 0-1.9-.67A3 3 0 1 0 10 10.1l3.26 1.87A3 3 0 1 0 15 15c0-.28-.04-.55-.11-.81l-3.28-1.88c.01-.1.02-.21.02-.31 0-.11-.01-.22-.02-.32l3.27-1.87c.36.12.74.19 1.12.19z"></path>
+            </svg>
+          </button>
+          <button class="icon-button" aria-label="Profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20a7 7 0 0 1 14 0"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace workspace--wide">
+        <section class="page-header page-header--insights">
+          <div class="page-header__copy">
+            <span class="section-label">Site overview</span>
+            <h1>Reliability Insights</h1>
+            <p>Surfaces cost, risk, and operational trade-offs in your maintenance strategy</p>
+          </div>
+          <div class="page-header__actions">
+            <button class="secondary-button">Filters</button>
+            <button class="secondary-button">Export</button>
+            <a class="primary-button insights-link-button" href="advanced-analysis.html">Open advanced analysis</a>
+          </div>
+        </section>
+
+        <section class="kpi-grid" aria-label="Summary KPIs">
+          <article class="kpi-card">
+            <span class="kpi-card__label">Items assessed</span>
+            <strong>1,248</strong>
+            <p>Across mobile plant, fixed plant, and site services</p>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-card__label">Annual maintenance spend</span>
+            <strong>$18.4M</strong>
+            <p>Includes PM labour, shutdown work, and contractor support</p>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-card__label">Potential value available</span>
+            <strong>$3.2M</strong>
+            <p>Cost and production value unlocked through strategy changes</p>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-card__label">Uncontrolled risk exposures</span>
+            <strong>37</strong>
+            <p>Material gaps tied to safety, environment, or production loss</p>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-card__label">Constrained actions</span>
+            <strong>54</strong>
+            <p>Recommended changes blocked by execution constraints</p>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-card__label">High-criticality population</span>
+            <strong>216</strong>
+            <p>Assets where strategy gaps have the greatest consequence</p>
+          </article>
+        </section>
+
+        <section class="axis-grid" aria-label="Value axes">
+          <a class="axis-card axis-card--economic" href="advanced-analysis.html#economic">
+            <div class="axis-card__header">
+              <span class="axis-card__eyebrow">Economic</span>
+              <span class="axis-chip axis-chip--economic">Value leakage</span>
+            </div>
+            <strong class="axis-card__headline">$2.4M potential value available</strong>
+            <div class="axis-stats">
+              <div>
+                <span>Over-maintained assets</span>
+                <strong>83</strong>
+              </div>
+              <div>
+                <span>Low-value PM cost</span>
+                <strong>$940k</strong>
+              </div>
+            </div>
+            <p>Preventive effort is concentrated in low-consequence areas while higher-return changes remain untapped.</p>
+            <span class="axis-card__cta">View economic issues</span>
+          </a>
+
+          <a class="axis-card axis-card--risk" href="advanced-analysis.html#risk">
+            <div class="axis-card__header">
+              <span class="axis-card__eyebrow">Risk</span>
+              <span class="axis-chip axis-chip--risk">Exposure</span>
+            </div>
+            <strong class="axis-card__headline">37 risk exposures identified</strong>
+            <div class="axis-stats">
+              <div>
+                <span>Safety-critical gaps</span>
+                <strong>11</strong>
+              </div>
+              <div>
+                <span>Estimated production exposure</span>
+                <strong>$5.8M</strong>
+              </div>
+            </div>
+            <p>Several high-consequence failure paths remain weakly controlled despite significant business exposure.</p>
+            <span class="axis-card__cta">View risk issues</span>
+          </a>
+
+          <a class="axis-card axis-card--operational" href="advanced-analysis.html#operational">
+            <div class="axis-card__header">
+              <span class="axis-card__eyebrow">Operational</span>
+              <span class="axis-chip axis-chip--operational">Actionability</span>
+            </div>
+            <strong class="axis-card__headline">54 constrained actions</strong>
+            <div class="axis-stats">
+              <div>
+                <span>Shutdown-required actions</span>
+                <strong>19</strong>
+              </div>
+              <div>
+                <span>Route, labour, packaging issues</span>
+                <strong>28</strong>
+              </div>
+            </div>
+            <p>High-value interventions are known, but site execution capacity and planning design are limiting delivery.</p>
+            <span class="axis-card__cta">View operational issues</span>
+          </a>
+        </section>
+
+        <div class="insights-main-grid">
+          <div class="insights-main-column">
+            <section class="panel-card">
+              <div class="section-heading section-heading--compact">
+                <h3>Opportunity concentration</h3>
+                <p>Summary visuals to show where value, exposure, and constraints are concentrated.</p>
+              </div>
+
+              <div class="visual-grid">
+                <article class="visual-card">
+                  <div class="visual-card__header">
+                    <h4>Potential value by area</h4>
+                    <span class="badge">Economic</span>
+                  </div>
+                  <div class="bar-list">
+                    <div class="bar-row">
+                      <div class="bar-row__copy">
+                        <strong>Processing plant</strong>
+                        <span>$1.12M</span>
+                      </div>
+                      <div class="bar-track"><span style="width: 100%;"></span></div>
+                    </div>
+                    <div class="bar-row">
+                      <div class="bar-row__copy">
+                        <strong>Mobile fleet</strong>
+                        <span>$760k</span>
+                      </div>
+                      <div class="bar-track"><span style="width: 68%;"></span></div>
+                    </div>
+                    <div class="bar-row">
+                      <div class="bar-row__copy">
+                        <strong>Water services</strong>
+                        <span>$420k</span>
+                      </div>
+                      <div class="bar-track"><span style="width: 38%;"></span></div>
+                    </div>
+                    <div class="bar-row">
+                      <div class="bar-row__copy">
+                        <strong>Port utilities</strong>
+                        <span>$310k</span>
+                      </div>
+                      <div class="bar-track"><span style="width: 28%;"></span></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="visual-card">
+                  <div class="visual-card__header">
+                    <h4>Risk exposures by criticality</h4>
+                    <span class="badge">Risk</span>
+                  </div>
+                  <div class="stacked-metric">
+                    <div class="stacked-metric__bar">
+                      <span class="stacked-metric__segment stacked-metric__segment--critical" style="width: 42%;"></span>
+                      <span class="stacked-metric__segment stacked-metric__segment--high" style="width: 33%;"></span>
+                      <span class="stacked-metric__segment stacked-metric__segment--medium" style="width: 25%;"></span>
+                    </div>
+                    <div class="stacked-legend">
+                      <span><i class="legend-dot legend-dot--critical"></i> Critical 16</span>
+                      <span><i class="legend-dot legend-dot--high"></i> High 12</span>
+                      <span><i class="legend-dot legend-dot--medium"></i> Medium 9</span>
+                    </div>
+                  </div>
+                  <p class="visual-note">Most uncontrolled exposure sits in high-criticality assets where failure consequences exceed current controls.</p>
+                </article>
+
+                <article class="visual-card">
+                  <div class="visual-card__header">
+                    <h4>Issues by value axis</h4>
+                    <span class="badge">Mix</span>
+                  </div>
+                  <div class="axis-mix">
+                    <div class="axis-mix__ring">
+                      <span class="axis-mix__center">128<br><small>total issues</small></span>
+                    </div>
+                    <div class="axis-mix__legend">
+                      <span class="axis-mix__economic">Economic 46</span>
+                      <span class="axis-mix__risk">Risk 37</span>
+                      <span class="axis-mix__operational">Operational 45</span>
+                    </div>
+                  </div>
+                  <p class="visual-note">The issue load is balanced across value, exposure, and execution, so prioritization needs cross-functional trade-offs.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-heading section-heading--compact">
+                <h3>Priority opportunities</h3>
+                <p>Top 5 opportunities to review first before opening the full issue analysis.</p>
+              </div>
+
+              <div class="priority-list">
+                <article class="priority-item">
+                  <div class="priority-item__main">
+                    <div class="priority-item__title-row">
+                      <strong>Crushing and conveying</strong>
+                      <span class="axis-pill axis-pill--economic">Economic</span>
+                    </div>
+                    <h4>Excessive weekly inspections on low-failure conveyor drives</h4>
+                    <p>Potential cost impact <strong>$420k</strong> · Risk impact <strong>Low to moderate</strong> · Key constraint <strong>Route redesign</strong></p>
+                  </div>
+                  <a class="priority-item__cta" href="advanced-analysis.html#priority-opportunities">Open issue</a>
+                </article>
+
+                <article class="priority-item">
+                  <div class="priority-item__main">
+                    <div class="priority-item__title-row">
+                      <strong>Paste plant</strong>
+                      <span class="axis-pill axis-pill--risk">Risk</span>
+                    </div>
+                    <h4>Safety-critical bund monitoring tasks missing from active strategy</h4>
+                    <p>Potential cost impact <strong>$110k</strong> · Risk impact <strong>High</strong> · Key constraint <strong>Data quality</strong></p>
+                  </div>
+                  <a class="priority-item__cta" href="advanced-analysis.html#priority-opportunities">Open issue</a>
+                </article>
+
+                <article class="priority-item">
+                  <div class="priority-item__main">
+                    <div class="priority-item__title-row">
+                      <strong>Load and haul</strong>
+                      <span class="axis-pill axis-pill--operational">Operational</span>
+                    </div>
+                    <h4>High-value interventions stalled by fitter capacity during shutdown windows</h4>
+                    <p>Potential cost impact <strong>$360k</strong> · Risk impact <strong>Moderate</strong> · Key constraint <strong>Labour capacity</strong></p>
+                  </div>
+                  <a class="priority-item__cta" href="advanced-analysis.html#priority-opportunities">Open issue</a>
+                </article>
+
+                <article class="priority-item">
+                  <div class="priority-item__main">
+                    <div class="priority-item__title-row">
+                      <strong>Tailings pumping</strong>
+                      <span class="axis-pill axis-pill--risk">Risk</span>
+                    </div>
+                    <h4>Pump seal failure path has weak detection coverage in high-consequence service</h4>
+                    <p>Potential cost impact <strong>$290k</strong> · Risk impact <strong>Severe</strong> · Key constraint <strong>Shutdown required</strong></p>
+                  </div>
+                  <a class="priority-item__cta" href="advanced-analysis.html#priority-opportunities">Open issue</a>
+                </article>
+
+                <article class="priority-item">
+                  <div class="priority-item__main">
+                    <div class="priority-item__title-row">
+                      <strong>Water recovery</strong>
+                      <span class="axis-pill axis-pill--economic">Economic</span>
+                    </div>
+                    <h4>Task packaging duplicates planner effort across low-criticality pump trains</h4>
+                    <p>Potential cost impact <strong>$180k</strong> · Risk impact <strong>Low</strong> · Key constraint <strong>Task packaging</strong></p>
+                  </div>
+                  <a class="priority-item__cta" href="advanced-analysis.html#priority-opportunities">Open issue</a>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <aside class="insights-side-column">
+            <section class="panel-card">
+              <div class="section-heading section-heading--compact">
+                <h3>Constraints Snapshot</h3>
+                <p>Execution blockers limiting delivery of recommended changes.</p>
+              </div>
+              <div class="snapshot-list">
+                <div class="snapshot-row">
+                  <span>Labour capacity</span>
+                  <strong>18</strong>
+                </div>
+                <div class="snapshot-row">
+                  <span>Shutdown required</span>
+                  <strong>19</strong>
+                </div>
+                <div class="snapshot-row">
+                  <span>Route redesign</span>
+                  <strong>11</strong>
+                </div>
+                <div class="snapshot-row">
+                  <span>Task packaging</span>
+                  <strong>8</strong>
+                </div>
+                <div class="snapshot-row">
+                  <span>Data quality</span>
+                  <strong>13</strong>
+                </div>
+                <div class="snapshot-row">
+                  <span>SAP / master data limitations</span>
+                  <strong>7</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-heading section-heading--compact">
+                <h3>Confidence Snapshot</h3>
+                <p>Recommendation strength based on data completeness and evidence quality.</p>
+              </div>
+              <div class="confidence-stack">
+                <div class="confidence-band confidence-band--high">
+                  <span>High confidence</span>
+                  <strong>52</strong>
+                </div>
+                <div class="confidence-band confidence-band--medium">
+                  <span>Medium confidence</span>
+                  <strong>49</strong>
+                </div>
+                <div class="confidence-band confidence-band--low">
+                  <span>Low confidence</span>
+                  <strong>27</strong>
+                </div>
+              </div>
+              <p class="snapshot-note">Low confidence is mainly driven by sparse failure history, incomplete task times, and inconsistent master-data coding.</p>
+            </section>
+
+            <a class="advanced-tile" href="advanced-analysis.html">
+              <span class="advanced-tile__eyebrow">Advanced Analysis</span>
+              <strong>Open supporting data, assumptions, and recommendation logic</strong>
+              <p>Trace why opportunities were ranked, what evidence supports them, and which assumptions reduce confidence.</p>
+              <span class="advanced-tile__cta">Go to advanced analysis</span>
+            </a>
+          </aside>
+        </div>
+
+        <footer class="workspace-footer">
+          <p><strong>Reliability Insights</strong> | Summary-first overview for maintenance managers and reliability teams</p>
+          <p>Optimized for value leakage, exposure, actionability, and navigation into deeper analysis</p>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
