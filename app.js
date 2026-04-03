@@ -2,10 +2,10 @@ const toolDefinitions = {
   maintenance: {
     title: "Maintenance Strategy Generator",
     description:
-      "Define failure characteristics, create mitigation charcteristics and simulate CBA.",
+      "Generate structured maintenance strategies, tasks, and intervals with guardrails.",
     meta: [
-      "ISO 550009 compatible",
-      "Dashboard insight",
+      "RCM aligned",
+      "Task library",
       "Export ready",
     ],
     action: "Create new strategy",
