@@ -1,6 +1,6 @@
 const toolDefinitions = {
   maintenance: {
-    title: "Maintenacne Strategy Generator",
+    title: "Maintenance Strategy Generator",
     description:
       "Define failure characteristics, create mitigation charcteristics and simulate CBA.",
     meta: [
