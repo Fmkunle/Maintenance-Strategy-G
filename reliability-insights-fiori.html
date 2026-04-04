@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reliability Insights Overview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="fiori-overview-page" data-theme="light">
+  <div class="fiori-shell">
+    <header class="fiori-shellbar">
+      <div class="fiori-shellbar__brand">
+        <span class="fiori-shellbar__logo">SAP</span>
+        <div class="fiori-shellbar__titles">
+          <strong>Reliability Workspace</strong>
+          <span>Maintenance Strategy Oversight</span>
+        </div>
+      </div>
+
+      <div class="fiori-shellbar__search" aria-label="Global search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6"></circle>
+          <path d="M20 20l-4.35-4.35"></path>
+        </svg>
+        <span>Search in app</span>
+      </div>
+
+      <div class="fiori-shellbar__actions">
+        <button class="fiori-shellbar__icon" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 8a6 6 0 1 1 12 0v5l2 3H4l2-3z"></path>
+            <path d="M10 19a2 2 0 0 0 4 0"></path>
+          </svg>
+        </button>
+        <button class="fiori-shellbar__icon" aria-label="Help">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.8-1.7 1.3-1.7 2.7"></path>
+            <path d="M12 17h.01"></path>
+          </svg>
+        </button>
+        <span class="fiori-shellbar__avatar">NA</span>
+      </div>
+    </header>
+
+    <main class="fiori-page">
+      <section class="fiori-page-header">
+        <div class="fiori-page-header__title">
+          <span class="fiori-page-header__variant">Standard View</span>
+          <h1>Reliability Insights</h1>
+          <p>Overview of maintenance strategy value, exposure, and execution constraints.</p>
+        </div>
+
+        <div class="fiori-page-header__actions">
+          <button class="fiori-button fiori-button--ghost">Export</button>
+          <button class="fiori-button fiori-button--ghost">Adapt Filters</button>
+          <a class="fiori-button fiori-button--primary" href="#priority-issues">Open Issue Analysis</a>
+        </div>
+      </section>
+
+      <section class="fiori-filter-bar" aria-label="Context filters">
+        <div class="fiori-filter-field">
+          <label>Site</label>
+          <button>Cloudbreak</button>
+        </div>
+        <div class="fiori-filter-field">
+          <label>Area</label>
+          <button>All Areas</button>
+        </div>
+        <div class="fiori-filter-field">
+          <label>Asset class</label>
+          <button>Fixed Plant + Mobile</button>
+        </div>
+        <div class="fiori-filter-field">
+          <label>Criticality</label>
+          <button>High / Critical</button>
+        </div>
+        <div class="fiori-filter-field">
+          <label>Review period</label>
+          <button>Q2 FY26</button>
+        </div>
+      </section>
+
+      <section class="fiori-kpi-grid" aria-label="Summary metrics">
+        <article class="fiori-kpi-card">
+          <span class="fiori-kpi-card__label">Items assessed</span>
+          <strong>1,248</strong>
+          <span class="fiori-kpi-card__hint">Current scope</span>
+        </article>
+        <article class="fiori-kpi-card">
+          <span class="fiori-kpi-card__label">Potential savings</span>
+          <strong>$2.4M</strong>
+          <span class="fiori-kpi-card__hint">Identified value</span>
+        </article>
+        <article class="fiori-kpi-card">
+          <span class="fiori-kpi-card__label">Risk gaps</span>
+          <strong>37</strong>
+          <span class="fiori-kpi-card__hint">Open exposure items</span>
+        </article>
+        <article class="fiori-kpi-card">
+          <span class="fiori-kpi-card__label">Blocked recommendations</span>
+          <strong>54</strong>
+          <span class="fiori-kpi-card__hint">Execution constraints</span>
+        </article>
+        <article class="fiori-kpi-card">
+          <span class="fiori-kpi-card__label">High-criticality assets</span>
+          <strong>216</strong>
+          <span class="fiori-kpi-card__hint">Within review population</span>
+        </article>
+      </section>
+
+      <section class="fiori-analytics-grid" aria-label="Axis summaries">
+        <article class="fiori-analytic-card fiori-analytic-card--economic">
+          <div class="fiori-analytic-card__header">
+            <h2>Economic</h2>
+            <span class="fiori-status fiori-status--economic">Value</span>
+          </div>
+          <strong class="fiori-analytic-card__value">$2.4M</strong>
+          <div class="fiori-analytic-card__metrics">
+            <span>83 over-maintained assets</span>
+            <span>$940k low-value PM cost</span>
+          </div>
+          <div class="fiori-progress">
+            <span class="fiori-progress__bar fiori-progress__bar--economic" style="width: 68%;"></span>
+          </div>
+        </article>
+
+        <article class="fiori-analytic-card fiori-analytic-card--risk">
+          <div class="fiori-analytic-card__header">
+            <h2>Risk</h2>
+            <span class="fiori-status fiori-status--risk">Exposure</span>
+          </div>
+          <strong class="fiori-analytic-card__value">37</strong>
+          <div class="fiori-analytic-card__metrics">
+            <span>11 safety-critical gaps</span>
+            <span>$5.8M production exposure</span>
+          </div>
+          <div class="fiori-progress">
+            <span class="fiori-progress__bar fiori-progress__bar--risk" style="width: 72%;"></span>
+          </div>
+        </article>
+
+        <article class="fiori-analytic-card fiori-analytic-card--operational">
+          <div class="fiori-analytic-card__header">
+            <h2>Operational</h2>
+            <span class="fiori-status fiori-status--operational">Blocked</span>
+          </div>
+          <strong class="fiori-analytic-card__value">54</strong>
+          <div class="fiori-analytic-card__metrics">
+            <span>19 shutdown-dependent</span>
+            <span>18 labour-constrained</span>
+          </div>
+          <div class="fiori-progress">
+            <span class="fiori-progress__bar fiori-progress__bar--operational" style="width: 63%;"></span>
+          </div>
+        </article>
+      </section>
+
+      <section class="fiori-chart-grid" aria-label="Analytical charts">
+        <article class="fiori-chart-card">
+          <div class="fiori-card-header">
+            <div>
+              <h2>Savings by area</h2>
+              <p>Largest current value concentration</p>
+            </div>
+          </div>
+
+          <div class="fiori-bar-chart">
+            <div class="fiori-bar-row">
+              <div class="fiori-bar-row__meta">
+                <span>Processing plant</span>
+                <strong>$1.12M</strong>
+              </div>
+              <div class="fiori-bar-row__track"><span style="width: 100%;"></span></div>
+            </div>
+            <div class="fiori-bar-row">
+              <div class="fiori-bar-row__meta">
+                <span>Mobile fleet</span>
+                <strong>$760k</strong>
+              </div>
+              <div class="fiori-bar-row__track"><span style="width: 68%;"></span></div>
+            </div>
+            <div class="fiori-bar-row">
+              <div class="fiori-bar-row__meta">
+                <span>Water services</span>
+                <strong>$420k</strong>
+              </div>
+              <div class="fiori-bar-row__track"><span style="width: 38%;"></span></div>
+            </div>
+            <div class="fiori-bar-row">
+              <div class="fiori-bar-row__meta">
+                <span>Port utilities</span>
+                <strong>$310k</strong>
+              </div>
+              <div class="fiori-bar-row__track"><span style="width: 28%;"></span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="fiori-chart-card">
+          <div class="fiori-card-header">
+            <div>
+              <h2>Blocked actions by category</h2>
+              <p>Most common implementation constraints</p>
+            </div>
+          </div>
+
+          <div class="fiori-bar-chart">
+            <div class="fiori-bar-row fiori-bar-row--neutral">
+              <div class="fiori-bar-row__meta">
+                <span>Shutdown access</span>
+                <strong>19</strong>
+              </div>
+              <div class="fiori-bar-row__track"><span style="width: 100%;"></span></div>
+            </div>
+            <div class="fiori-bar-row fiori-bar-row--neutral">
+              <div class="fiori-bar-row__meta">
+                <span>Labour capacity</span>
+                <strong>18</strong>
+              </div>
+              <div class="fiori-bar-row__track"><span style="width: 95%;"></span></div>
+            </div>
+            <div class="fiori-bar-row fiori-bar-row--neutral">
+              <div class="fiori-bar-row__meta">
+                <span>Data quality</span>
+                <strong>13</strong>
+              </div>
+              <div class="fiori-bar-row__track"><span style="width: 68%;"></span></div>
+            </div>
+            <div class="fiori-bar-row fiori-bar-row--neutral">
+              <div class="fiori-bar-row__meta">
+                <span>Route redesign</span>
+                <strong>11</strong>
+              </div>
+              <div class="fiori-bar-row__track"><span style="width: 58%;"></span></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="priority-issues" class="fiori-table-card">
+        <div class="fiori-card-header">
+          <div>
+            <h2>Priority issues</h2>
+            <p>Top issues for follow-up and drill-down</p>
+          </div>
+          <a class="fiori-link" href="advanced-analysis.html#priority-opportunities">Open issue analysis</a>
+        </div>
+
+        <div class="fiori-table-wrap">
+          <table class="fiori-table">
+            <thead>
+              <tr>
+                <th>Area / asset group</th>
+                <th>Issue</th>
+                <th>Axis</th>
+                <th>Impact</th>
+                <th>Constraint</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Crushing and conveying</td>
+                <td>Low-return weekly inspections on conveyor drives</td>
+                <td><span class="fiori-axis-tag fiori-axis-tag--economic">Economic</span></td>
+                <td>$420k savings</td>
+                <td>Route redesign</td>
+                <td>High</td>
+              </tr>
+              <tr>
+                <td>Paste plant</td>
+                <td>Missing monitoring coverage on bund systems</td>
+                <td><span class="fiori-axis-tag fiori-axis-tag--risk">Risk</span></td>
+                <td>High exposure</td>
+                <td>Data quality</td>
+                <td>Medium</td>
+              </tr>
+              <tr>
+                <td>Load and haul</td>
+                <td>Deferred interventions blocked by labour capacity</td>
+                <td><span class="fiori-axis-tag fiori-axis-tag--operational">Operational</span></td>
+                <td>$360k savings</td>
+                <td>Shutdown and labour</td>
+                <td>Medium</td>
+              </tr>
+              <tr>
+                <td>Tailings pumping</td>
+                <td>Weak detection coverage on pump seal failure path</td>
+                <td><span class="fiori-axis-tag fiori-axis-tag--risk">Risk</span></td>
+                <td>Severe consequence</td>
+                <td>Shutdown access</td>
+                <td>Medium</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="fiori-secondary-nav">
+        <a class="fiori-link" href="advanced-analysis.html">Advanced analysis: assumptions, supporting data, and recommendation logic</a>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

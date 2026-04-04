@@ -1742,6 +1742,502 @@ body[data-theme="dark"] .axis-card--calm {
   padding-top: 8px;
 }
 
+/* SAP Fiori-style Reliability Insights overview. */
+body.fiori-overview-page {
+  background: #f5f6f7;
+  color: #1d2d3e;
+  font-family: "72", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+.fiori-overview-page .app-shell,
+.fiori-overview-page .main-shell,
+.fiori-overview-page .workspace,
+.fiori-overview-page .workspace--wide {
+  display: block;
+  max-width: none;
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.fiori-shell {
+  min-height: 100vh;
+  background: #f5f6f7;
+}
+
+.fiori-shellbar {
+  height: 2.75rem;
+  padding: 0 1rem;
+  background: #354a5f;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fiori-shellbar__brand,
+.fiori-shellbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fiori-shellbar__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 1.5rem;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #0a6ed1 0%, #0a6ed1 58%, #53b8ff 58%, #53b8ff 100%);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.fiori-shellbar__titles strong,
+.fiori-shellbar__titles span {
+  display: block;
+}
+
+.fiori-shellbar__titles strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.fiori-shellbar__titles span {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.fiori-shellbar__search {
+  min-width: min(34rem, 48vw);
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.82rem;
+}
+
+.fiori-shellbar__search svg,
+.fiori-shellbar__icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.fiori-shellbar__icon {
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #ffffff;
+}
+
+.fiori-shellbar__avatar {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: #d1e8ff;
+  color: #0a6ed1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.fiori-page {
+  padding: 1rem 1rem 2rem;
+}
+
+.fiori-page-header,
+.fiori-filter-bar,
+.fiori-kpi-card,
+.fiori-analytic-card,
+.fiori-chart-card,
+.fiori-table-card {
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 0.75rem;
+  box-shadow: 0 0.125rem 0.5rem rgba(34, 53, 72, 0.05);
+}
+
+.fiori-page-header {
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fiori-page-header__variant {
+  display: inline-flex;
+  margin-bottom: 0.35rem;
+  color: #0a6ed1;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fiori-page-header__title h1,
+.fiori-card-header h2 {
+  margin: 0;
+}
+
+.fiori-page-header__title h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 400;
+  color: #223548;
+}
+
+.fiori-page-header__title p {
+  margin: 0.35rem 0 0;
+  color: #5b738b;
+  font-size: 0.88rem;
+}
+
+.fiori-page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.fiori-button {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid #85b5e5;
+  background: #ffffff;
+  color: #0a6ed1;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fiori-button--primary {
+  background: #0a6ed1;
+  border-color: #0a6ed1;
+  color: #ffffff;
+}
+
+.fiori-button--ghost {
+  background: #ffffff;
+}
+
+.fiori-filter-bar {
+  margin-top: 0.75rem;
+  padding: 0.875rem 1rem;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.fiori-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fiori-filter-field label {
+  color: #5b738b;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.fiori-filter-field button {
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid #c9d4e0;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #223548;
+  text-align: left;
+}
+
+.fiori-kpi-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.fiori-kpi-card {
+  padding: 0.95rem 1rem;
+}
+
+.fiori-kpi-card__label,
+.fiori-kpi-card__hint,
+.fiori-analytic-card__metrics span,
+.fiori-card-header p,
+.fiori-bar-row__meta span,
+.fiori-table th,
+.fiori-link {
+  color: #5b738b;
+}
+
+.fiori-kpi-card__label {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.fiori-kpi-card strong {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 1.8rem;
+  line-height: 1.05;
+  font-weight: 400;
+  color: #223548;
+}
+
+.fiori-kpi-card__hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.76rem;
+}
+
+.fiori-analytics-grid,
+.fiori-chart-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.fiori-analytics-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fiori-chart-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fiori-analytic-card,
+.fiori-chart-card,
+.fiori-table-card {
+  padding: 1rem 1rem 1.1rem;
+}
+
+.fiori-analytic-card__header,
+.fiori-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fiori-analytic-card__header h2,
+.fiori-card-header h2 {
+  font-size: 1rem;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #223548;
+}
+
+.fiori-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.fiori-status--economic {
+  background: #ebf9f0;
+  color: #256f3a;
+}
+
+.fiori-status--risk {
+  background: #fdeae9;
+  color: #aa0808;
+}
+
+.fiori-status--operational {
+  background: #ebf5fe;
+  color: #0a6ed1;
+}
+
+.fiori-analytic-card__value {
+  display: block;
+  margin-top: 0.8rem;
+  font-size: 2.1rem;
+  line-height: 1.05;
+  font-weight: 300;
+  color: #223548;
+}
+
+.fiori-analytic-card__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.7rem;
+  font-size: 0.8rem;
+}
+
+.fiori-progress {
+  width: 100%;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: #edf1f5;
+  overflow: hidden;
+  margin-top: 0.85rem;
+}
+
+.fiori-progress__bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.fiori-progress__bar--economic {
+  background: #30914c;
+}
+
+.fiori-progress__bar--risk {
+  background: #bb0000;
+}
+
+.fiori-progress__bar--operational {
+  background: #0a6ed1;
+}
+
+.fiori-card-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+}
+
+.fiori-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.fiori-bar-row__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.fiori-bar-row__meta strong {
+  color: #223548;
+  font-weight: 600;
+}
+
+.fiori-bar-row__track {
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #edf1f5;
+  overflow: hidden;
+}
+
+.fiori-bar-row__track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #0a6ed1;
+}
+
+.fiori-bar-row:not(.fiori-bar-row--neutral) .fiori-bar-row__track span {
+  background: linear-gradient(90deg, #0a6ed1 0%, #4a90e2 100%);
+}
+
+.fiori-bar-row--neutral .fiori-bar-row__track span {
+  background: #8797a8;
+}
+
+.fiori-table-card {
+  margin-top: 0.9rem;
+}
+
+.fiori-table-wrap {
+  margin-top: 0.85rem;
+  overflow-x: auto;
+}
+
+.fiori-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 52rem;
+}
+
+.fiori-table th,
+.fiori-table td {
+  padding: 0.8rem 0.75rem;
+  border-bottom: 1px solid #e5eaf0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.fiori-table th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.fiori-table td {
+  font-size: 0.82rem;
+  color: #223548;
+}
+
+.fiori-axis-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.fiori-axis-tag--economic {
+  background: #ebf9f0;
+  color: #256f3a;
+}
+
+.fiori-axis-tag--risk {
+  background: #fdeae9;
+  color: #aa0808;
+}
+
+.fiori-axis-tag--operational {
+  background: #ebf5fe;
+  color: #0a6ed1;
+}
+
+.fiori-link {
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.fiori-link:hover {
+  color: #0a6ed1;
+}
+
+.fiori-secondary-nav {
+  margin-top: 0.9rem;
+  padding: 0.25rem 0 0.5rem;
+}
+
 /* Responsive guardrails for the landing page and Reliability Insights views. */
 @media (max-width: 1280px) {
   .app-shell {
@@ -1762,6 +2258,11 @@ body[data-theme="dark"] .axis-card--calm {
 
   .visual-grid {
     grid-template-columns: 1fr;
+  }
+
+  .fiori-filter-bar,
+  .fiori-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1784,6 +2285,20 @@ body[data-theme="dark"] .axis-card--calm {
   .analysis-callouts {
     grid-template-columns: 1fr;
   }
+
+  .fiori-page-header,
+  .fiori-analytics-grid,
+  .fiori-chart-grid,
+  .fiori-filter-bar,
+  .fiori-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fiori-page-header,
+  .fiori-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1803,6 +2318,17 @@ body[data-theme="dark"] .axis-card--calm {
   .welcome-side,
   .kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .fiori-shellbar {
+    height: auto;
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fiori-shellbar__search {
+    min-width: 0;
   }
 }
 
@@ -1859,5 +2385,21 @@ body[data-theme="dark"] .axis-card--calm {
 
   .focus-row__label span {
     text-align: left;
+  }
+
+  .fiori-page {
+    padding: 0.75rem;
+  }
+
+  .fiori-page-header__actions,
+  .fiori-filter-bar,
+  .fiori-kpi-grid,
+  .fiori-analytics-grid,
+  .fiori-chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fiori-button {
+    width: 100%;
   }
 }

@@ -24,7 +24,7 @@ const toolDefinitions = {
     ],
     action: "Open insights",
     secondaryAction: "Open existing",
-    actionHref: "reliability-insights-overview.html",
+    actionHref: "reliability-insights-fiori.html",
   },
   fmea: {
     title: "AI-Assisted FMEA Builder",
