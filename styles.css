@@ -1744,9 +1744,70 @@ body[data-theme="dark"] .axis-card--calm {
 
 /* SAP Fiori-style Reliability Insights overview. */
 body.fiori-overview-page {
-  background: #f5f6f7;
-  color: #1d2d3e;
+  --fiori-app-bg: #f5f6f7;
+  --fiori-shell-bg: #354a5f;
+  --fiori-shell-text: #ffffff;
+  --fiori-search-bg: rgba(255, 255, 255, 0.14);
+  --fiori-search-text: rgba(255, 255, 255, 0.86);
+  --fiori-avatar-bg: #d1e8ff;
+  --fiori-avatar-text: #0a6ed1;
+  --fiori-card-bg: #ffffff;
+  --fiori-card-border: #d9d9d9;
+  --fiori-card-shadow: 0 0.125rem 0.5rem rgba(34, 53, 72, 0.05);
+  --fiori-text: #223548;
+  --fiori-text-muted: #5b738b;
+  --fiori-link: #0a6ed1;
+  --fiori-button-border: #85b5e5;
+  --fiori-button-bg: #ffffff;
+  --fiori-button-text: #0a6ed1;
+  --fiori-button-primary-bg: #0a6ed1;
+  --fiori-button-primary-text: #ffffff;
+  --fiori-field-border: #c9d4e0;
+  --fiori-field-bg: #ffffff;
+  --fiori-track: #edf1f5;
+  --fiori-row-border: #e5eaf0;
+  --fiori-neutral-bar: #8797a8;
+  --fiori-economic-soft: #ebf9f0;
+  --fiori-economic-text: #256f3a;
+  --fiori-risk-soft: #fdeae9;
+  --fiori-risk-text: #aa0808;
+  --fiori-operational-soft: #ebf5fe;
+  --fiori-operational-text: #0a6ed1;
+  background: var(--fiori-app-bg);
+  color: var(--fiori-text);
   font-family: "72", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+body.fiori-overview-page[data-theme="dark"] {
+  --fiori-app-bg: #1f2a37;
+  --fiori-shell-bg: #29394d;
+  --fiori-shell-text: #f5f7f9;
+  --fiori-search-bg: rgba(255, 255, 255, 0.08);
+  --fiori-search-text: rgba(255, 255, 255, 0.82);
+  --fiori-avatar-bg: #1d4f91;
+  --fiori-avatar-text: #d8ebff;
+  --fiori-card-bg: #253344;
+  --fiori-card-border: #3a4c60;
+  --fiori-card-shadow: 0 0.2rem 0.8rem rgba(0, 0, 0, 0.18);
+  --fiori-text: #eef3f8;
+  --fiori-text-muted: #b8c7d6;
+  --fiori-link: #7cc0ff;
+  --fiori-button-border: #5f86ad;
+  --fiori-button-bg: #2a3a4d;
+  --fiori-button-text: #d8ebff;
+  --fiori-button-primary-bg: #0a6ed1;
+  --fiori-button-primary-text: #ffffff;
+  --fiori-field-border: #4a5d72;
+  --fiori-field-bg: #2b3b4e;
+  --fiori-track: #324354;
+  --fiori-row-border: #3a4c60;
+  --fiori-neutral-bar: #8d9fb0;
+  --fiori-economic-soft: rgba(37, 111, 58, 0.2);
+  --fiori-economic-text: #8fd1a1;
+  --fiori-risk-soft: rgba(170, 8, 8, 0.22);
+  --fiori-risk-text: #ffb3ad;
+  --fiori-operational-soft: rgba(10, 110, 209, 0.22);
+  --fiori-operational-text: #8cc8ff;
 }
 
 .fiori-overview-page .app-shell,
@@ -1762,14 +1823,14 @@ body.fiori-overview-page {
 
 .fiori-shell {
   min-height: 100vh;
-  background: #f5f6f7;
+  background: var(--fiori-app-bg);
 }
 
 .fiori-shellbar {
   height: 2.75rem;
   padding: 0 1rem;
-  background: #354a5f;
-  color: #ffffff;
+  background: var(--fiori-shell-bg);
+  color: var(--fiori-shell-text);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1809,7 +1870,7 @@ body.fiori-overview-page {
 
 .fiori-shellbar__titles span {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.76);
+  color: color-mix(in srgb, var(--fiori-shell-text) 76%, transparent);
 }
 
 .fiori-shellbar__search {
@@ -1817,11 +1878,11 @@ body.fiori-overview-page {
   height: 2rem;
   padding: 0 0.75rem;
   border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--fiori-search-bg);
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--fiori-search-text);
   font-size: 0.82rem;
 }
 
@@ -1837,15 +1898,15 @@ body.fiori-overview-page {
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #ffffff;
+  color: var(--fiori-shell-text);
 }
 
 .fiori-shellbar__avatar {
   width: 1.9rem;
   height: 1.9rem;
   border-radius: 50%;
-  background: #d1e8ff;
-  color: #0a6ed1;
+  background: var(--fiori-avatar-bg);
+  color: var(--fiori-avatar-text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1862,11 +1923,12 @@ body.fiori-overview-page {
 .fiori-kpi-card,
 .fiori-analytic-card,
 .fiori-chart-card,
-.fiori-table-card {
-  background: #ffffff;
-  border: 1px solid #d9d9d9;
+.fiori-table-card,
+.fiori-summary-card {
+  background: var(--fiori-card-bg);
+  border: 1px solid var(--fiori-card-border);
   border-radius: 0.75rem;
-  box-shadow: 0 0.125rem 0.5rem rgba(34, 53, 72, 0.05);
+  box-shadow: var(--fiori-card-shadow);
 }
 
 .fiori-page-header {
@@ -1880,7 +1942,7 @@ body.fiori-overview-page {
 .fiori-page-header__variant {
   display: inline-flex;
   margin-bottom: 0.35rem;
-  color: #0a6ed1;
+  color: var(--fiori-link);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -1894,12 +1956,12 @@ body.fiori-overview-page {
   font-size: 1.75rem;
   line-height: 1.2;
   font-weight: 400;
-  color: #223548;
+  color: var(--fiori-text);
 }
 
 .fiori-page-header__title p {
   margin: 0.35rem 0 0;
-  color: #5b738b;
+  color: var(--fiori-text-muted);
   font-size: 0.88rem;
 }
 
@@ -1914,9 +1976,9 @@ body.fiori-overview-page {
   min-height: 2.25rem;
   padding: 0 0.875rem;
   border-radius: 0.5rem;
-  border: 1px solid #85b5e5;
-  background: #ffffff;
-  color: #0a6ed1;
+  border: 1px solid var(--fiori-button-border);
+  background: var(--fiori-button-bg);
+  color: var(--fiori-button-text);
   font-size: 0.84rem;
   font-weight: 600;
   text-decoration: none;
@@ -1926,13 +1988,13 @@ body.fiori-overview-page {
 }
 
 .fiori-button--primary {
-  background: #0a6ed1;
-  border-color: #0a6ed1;
-  color: #ffffff;
+  background: var(--fiori-button-primary-bg);
+  border-color: var(--fiori-button-primary-bg);
+  color: var(--fiori-button-primary-text);
 }
 
 .fiori-button--ghost {
-  background: #ffffff;
+  background: var(--fiori-button-bg);
 }
 
 .fiori-filter-bar {
@@ -1950,7 +2012,7 @@ body.fiori-overview-page {
 }
 
 .fiori-filter-field label {
-  color: #5b738b;
+  color: var(--fiori-text-muted);
   font-size: 0.74rem;
   font-weight: 600;
 }
@@ -1959,10 +2021,10 @@ body.fiori-overview-page {
   width: 100%;
   min-height: 2.25rem;
   padding: 0 0.75rem;
-  border: 1px solid #c9d4e0;
+  border: 1px solid var(--fiori-field-border);
   border-radius: 0.5rem;
-  background: #ffffff;
-  color: #223548;
+  background: var(--fiori-field-bg);
+  color: var(--fiori-text);
   text-align: left;
 }
 
@@ -1984,7 +2046,7 @@ body.fiori-overview-page {
 .fiori-bar-row__meta span,
 .fiori-table th,
 .fiori-link {
-  color: #5b738b;
+  color: var(--fiori-text-muted);
 }
 
 .fiori-kpi-card__label {
@@ -2001,7 +2063,7 @@ body.fiori-overview-page {
   font-size: 1.8rem;
   line-height: 1.05;
   font-weight: 400;
-  color: #223548;
+  color: var(--fiori-text);
 }
 
 .fiori-kpi-card__hint {
@@ -2011,7 +2073,7 @@ body.fiori-overview-page {
 }
 
 .fiori-analytics-grid,
-.fiori-chart-grid {
+.fiori-support-grid {
   margin-top: 0.9rem;
   display: grid;
   gap: 0.75rem;
@@ -2021,13 +2083,14 @@ body.fiori-overview-page {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.fiori-chart-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.fiori-support-grid {
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.85fr);
 }
 
 .fiori-analytic-card,
 .fiori-chart-card,
-.fiori-table-card {
+.fiori-table-card,
+.fiori-summary-card {
   padding: 1rem 1rem 1.1rem;
 }
 
@@ -2044,7 +2107,7 @@ body.fiori-overview-page {
   font-size: 1rem;
   line-height: 1.3;
   font-weight: 600;
-  color: #223548;
+  color: var(--fiori-text);
 }
 
 .fiori-status {
@@ -2057,18 +2120,18 @@ body.fiori-overview-page {
 }
 
 .fiori-status--economic {
-  background: #ebf9f0;
-  color: #256f3a;
+  background: var(--fiori-economic-soft);
+  color: var(--fiori-economic-text);
 }
 
 .fiori-status--risk {
-  background: #fdeae9;
-  color: #aa0808;
+  background: var(--fiori-risk-soft);
+  color: var(--fiori-risk-text);
 }
 
 .fiori-status--operational {
-  background: #ebf5fe;
-  color: #0a6ed1;
+  background: var(--fiori-operational-soft);
+  color: var(--fiori-operational-text);
 }
 
 .fiori-analytic-card__value {
@@ -2077,7 +2140,7 @@ body.fiori-overview-page {
   font-size: 2.1rem;
   line-height: 1.05;
   font-weight: 300;
-  color: #223548;
+  color: var(--fiori-text);
 }
 
 .fiori-analytic-card__metrics {
@@ -2092,7 +2155,7 @@ body.fiori-overview-page {
   width: 100%;
   height: 0.4rem;
   border-radius: 999px;
-  background: #edf1f5;
+  background: var(--fiori-track);
   overflow: hidden;
   margin-top: 0.85rem;
 }
@@ -2137,7 +2200,7 @@ body.fiori-overview-page {
 }
 
 .fiori-bar-row__meta strong {
-  color: #223548;
+  color: var(--fiori-text);
   font-weight: 600;
 }
 
@@ -2145,7 +2208,7 @@ body.fiori-overview-page {
   width: 100%;
   height: 0.5rem;
   border-radius: 999px;
-  background: #edf1f5;
+  background: var(--fiori-track);
   overflow: hidden;
 }
 
@@ -2153,7 +2216,7 @@ body.fiori-overview-page {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #0a6ed1;
+  background: var(--fiori-link);
 }
 
 .fiori-bar-row:not(.fiori-bar-row--neutral) .fiori-bar-row__track span {
@@ -2161,7 +2224,7 @@ body.fiori-overview-page {
 }
 
 .fiori-bar-row--neutral .fiori-bar-row__track span {
-  background: #8797a8;
+  background: var(--fiori-neutral-bar);
 }
 
 .fiori-table-card {
@@ -2182,7 +2245,7 @@ body.fiori-overview-page {
 .fiori-table th,
 .fiori-table td {
   padding: 0.8rem 0.75rem;
-  border-bottom: 1px solid #e5eaf0;
+  border-bottom: 1px solid var(--fiori-row-border);
   text-align: left;
   vertical-align: middle;
 }
@@ -2196,7 +2259,7 @@ body.fiori-overview-page {
 
 .fiori-table td {
   font-size: 0.82rem;
-  color: #223548;
+  color: var(--fiori-text);
 }
 
 .fiori-axis-tag {
@@ -2209,18 +2272,18 @@ body.fiori-overview-page {
 }
 
 .fiori-axis-tag--economic {
-  background: #ebf9f0;
-  color: #256f3a;
+  background: var(--fiori-economic-soft);
+  color: var(--fiori-economic-text);
 }
 
 .fiori-axis-tag--risk {
-  background: #fdeae9;
-  color: #aa0808;
+  background: var(--fiori-risk-soft);
+  color: var(--fiori-risk-text);
 }
 
 .fiori-axis-tag--operational {
-  background: #ebf5fe;
-  color: #0a6ed1;
+  background: var(--fiori-operational-soft);
+  color: var(--fiori-operational-text);
 }
 
 .fiori-link {
@@ -2230,12 +2293,50 @@ body.fiori-overview-page {
 }
 
 .fiori-link:hover {
-  color: #0a6ed1;
+  color: var(--fiori-link);
 }
 
 .fiori-secondary-nav {
   margin-top: 0.9rem;
   padding: 0.25rem 0 0.5rem;
+}
+
+.fiori-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.fiori-summary-list__item {
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--fiori-row-border);
+}
+
+.fiori-summary-list__item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.fiori-summary-list__label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--fiori-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.fiori-summary-list__item strong {
+  color: var(--fiori-text);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.fiori-summary-card__link {
+  display: inline-flex;
+  margin-top: 1rem;
 }
 
 /* Responsive guardrails for the landing page and Reliability Insights views. */
@@ -2288,7 +2389,7 @@ body.fiori-overview-page {
 
   .fiori-page-header,
   .fiori-analytics-grid,
-  .fiori-chart-grid,
+  .fiori-support-grid,
   .fiori-filter-bar,
   .fiori-kpi-grid {
     grid-template-columns: 1fr;
@@ -2395,7 +2496,7 @@ body.fiori-overview-page {
   .fiori-filter-bar,
   .fiori-kpi-grid,
   .fiori-analytics-grid,
-  .fiori-chart-grid {
+  .fiori-support-grid {
     grid-template-columns: 1fr;
   }
 

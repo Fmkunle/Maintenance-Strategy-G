@@ -88,24 +88,19 @@
           <span class="fiori-kpi-card__hint">Current scope</span>
         </article>
         <article class="fiori-kpi-card">
-          <span class="fiori-kpi-card__label">Potential savings</span>
-          <strong>$2.4M</strong>
-          <span class="fiori-kpi-card__hint">Identified value</span>
-        </article>
-        <article class="fiori-kpi-card">
-          <span class="fiori-kpi-card__label">Risk gaps</span>
-          <strong>37</strong>
-          <span class="fiori-kpi-card__hint">Open exposure items</span>
-        </article>
-        <article class="fiori-kpi-card">
-          <span class="fiori-kpi-card__label">Blocked recommendations</span>
-          <strong>54</strong>
-          <span class="fiori-kpi-card__hint">Execution constraints</span>
+          <span class="fiori-kpi-card__label">Areas in scope</span>
+          <strong>12</strong>
+          <span class="fiori-kpi-card__hint">Operating areas under review</span>
         </article>
         <article class="fiori-kpi-card">
           <span class="fiori-kpi-card__label">High-criticality assets</span>
           <strong>216</strong>
           <span class="fiori-kpi-card__hint">Within review population</span>
+        </article>
+        <article class="fiori-kpi-card">
+          <span class="fiori-kpi-card__label">Recommendations ready</span>
+          <strong>52</strong>
+          <span class="fiori-kpi-card__hint">High-confidence actions available</span>
         </article>
       </section>
 
@@ -156,7 +151,7 @@
         </article>
       </section>
 
-      <section class="fiori-chart-grid" aria-label="Analytical charts">
+      <section class="fiori-support-grid" aria-label="Overview support">
         <article class="fiori-chart-card">
           <div class="fiori-card-header">
             <div>
@@ -197,44 +192,28 @@
           </div>
         </article>
 
-        <article class="fiori-chart-card">
+        <article class="fiori-summary-card">
           <div class="fiori-card-header">
             <div>
-              <h2>Blocked actions by category</h2>
-              <p>Most common implementation constraints</p>
+              <h2>Action summary</h2>
+              <p>Where to navigate next</p>
             </div>
           </div>
-
-          <div class="fiori-bar-chart">
-            <div class="fiori-bar-row fiori-bar-row--neutral">
-              <div class="fiori-bar-row__meta">
-                <span>Shutdown access</span>
-                <strong>19</strong>
-              </div>
-              <div class="fiori-bar-row__track"><span style="width: 100%;"></span></div>
+          <div class="fiori-summary-list">
+            <div class="fiori-summary-list__item">
+              <span class="fiori-summary-list__label">Primary blocker</span>
+              <strong>Shutdown access and labour capacity</strong>
             </div>
-            <div class="fiori-bar-row fiori-bar-row--neutral">
-              <div class="fiori-bar-row__meta">
-                <span>Labour capacity</span>
-                <strong>18</strong>
-              </div>
-              <div class="fiori-bar-row__track"><span style="width: 95%;"></span></div>
+            <div class="fiori-summary-list__item">
+              <span class="fiori-summary-list__label">Best first area</span>
+              <strong>Processing plant</strong>
             </div>
-            <div class="fiori-bar-row fiori-bar-row--neutral">
-              <div class="fiori-bar-row__meta">
-                <span>Data quality</span>
-                <strong>13</strong>
-              </div>
-              <div class="fiori-bar-row__track"><span style="width: 68%;"></span></div>
-            </div>
-            <div class="fiori-bar-row fiori-bar-row--neutral">
-              <div class="fiori-bar-row__meta">
-                <span>Route redesign</span>
-                <strong>11</strong>
-              </div>
-              <div class="fiori-bar-row__track"><span style="width: 58%;"></span></div>
+            <div class="fiori-summary-list__item">
+              <span class="fiori-summary-list__label">Confidence mix</span>
+              <strong>52 high, 49 medium</strong>
             </div>
           </div>
+          <a class="fiori-link fiori-summary-card__link" href="advanced-analysis.html">Open advanced analysis</a>
         </article>
       </section>
 
@@ -282,14 +261,6 @@
                 <td><span class="fiori-axis-tag fiori-axis-tag--operational">Operational</span></td>
                 <td>$360k savings</td>
                 <td>Shutdown and labour</td>
-                <td>Medium</td>
-              </tr>
-              <tr>
-                <td>Tailings pumping</td>
-                <td>Weak detection coverage on pump seal failure path</td>
-                <td><span class="fiori-axis-tag fiori-axis-tag--risk">Risk</span></td>
-                <td>Severe consequence</td>
-                <td>Shutdown access</td>
                 <td>Medium</td>
               </tr>
             </tbody>
