@@ -2094,6 +2094,22 @@ body.fiori-overview-page[data-theme="dark"] {
   padding: 1rem 1rem 1.1rem;
 }
 
+.fiori-analytic-card--link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.fiori-analytic-card--link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.25rem 0.9rem rgba(34, 53, 72, 0.08);
+}
+
+body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
+  box-shadow: 0 0.3rem 1rem rgba(0, 0, 0, 0.24);
+}
+
 .fiori-analytic-card__header,
 .fiori-card-header {
   display: flex;
@@ -2176,6 +2192,14 @@ body.fiori-overview-page[data-theme="dark"] {
 
 .fiori-progress__bar--operational {
   background: #0a6ed1;
+}
+
+.fiori-analytic-card__link-label {
+  display: inline-flex;
+  margin-top: 0.85rem;
+  color: var(--fiori-link);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .fiori-card-header p {
@@ -2262,6 +2286,23 @@ body.fiori-overview-page[data-theme="dark"] {
   color: var(--fiori-text);
 }
 
+.fiori-table--interactive tbody tr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.fiori-table--interactive tbody tr:hover,
+.fiori-table--interactive tbody tr:focus-visible {
+  background: color-mix(in srgb, var(--fiori-link) 6%, var(--fiori-card-bg));
+  outline: none;
+}
+
+.fiori-table__row-link {
+  color: var(--fiori-link);
+  text-decoration: none;
+  font-weight: 600;
+}
+
 .fiori-axis-tag {
   display: inline-flex;
   align-items: center;
@@ -2339,6 +2380,208 @@ body.fiori-overview-page[data-theme="dark"] {
   margin-top: 1rem;
 }
 
+.fiori-breadcrumbs {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--fiori-text-muted);
+  font-size: 0.78rem;
+}
+
+.fiori-breadcrumbs a {
+  color: var(--fiori-link);
+  text-decoration: none;
+}
+
+.fiori-list-summary {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.fiori-list-summary__card,
+.fiori-object-header,
+.fiori-detail-card,
+.fiori-value-card {
+  background: var(--fiori-card-bg);
+  border: 1px solid var(--fiori-card-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--fiori-card-shadow);
+}
+
+.fiori-list-summary__card {
+  padding: 1rem 1.1rem;
+}
+
+.fiori-list-summary__label {
+  display: block;
+  color: var(--fiori-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.fiori-list-summary__card strong {
+  display: block;
+  margin-top: 0.55rem;
+  font-size: 1.9rem;
+  line-height: 1.05;
+  font-weight: 300;
+}
+
+.fiori-list-summary__hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--fiori-text-muted);
+  font-size: 0.78rem;
+}
+
+.fiori-filter-bar--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fiori-object-header {
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fiori-object-header__copy h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 400;
+  color: var(--fiori-text);
+}
+
+.fiori-object-header__eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.45rem;
+  color: var(--fiori-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fiori-object-header__copy .fiori-status {
+  margin-top: 0.75rem;
+}
+
+.fiori-detail-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.8fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.fiori-detail-main,
+.fiori-detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fiori-detail-card,
+.fiori-value-card {
+  padding: 1rem 1rem 1.1rem;
+}
+
+.fiori-detail-card__body {
+  margin: 0.8rem 0 0;
+  color: var(--fiori-text);
+  font-size: 0.86rem;
+  line-height: 1.65;
+}
+
+.fiori-value-stack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.fiori-key-list {
+  margin: 0.85rem 0 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.fiori-key-list div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.fiori-key-list dt {
+  color: var(--fiori-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.fiori-key-list dd {
+  margin: 0;
+  color: var(--fiori-text);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.fiori-detail-side__value {
+  display: block;
+  margin-top: 0.85rem;
+  color: var(--fiori-text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.fiori-accordion-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fiori-accordion {
+  background: var(--fiori-card-bg);
+  border: 1px solid var(--fiori-card-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--fiori-card-shadow);
+  padding: 0;
+}
+
+.fiori-accordion summary {
+  padding: 0.95rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--fiori-text);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.fiori-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.fiori-accordion[open] summary {
+  border-bottom: 1px solid var(--fiori-row-border);
+}
+
+.fiori-accordion p,
+.fiori-list {
+  margin: 0;
+  padding: 0.95rem 1rem 1rem;
+  color: var(--fiori-text);
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.fiori-list {
+  padding-left: 2rem;
+}
+
 /* Responsive guardrails for the landing page and Reliability Insights views. */
 @media (max-width: 1280px) {
   .app-shell {
@@ -2364,6 +2607,10 @@ body.fiori-overview-page[data-theme="dark"] {
   .fiori-filter-bar,
   .fiori-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fiori-value-stack {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2391,12 +2638,15 @@ body.fiori-overview-page[data-theme="dark"] {
   .fiori-analytics-grid,
   .fiori-support-grid,
   .fiori-filter-bar,
-  .fiori-kpi-grid {
+  .fiori-kpi-grid,
+  .fiori-list-summary,
+  .fiori-detail-grid {
     grid-template-columns: 1fr;
   }
 
   .fiori-page-header,
-  .fiori-card-header {
+  .fiori-card-header,
+  .fiori-object-header {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -2496,7 +2746,10 @@ body.fiori-overview-page[data-theme="dark"] {
   .fiori-filter-bar,
   .fiori-kpi-grid,
   .fiori-analytics-grid,
-  .fiori-support-grid {
+  .fiori-support-grid,
+  .fiori-list-summary,
+  .fiori-detail-grid,
+  .fiori-value-stack {
     grid-template-columns: 1fr;
   }
 

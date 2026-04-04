@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Economic Opportunity Detail</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="fiori-overview-page" data-theme="light">
+  <div id="economicOpportunityDetail" class="fiori-shell">
+    <header class="fiori-shellbar">
+      <div class="fiori-shellbar__brand">
+        <span class="fiori-shellbar__logo">SAP</span>
+        <div class="fiori-shellbar__titles">
+          <strong>Reliability Workspace</strong>
+          <span>Maintenance Strategy Oversight</span>
+        </div>
+      </div>
+
+      <div class="fiori-shellbar__search" aria-label="Global search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6"></circle>
+          <path d="M20 20l-4.35-4.35"></path>
+        </svg>
+        <span>Search in app</span>
+      </div>
+
+      <div class="fiori-shellbar__actions">
+        <button class="fiori-shellbar__icon" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 8a6 6 0 1 1 12 0v5l2 3H4l2-3z"></path>
+            <path d="M10 19a2 2 0 0 0 4 0"></path>
+          </svg>
+        </button>
+        <button class="fiori-shellbar__icon" aria-label="Help">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.8-1.7 1.3-1.7 2.7"></path>
+            <path d="M12 17h.01"></path>
+          </svg>
+        </button>
+        <span class="fiori-shellbar__avatar">NA</span>
+      </div>
+    </header>
+
+    <main class="fiori-page">
+      <nav class="fiori-breadcrumbs" aria-label="Breadcrumb">
+        <a href="reliability-insights-fiori.html">Reliability Insights</a>
+        <span>/</span>
+        <a href="economic-opportunities.html">Economic Opportunities</a>
+        <span>/</span>
+        <span aria-current="page">Opportunity Detail</span>
+      </nav>
+
+      <section class="fiori-object-header">
+        <div class="fiori-object-header__copy">
+          <span id="detailAssetGroup" class="fiori-object-header__eyebrow">Gearboxes MFA-321-GB01 to MFA-321-GB10</span>
+          <h1 id="detailInsightTitle">PM02 inspection frequency may be higher than current risk justifies</h1>
+          <span id="detailConfidence" class="fiori-status fiori-status--economic">Medium confidence</span>
+        </div>
+        <div class="fiori-object-header__actions">
+          <a class="fiori-button fiori-button--primary" href="advanced-analysis.html#economic">Open full analysis</a>
+        </div>
+      </section>
+
+      <section class="fiori-detail-grid">
+        <div class="fiori-detail-main">
+          <article class="fiori-detail-card">
+            <div class="fiori-card-header">
+              <div>
+                <h2>Insight summary</h2>
+              </div>
+            </div>
+            <p id="detailSummary" class="fiori-detail-card__body">
+              Current monthly PM02 inspections appear to provide limited defect detection value relative to their cost and labour demand. Available CMMS and delay history suggest the current interval may be more conservative than required for this gearbox group.
+            </p>
+          </article>
+
+          <section class="fiori-value-stack" aria-label="Value stack">
+            <article class="fiori-value-card">
+              <div class="fiori-card-header">
+                <div>
+                  <h2>Economic</h2>
+                </div>
+                <span class="fiori-status fiori-status--economic">Value</span>
+              </div>
+              <dl class="fiori-key-list">
+                <div>
+                  <dt>Current annual cost</dt>
+                  <dd id="detailCurrentCost">$96,000</dd>
+                </div>
+                <div>
+                  <dt>Recommended annual cost</dt>
+                  <dd id="detailRecommendedCost">$48,000</dd>
+                </div>
+                <div>
+                  <dt>Potential saving</dt>
+                  <dd id="detailPotentialSaving">$48,000</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article class="fiori-value-card">
+              <div class="fiori-card-header">
+                <div>
+                  <h2>Risk</h2>
+                </div>
+                <span class="fiori-status fiori-status--risk">Exposure</span>
+              </div>
+              <dl class="fiori-key-list">
+                <div>
+                  <dt>Safety impact</dt>
+                  <dd id="detailSafetyImpact">Low</dd>
+                </div>
+                <div>
+                  <dt>Production impact of change</dt>
+                  <dd id="detailProductionImpact">Low to moderate</dd>
+                </div>
+                <div>
+                  <dt>Evidence of uncontrolled exposure</dt>
+                  <dd id="detailExposureEvidence">Limited</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article class="fiori-value-card">
+              <div class="fiori-card-header">
+                <div>
+                  <h2>Operational</h2>
+                </div>
+                <span class="fiori-status fiori-status--operational">Delivery</span>
+              </div>
+              <dl class="fiori-key-list">
+                <div>
+                  <dt>Labour demand reduced</dt>
+                  <dd id="detailLabourDemandReduced">Yes</dd>
+                </div>
+                <div>
+                  <dt>Route redesign required</dt>
+                  <dd id="detailRouteRedesignRequired">Yes</dd>
+                </div>
+                <div>
+                  <dt>Shutdown dependency</dt>
+                  <dd id="detailShutdownDependency">No</dd>
+                </div>
+              </dl>
+            </article>
+          </section>
+
+          <section class="fiori-accordion-group" aria-label="Supporting detail">
+            <details class="fiori-accordion">
+              <summary>Data reviewed</summary>
+              <p id="detailDataReviewed"></p>
+            </details>
+
+            <details class="fiori-accordion">
+              <summary>Observed evidence</summary>
+              <ul id="detailObservedEvidence" class="fiori-list"></ul>
+            </details>
+
+            <details class="fiori-accordion">
+              <summary>Assumptions under review</summary>
+              <ul id="detailAssumptions" class="fiori-list"></ul>
+            </details>
+
+            <details class="fiori-accordion">
+              <summary>Operational challenge</summary>
+              <ul id="detailOperationalChallenge" class="fiori-list"></ul>
+            </details>
+
+            <details class="fiori-accordion">
+              <summary>Recommended action</summary>
+              <p id="detailRecommendedAction"></p>
+            </details>
+          </section>
+        </div>
+
+        <aside class="fiori-detail-side">
+          <article class="fiori-detail-card">
+            <div class="fiori-card-header">
+              <div>
+                <h2>Confidence</h2>
+              </div>
+            </div>
+            <strong id="detailConfidenceSide" class="fiori-detail-side__value">Medium confidence</strong>
+            <p id="detailConfidenceNote" class="fiori-detail-card__body">
+              Confidence is reduced by limited direct condition evidence, possible inconsistency in historical failure coding, and incomplete mapping between PM findings and prevented failures.
+            </p>
+          </article>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

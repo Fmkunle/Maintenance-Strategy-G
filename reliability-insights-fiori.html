@@ -54,7 +54,7 @@
         <div class="fiori-page-header__actions">
           <button class="fiori-button fiori-button--ghost">Export</button>
           <button class="fiori-button fiori-button--ghost">Adapt Filters</button>
-          <a class="fiori-button fiori-button--primary" href="#priority-issues">Open Issue Analysis</a>
+          <a class="fiori-button fiori-button--primary" href="economic-opportunities.html">Open Issue Analysis</a>
         </div>
       </section>
 
@@ -105,20 +105,21 @@
       </section>
 
       <section class="fiori-analytics-grid" aria-label="Axis summaries">
-        <article class="fiori-analytic-card fiori-analytic-card--economic">
+        <a class="fiori-analytic-card fiori-analytic-card--economic fiori-analytic-card--link" href="economic-opportunities.html">
           <div class="fiori-analytic-card__header">
             <h2>Economic</h2>
             <span class="fiori-status fiori-status--economic">Value</span>
           </div>
-          <strong class="fiori-analytic-card__value">$2.4M</strong>
+          <strong id="economicTotalSavings" class="fiori-analytic-card__value">$2.4M</strong>
           <div class="fiori-analytic-card__metrics">
-            <span>83 over-maintained assets</span>
-            <span>$940k low-value PM cost</span>
+            <span id="economicOpportunityCount">9 opportunities</span>
+            <span id="economicLowValueCost">$2.4M current low-value cost</span>
           </div>
           <div class="fiori-progress">
             <span class="fiori-progress__bar fiori-progress__bar--economic" style="width: 68%;"></span>
           </div>
-        </article>
+          <span class="fiori-analytic-card__link-label">View economic opportunities</span>
+        </a>
 
         <article class="fiori-analytic-card fiori-analytic-card--risk">
           <div class="fiori-analytic-card__header">
@@ -241,7 +242,7 @@
             <tbody>
               <tr>
                 <td>Crushing and conveying</td>
-                <td>Low-return weekly inspections on conveyor drives</td>
+                <td><a class="fiori-table__row-link" href="economic-opportunities.html">Low-return weekly inspections on conveyor drives</a></td>
                 <td><span class="fiori-axis-tag fiori-axis-tag--economic">Economic</span></td>
                 <td>$420k savings</td>
                 <td>Route redesign</td>

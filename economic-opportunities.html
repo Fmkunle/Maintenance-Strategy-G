@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Economic Opportunities</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="fiori-overview-page" data-theme="light">
+  <div class="fiori-shell">
+    <header class="fiori-shellbar">
+      <div class="fiori-shellbar__brand">
+        <span class="fiori-shellbar__logo">SAP</span>
+        <div class="fiori-shellbar__titles">
+          <strong>Reliability Workspace</strong>
+          <span>Maintenance Strategy Oversight</span>
+        </div>
+      </div>
+
+      <div class="fiori-shellbar__search" aria-label="Global search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6"></circle>
+          <path d="M20 20l-4.35-4.35"></path>
+        </svg>
+        <span>Search in app</span>
+      </div>
+
+      <div class="fiori-shellbar__actions">
+        <button class="fiori-shellbar__icon" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 8a6 6 0 1 1 12 0v5l2 3H4l2-3z"></path>
+            <path d="M10 19a2 2 0 0 0 4 0"></path>
+          </svg>
+        </button>
+        <button class="fiori-shellbar__icon" aria-label="Help">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.8-1.7 1.3-1.7 2.7"></path>
+            <path d="M12 17h.01"></path>
+          </svg>
+        </button>
+        <span class="fiori-shellbar__avatar">NA</span>
+      </div>
+    </header>
+
+    <main class="fiori-page">
+      <nav class="fiori-breadcrumbs" aria-label="Breadcrumb">
+        <a href="reliability-insights-fiori.html">Reliability Insights</a>
+        <span>/</span>
+        <span aria-current="page">Economic Opportunities</span>
+      </nav>
+
+      <section class="fiori-page-header">
+        <div class="fiori-page-header__title">
+          <span class="fiori-page-header__variant">Economic View</span>
+          <h1>Economic Opportunities</h1>
+          <p>Opportunities contributing to the Economic value shown on the Reliability Insights overview.</p>
+        </div>
+
+        <div class="fiori-page-header__actions">
+          <button class="fiori-button fiori-button--ghost">Export</button>
+          <button class="fiori-button fiori-button--ghost">Adapt Filters</button>
+          <a class="fiori-button fiori-button--primary" href="advanced-analysis.html#economic">Open Issue Analysis</a>
+        </div>
+      </section>
+
+      <section class="fiori-list-summary">
+        <article class="fiori-list-summary__card">
+          <span class="fiori-list-summary__label">Total potential savings</span>
+          <strong id="economicListTotalSavings">$2.4M</strong>
+          <span class="fiori-list-summary__hint">Rolled up from surfaced economic opportunities</span>
+        </article>
+        <article class="fiori-list-summary__card">
+          <span class="fiori-list-summary__label">Opportunities</span>
+          <strong id="economicListOpportunityCount">9 opportunities</strong>
+          <span class="fiori-list-summary__hint">Open items available for drill-down</span>
+        </article>
+      </section>
+
+      <section class="fiori-filter-bar fiori-filter-bar--four" aria-label="Context filters">
+        <div class="fiori-filter-field">
+          <label>Area</label>
+          <button>All Areas</button>
+        </div>
+        <div class="fiori-filter-field">
+          <label>Asset class</label>
+          <button>All Asset Classes</button>
+        </div>
+        <div class="fiori-filter-field">
+          <label>Criticality</label>
+          <button>High / Critical</button>
+        </div>
+        <div class="fiori-filter-field">
+          <label>Confidence</label>
+          <button>All Confidence Levels</button>
+        </div>
+      </section>
+
+      <section class="fiori-table-card">
+        <div class="fiori-card-header">
+          <div>
+            <h2>Opportunity list</h2>
+            <p>Each row contributes to the Economic total on the overview dashboard.</p>
+          </div>
+        </div>
+
+        <div class="fiori-table-wrap">
+          <table class="fiori-table fiori-table--interactive">
+            <thead>
+              <tr>
+                <th>Asset group / equipment</th>
+                <th>Opportunity title</th>
+                <th>Current cost</th>
+                <th>Recommended cost</th>
+                <th>Potential saving</th>
+                <th>Risk impact</th>
+                <th>Confidence</th>
+                <th>Operational constraint</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="economicOpportunityRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
