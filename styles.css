@@ -2553,6 +2553,453 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   border-color: color-mix(in srgb, var(--fiori-ai-border) 56%, var(--fiori-card-border));
 }
 
+.fiori-decision-grid,
+.fiori-evidence-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.fiori-decision-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fiori-evidence-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fiori-snapshot-card,
+.fiori-evidence-card,
+.fiori-assumption-card {
+  background: var(--fiori-card-bg);
+  border: 1px solid color-mix(in srgb, var(--fiori-card-border) 84%, white);
+  border-radius: 0.875rem;
+  box-shadow: 0 0.14rem 0.55rem rgba(34, 53, 72, 0.03);
+}
+
+.fiori-snapshot-card {
+  padding: 1rem 1.05rem;
+}
+
+.fiori-snapshot-card__label {
+  display: block;
+  color: var(--fiori-text-muted);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.fiori-snapshot-card strong {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--fiori-text);
+  font-size: 1.3rem;
+  line-height: 1.1;
+  font-weight: 500;
+}
+
+.fiori-snapshot-card__hint {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--fiori-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.fiori-hero-analysis {
+  padding: 1.15rem 1.15rem 1.25rem;
+}
+
+.fiori-hero-analysis__callout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.78fr);
+  gap: 1rem;
+  margin-top: 0.95rem;
+}
+
+.fiori-hero-analysis__eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.25rem;
+  color: var(--fiori-ai-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.fiori-hero-analysis__recommendation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.875rem;
+  background: color-mix(in srgb, var(--fiori-ai-soft) 68%, var(--fiori-card-bg));
+  border: 1px solid color-mix(in srgb, var(--fiori-ai-border) 62%, white);
+}
+
+.fiori-hero-analysis__recommendation strong {
+  color: var(--fiori-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.fiori-hero-analysis__recommendation span:last-child {
+  color: var(--fiori-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.tradeoff-chart {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.95rem;
+  background: color-mix(in srgb, var(--fiori-card-bg) 92%, #f9fbff);
+  border: 1px solid color-mix(in srgb, var(--fiori-ai-border) 42%, var(--fiori-card-border));
+}
+
+.tradeoff-chart__meta,
+.tradeoff-chart__legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tradeoff-chart__meta {
+  color: var(--fiori-text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.tradeoff-chart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 0.55rem;
+}
+
+.tradeoff-chart__zone {
+  fill: color-mix(in srgb, var(--fiori-ai-soft) 92%, white);
+  stroke: color-mix(in srgb, var(--fiori-ai-border) 68%, white);
+  stroke-dasharray: 5 5;
+}
+
+.tradeoff-chart__axis,
+.tradeoff-chart__grid {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.tradeoff-chart__axis {
+  stroke: color-mix(in srgb, var(--fiori-card-border) 80%, #aebdcd);
+  stroke-width: 1.5;
+}
+
+.tradeoff-chart__grid {
+  stroke: color-mix(in srgb, var(--fiori-card-border) 58%, white);
+  stroke-width: 1;
+}
+
+.tradeoff-chart__bar {
+  fill: #aab9c9;
+  rx: 8;
+}
+
+.tradeoff-chart__bar--current {
+  fill: #5f7893;
+}
+
+.tradeoff-chart__bar--recommended {
+  fill: #0a6ed1;
+}
+
+.tradeoff-chart__line {
+  fill: none;
+  stroke: #586a7d;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tradeoff-chart__dot {
+  fill: #586a7d;
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.tradeoff-chart__dot--current {
+  fill: #5f7893;
+}
+
+.tradeoff-chart__dot--recommended {
+  fill: #0a6ed1;
+}
+
+.tradeoff-chart__axis-label,
+.tradeoff-chart__x-label {
+  fill: var(--fiori-text-muted);
+  font-family: "72", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: 12px;
+}
+
+.tradeoff-chart__legend {
+  margin-top: 0.6rem;
+  color: var(--fiori-text-muted);
+  font-size: 0.75rem;
+}
+
+.tradeoff-chart__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tradeoff-chart__legend-swatch {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 0.2rem;
+  display: inline-block;
+}
+
+.tradeoff-chart__legend-swatch--bar {
+  background: #aab9c9;
+}
+
+.tradeoff-chart__legend-swatch--line {
+  width: 1rem;
+  height: 0.15rem;
+  border-radius: 999px;
+  background: #586a7d;
+}
+
+.tradeoff-chart__legend-swatch--zone {
+  background: color-mix(in srgb, var(--fiori-ai-soft) 92%, white);
+  border: 1px dashed color-mix(in srgb, var(--fiori-ai-border) 68%, white);
+}
+
+.fiori-evidence-card,
+.fiori-assumption-card {
+  padding: 1rem 1.05rem 1.1rem;
+}
+
+.fiori-evidence-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem 1rem;
+  margin-top: 0.9rem;
+}
+
+.fiori-evidence-stats--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fiori-evidence-stats span,
+.fiori-evidence-inline span,
+.fiori-effort-score span,
+.fiori-dual-metric span {
+  display: block;
+  color: var(--fiori-text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.fiori-evidence-stats strong,
+.fiori-evidence-inline strong,
+.fiori-effort-score strong,
+.fiori-dual-metric strong {
+  display: block;
+  margin-top: 0.22rem;
+  color: var(--fiori-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.fiori-evidence-meter {
+  width: 100%;
+  height: 0.6rem;
+  margin-top: 1rem;
+  border-radius: 999px;
+  background: #eef3f8;
+  overflow: hidden;
+}
+
+.fiori-evidence-meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #5f7893, #0a6ed1);
+}
+
+.fiori-compare-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.9rem;
+}
+
+.fiori-compare-bars__row,
+.fiori-mini-bars__row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.fiori-compare-bars__row span,
+.fiori-mini-bars__row span {
+  color: var(--fiori-text-muted);
+  font-size: 0.78rem;
+}
+
+.fiori-compare-bars__row strong {
+  color: var(--fiori-text);
+  font-size: 0.82rem;
+}
+
+.fiori-compare-bars__track,
+.fiori-mini-bars__track {
+  width: 100%;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: #edf1f5;
+  overflow: hidden;
+}
+
+.fiori-compare-bars__track span,
+.fiori-mini-bars__track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #6d8095;
+}
+
+.fiori-compare-bars__track .is-recommended,
+.fiori-mini-bars__track .is-recommended {
+  background: #0a6ed1;
+}
+
+.fiori-evidence-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.95rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--fiori-row-border);
+}
+
+.fiori-mini-trend {
+  height: 3.5rem;
+  margin-top: 1rem;
+  display: flex;
+  align-items: end;
+  gap: 0.35rem;
+}
+
+.fiori-mini-trend span {
+  flex: 1;
+  border-radius: 0.35rem 0.35rem 0 0;
+  background: linear-gradient(180deg, #c5d3e1, #7e96ad);
+}
+
+.fiori-value-card--visual {
+  padding-top: 0.95rem;
+}
+
+.fiori-mini-bars,
+.fiori-dual-metric {
+  margin-top: 0.9rem;
+}
+
+.fiori-mini-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.fiori-dual-metric {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.fiori-dual-metric div,
+.fiori-effort-score {
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--fiori-card-bg) 84%, #f5f8fb);
+  border: 1px solid color-mix(in srgb, var(--fiori-card-border) 70%, white);
+}
+
+.fiori-effort-score {
+  margin-top: 0.9rem;
+}
+
+.fiori-assumption-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.95rem;
+}
+
+.fiori-assumption-row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.fiori-assumption-row span:first-child {
+  color: var(--fiori-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.fiori-assumption-row__track {
+  width: 100%;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #edf1f5;
+  overflow: hidden;
+}
+
+.fiori-assumption-row__track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.fiori-assumption-row__track .is-moderate {
+  background: #7393b0;
+}
+
+.fiori-assumption-row__track .is-weak {
+  background: #c28a5f;
+}
+
+.fiori-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5rem;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.fiori-rating-pill--moderate {
+  background: #eef4fb;
+  color: #4c6f90;
+}
+
+.fiori-rating-pill--weak {
+  background: #fbf1ea;
+  color: #9a5b2f;
+}
+
 .fiori-value-stack {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2743,6 +3190,14 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   .fiori-value-stack {
     grid-template-columns: 1fr;
   }
+
+  .fiori-decision-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fiori-evidence-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1080px) {
@@ -2780,6 +3235,10 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   .fiori-object-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .fiori-hero-analysis__callout {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2886,5 +3345,17 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
   .fiori-button {
     width: 100%;
+  }
+
+  .fiori-decision-grid,
+  .fiori-evidence-grid,
+  .fiori-dual-metric {
+    grid-template-columns: 1fr;
+  }
+
+  .fiori-assumption-row,
+  .fiori-compare-bars__row,
+  .fiori-mini-bars__row {
+    grid-template-columns: 1fr;
   }
 }

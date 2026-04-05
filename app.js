@@ -63,6 +63,16 @@ const economicOpportunities = [
     labourDemandReduced: "Yes",
     routeRedesignRequired: "Yes",
     shutdownDependency: "No",
+    currentFrequency: "1 month",
+    recommendedFrequency: "2 months",
+    expectedRiskChange: "Low",
+    hoursReleased: "160 hrs",
+    savingsDelta: "50%",
+    currentExpectedExposure: "0.18 events/year",
+    proposedExpectedExposure: "0.22 events/year",
+    safetyConsequenceChange: "No material change",
+    masterUpdatesNeeded: "10 records",
+    implementationEffortScore: "3 / 5",
     summary:
       "Current monthly PM02 inspections appear to provide limited defect detection value relative to their cost and labour demand. Available CMMS and delay history suggest the current interval may be more conservative than required for this gearbox group.",
     confidenceNote:
@@ -84,13 +94,14 @@ const economicOpportunities = [
       "Redundancy is low enough to justify current cost - Not clearly supported",
     ],
     operationalChallenge: [
-      "PM route redesign required",
-      "PM master data update required",
-      "Engineering approval needed before frequency change",
-      "Current task packaging may not reflect service variation across GB01 to GB10",
+      "Route redesign required",
+      "10 PM master records to update",
+      "Planner effort 8 hrs",
+      "Engineering review effort 6 hrs",
+      "Shutdown not required",
     ],
     recommendedAction:
-      "Review changing PM02 inspection frequency from 1 month to 2 months for MFA-321-GB01 to GB10, then monitor defect yield, corrective conversion, and delay consequences over the next review cycle.",
+      "Change PM02 inspection interval from 1 month to 2 months for the next review cycle and monitor findings rate, corrective conversion, delay events, and repeat defects over 6 months.",
   },
   {
     id: "cv-440-network",
@@ -363,6 +374,16 @@ const getOpportunityDetail = (opportunity) => {
     uncontrolledExposure:
       opportunity.riskImpact === "Low" ? "Limited" : "Limited to moderate",
     labourDemandReduced: "Yes",
+    currentFrequency: "Current interval",
+    recommendedFrequency: "Reduced interval",
+    expectedRiskChange: opportunity.riskImpact === "Low" ? "Low" : "Moderate",
+    hoursReleased: "120 hrs",
+    savingsDelta: "30%",
+    currentExpectedExposure: "0.18 events/year",
+    proposedExpectedExposure: "0.24 events/year",
+    safetyConsequenceChange: "No material change",
+    masterUpdatesNeeded: "6 records",
+    implementationEffortScore: "3 / 5",
     routeRedesignRequired: opportunity.operationalConstraint.toLowerCase().includes("route")
       ? "Yes"
       : "Partly",
@@ -403,14 +424,27 @@ const renderEconomicOpportunityDetail = () => {
   setText("detailConfidence", `${detail.confidence} confidence`);
   setText("detailConfidenceSide", `${detail.confidence} confidence`);
   setText("detailSummary", detail.summary);
+  setText("detailCurrentFrequency", detail.currentFrequency);
+  setText("detailRecommendedFrequency", detail.recommendedFrequency);
+  setText("detailAnnualSavingKpi", formatCurrency(detail.potentialSaving));
+  setText("detailRiskChangeKpi", detail.expectedRiskChange);
   setText("detailCurrentCost", formatCurrency(detail.currentCost));
   setText("detailRecommendedCost", formatCurrency(detail.recommendedCost));
   setText("detailPotentialSaving", formatCurrency(detail.potentialSaving));
+  setText("detailCostReduction", formatCurrency(detail.potentialSaving));
+  setText("detailHoursReleased", detail.hoursReleased);
+  setText("detailSavingsDelta", detail.savingsDelta);
+  setText("detailCurrentExpectedExposure", detail.currentExpectedExposure);
+  setText("detailProposedExpectedExposure", detail.proposedExpectedExposure);
+  setText("detailSafetyConsequenceChange", detail.safetyConsequenceChange);
   setText("detailSafetyImpact", detail.safetyImpact);
   setText("detailProductionImpact", detail.productionImpact);
   setText("detailExposureEvidence", detail.uncontrolledExposure);
   setText("detailLabourDemandReduced", detail.labourDemandReduced);
   setText("detailRouteRedesignRequired", detail.routeRedesignRequired);
+  setText("detailRouteRedesignFlag", detail.routeRedesignRequired);
+  setText("detailMasterUpdatesNeeded", detail.masterUpdatesNeeded);
+  setText("detailImplementationEffortScore", detail.implementationEffortScore);
   setText("detailShutdownDependency", detail.shutdownDependency);
   setText("detailConfidenceNote", detail.confidenceNote);
   setText("detailDataReviewed", detail.dataReviewed);
