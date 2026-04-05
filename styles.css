@@ -3813,10 +3813,18 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .economic-card--hero,
 .economic-card--confidence {
-  background: var(--economic-ai-bg);
-  border-color: var(--economic-ai-border);
   border-radius: 16px;
   box-shadow: 0 4px 14px rgba(20, 38, 63, 0.05);
+}
+
+.economic-card--hero {
+  background: #f7f9fc;
+  border-color: var(--economic-ai-border);
+}
+
+.economic-card--confidence {
+  background: var(--economic-ai-bg);
+  border-color: var(--economic-ai-border);
 }
 
 .economic-ai-kicker {
@@ -3843,11 +3851,11 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-chart-legend {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 10px;
   color: var(--economic-text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
 }
 
 .economic-chart-legend span {
@@ -3862,47 +3870,49 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .economic-chart-legend__swatch--cost,
 .economic-chart-legend__swatch--exposure {
-  width: 16px;
-  height: 3px;
+  width: 14px;
+  height: 2px;
   border-radius: 999px;
 }
 
 .economic-chart-legend__swatch--cost {
-  background: var(--economic-blue);
+  background: #2563eb;
 }
 
 .economic-chart-legend__swatch--exposure {
-  background: var(--economic-red);
+  background: #dc2626;
 }
 
 .economic-chart-legend__swatch--zone {
   width: 14px;
   height: 14px;
   border-radius: 4px;
-  background: rgba(109, 94, 245, 0.12);
-  border: 1px solid rgba(109, 94, 245, 0.32);
+  background: rgba(109, 94, 245, 0.08);
+  border: 1px solid rgba(109, 94, 245, 0.22);
 }
 
 .economic-judgment-callout {
   margin-top: 14px;
-  padding: 12px 14px 12px 16px;
-  border-left: 4px solid var(--economic-ai-accent);
+  padding: 14px 16px 14px 18px;
+  border-left: 3px solid var(--economic-ai-accent);
   border-radius: 12px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .economic-judgment-callout__label {
   display: inline-flex;
   color: var(--economic-ai-text);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .economic-judgment-callout p {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   color: var(--economic-text);
-  font-size: 0.82rem;
-  line-height: 1.5;
+  font-size: 0.8rem;
+  line-height: 1.6;
 }
 
 .economic-confidence__value {
@@ -4190,63 +4200,94 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-detail-page .tradeoff-chart__grid,
 .economic-detail-page .bar-compare__grid,
 .economic-detail-page .delay-chart__grid {
-  stroke: #e3e9f0;
+  stroke: #e6ecf3;
   stroke-width: 1;
 }
 
 .economic-detail-page .tradeoff-chart__axis {
-  stroke: #cfd8e3;
-  stroke-width: 1.5;
+  stroke: #d7e0ea;
+  stroke-width: 1;
 }
 
 .economic-detail-page .tradeoff-chart__zone {
-  fill: rgba(109, 94, 245, 0.1);
-  stroke: rgba(109, 94, 245, 0.28);
+  fill: rgba(109, 94, 245, 0.08);
+  stroke: rgba(109, 94, 245, 0.22);
 }
 
 .economic-detail-page .tradeoff-chart__line--cost {
-  stroke: var(--economic-blue);
-  stroke-width: 3;
+  stroke: #2563eb;
+  stroke-width: 2.5;
   fill: none;
 }
 
 .economic-detail-page .tradeoff-chart__line--exposure {
-  stroke: var(--economic-red);
-  stroke-width: 3;
+  stroke: #dc2626;
+  stroke-width: 2.5;
   fill: none;
 }
 
+.economic-detail-page .tradeoff-chart__halo {
+  fill: rgba(109, 94, 245, 0.14);
+}
+
 .economic-detail-page .tradeoff-chart__dot--cost {
-  fill: var(--economic-blue);
+  fill: #2563eb;
+  stroke: #ffffff;
+  stroke-width: 2;
 }
 
 .economic-detail-page .tradeoff-chart__dot--exposure {
-  fill: var(--economic-red);
+  fill: #dc2626;
+  stroke: #ffffff;
+  stroke-width: 2;
 }
 
 .economic-detail-page .tradeoff-chart__dot.is-current {
   fill: #ffffff;
-  stroke-width: 4;
+  stroke-width: 3;
 }
 
 .economic-detail-page .tradeoff-chart__dot--cost.is-current {
-  stroke: var(--economic-blue);
+  stroke: #2563eb;
 }
 
 .economic-detail-page .tradeoff-chart__dot--exposure.is-current {
-  stroke: var(--economic-red);
+  stroke: #dc2626;
 }
 
 .economic-detail-page .tradeoff-chart__dot.is-recommended {
-  fill: var(--economic-ai-accent);
-  stroke: #ffffff;
-  stroke-width: 6;
-  filter: drop-shadow(0 2px 6px rgba(109, 94, 245, 0.18));
-  transform: scale(1.22);
+  fill: #ffffff;
+  stroke: var(--economic-ai-accent);
+  stroke-width: 3;
+}
+
+.economic-detail-page .tradeoff-chart__dot--cost.is-recommended,
+.economic-detail-page .tradeoff-chart__dot--exposure.is-recommended {
+  filter: none;
+}
+
+.economic-detail-page .tradeoff-chart__dot--cost.is-selected,
+.economic-detail-page .tradeoff-chart__dot--exposure.is-selected {
+  stroke-width: 3;
+}
+
+.economic-detail-page .tradeoff-chart__dot--cost.is-selected:not(.is-current):not(.is-recommended) {
+  fill: #1d4ed8;
+}
+
+.economic-detail-page .tradeoff-chart__dot--exposure.is-selected:not(.is-current):not(.is-recommended) {
+  fill: #b91c1c;
 }
 
 .economic-detail-page .tradeoff-chart__dot.is-selected {
-  transform: scale(1.16);
+  transform: scale(1.08);
+}
+
+.economic-detail-page .tradeoff-chart__zone-caption {
+  fill: var(--economic-ai-text);
+  font-family: "72", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .economic-detail-page .tradeoff-chart__axis-title,
@@ -4261,13 +4302,8 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-detail-page .bar-compare__axis-label,
 .economic-detail-page .delay-chart__label,
 .economic-detail-page .delay-chart__axis-label {
-  fill: var(--economic-text-secondary);
+  fill: #5f7288;
   font-family: "72", "Segoe UI", "Helvetica Neue", sans-serif;
-}
-
-.economic-detail-page .tradeoff-chart__hit-area,
-.economic-detail-page .funnel-chart__hit-area {
-  cursor: pointer;
 }
 
 .economic-detail-page .tradeoff-chart__axis-title {
@@ -4279,6 +4315,15 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   fill: var(--economic-text);
   font-size: 11px;
   font-weight: 700;
+}
+
+.economic-detail-page .tradeoff-chart__x-label {
+  font-size: 11px;
+}
+
+.economic-detail-page .tradeoff-chart__hit-area,
+.economic-detail-page .funnel-chart__hit-area {
+  cursor: pointer;
 }
 
 .economic-detail-page .funnel-chart__stage {

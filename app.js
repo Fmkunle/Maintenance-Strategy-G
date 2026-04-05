@@ -710,8 +710,8 @@ const renderEconomicOpportunityDetail = () => {
     }
 
     const width = 980;
-    const height = 380;
-    const padding = { top: 30, right: 82, bottom: 58, left: 82 };
+    const height = 400;
+    const padding = { top: 42, right: 86, bottom: 74, left: 88 };
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
     const maxCost = Math.max(...detail.tradeoffModel.map((item) => item.cost));
@@ -745,6 +745,15 @@ const renderEconomicOpportunityDetail = () => {
           class: "tradeoff-chart__zone",
         })
       );
+
+      const zoneCaption = createSvgNode("text", {
+        x: (xFor(recommendedStart) + xFor(recommendedEnd)) / 2,
+        y: padding.top + 18,
+        "text-anchor": "middle",
+        class: "tradeoff-chart__zone-caption",
+      });
+      zoneCaption.textContent = "Preferred trade-off zone";
+      svg.appendChild(zoneCaption);
     }
 
     [0, 0.25, 0.5, 0.75, 1].forEach((tick) => {
@@ -783,7 +792,7 @@ const renderEconomicOpportunityDetail = () => {
       transform: `rotate(-90 24 ${padding.top + plotHeight / 2})`,
       class: "tradeoff-chart__axis-title",
     });
-    leftAxisTitle.textContent = "Annual maintenance cost";
+    leftAxisTitle.textContent = "Annual cost ($)";
     svg.appendChild(leftAxisTitle);
 
     const rightAxisTitle = createSvgNode("text", {
@@ -792,7 +801,7 @@ const renderEconomicOpportunityDetail = () => {
       transform: `rotate(90 ${width - 18} ${padding.top + plotHeight / 2})`,
       class: "tradeoff-chart__axis-title",
     });
-    rightAxisTitle.textContent = "Expected failure exposure";
+    rightAxisTitle.textContent = "Exposure (events/yr)";
     svg.appendChild(rightAxisTitle);
 
     [
@@ -834,6 +843,8 @@ const renderEconomicOpportunityDetail = () => {
 
     detail.tradeoffModel.forEach((item, index) => {
       const x = xFor(index);
+      const isCurrent = item.key === currentKey;
+      const isRecommended = item.key === recommendedKey;
       const pointTooltip = `
         <strong>${item.label}</strong>
         <span>Annual cost: ${formatCurrency(item.cost)}</span>
@@ -841,15 +852,32 @@ const renderEconomicOpportunityDetail = () => {
         <span>Risk index: ${item.riskIndex.toFixed(2)}</span>
       `;
 
+      if (isRecommended) {
+        const costHalo = createSvgNode("circle", {
+          cx: x,
+          cy: yForCost(item.cost),
+          r: 16,
+          class: "tradeoff-chart__halo",
+        });
+        const exposureHalo = createSvgNode("circle", {
+          cx: x,
+          cy: yForExposure(item.exposure),
+          r: 16,
+          class: "tradeoff-chart__halo",
+        });
+        svg.appendChild(costHalo);
+        svg.appendChild(exposureHalo);
+      }
+
       const costDot = createSvgNode("circle", {
         cx: x,
         cy: yForCost(item.cost),
-        r: item.key === currentKey || item.key === recommendedKey ? 7 : 5,
+        r: isRecommended ? 10 : isCurrent ? 8 : 5,
         class: [
           "tradeoff-chart__dot",
           "tradeoff-chart__dot--cost",
-          item.key === currentKey ? "is-current" : "",
-          item.key === recommendedKey ? "is-recommended" : "",
+          isCurrent ? "is-current" : "",
+          isRecommended ? "is-recommended" : "",
           item.key === selectedScenario.key ? "is-selected" : "",
         ]
           .filter(Boolean)
@@ -858,12 +886,12 @@ const renderEconomicOpportunityDetail = () => {
       const exposureDot = createSvgNode("circle", {
         cx: x,
         cy: yForExposure(item.exposure),
-        r: item.key === currentKey || item.key === recommendedKey ? 7 : 5,
+        r: isRecommended ? 10 : isCurrent ? 8 : 5,
         class: [
           "tradeoff-chart__dot",
           "tradeoff-chart__dot--exposure",
-          item.key === currentKey ? "is-current" : "",
-          item.key === recommendedKey ? "is-recommended" : "",
+          isCurrent ? "is-current" : "",
+          isRecommended ? "is-recommended" : "",
           item.key === selectedScenario.key ? "is-selected" : "",
         ]
           .filter(Boolean)
@@ -888,17 +916,15 @@ const renderEconomicOpportunityDetail = () => {
       svg.appendChild(costDot);
       svg.appendChild(exposureDot);
 
-      if (item.key === currentKey || item.key === recommendedKey) {
+      if (isCurrent || isRecommended) {
         const markerLabel = createSvgNode("text", {
           x,
           y:
-            item.key === currentKey
-              ? Math.min(yForCost(item.cost), yForExposure(item.exposure)) - 18
-              : Math.min(yForCost(item.cost), yForExposure(item.exposure)) - 26,
+            Math.min(yForCost(item.cost), yForExposure(item.exposure)) - (isRecommended ? 30 : 20),
           "text-anchor": "middle",
           class: "tradeoff-chart__point-label",
         });
-        markerLabel.textContent = item.key === currentKey ? "Current" : "Recommended";
+        markerLabel.textContent = isCurrent ? "Current" : "Recommended";
         svg.appendChild(markerLabel);
       }
 
