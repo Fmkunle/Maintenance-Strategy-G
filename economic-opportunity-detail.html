@@ -132,6 +132,20 @@
             </div>
           </div>
           <svg id="inspectionYieldChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Inspection yield staged conversion chart"></svg>
+          <div class="economic-insight-strip economic-insight-strip--yield">
+            <div>
+              <span>Completed</span>
+              <strong>120</strong>
+            </div>
+            <div>
+              <span>Actionable</span>
+              <strong>3</strong>
+            </div>
+            <div>
+              <span>Conversion</span>
+              <strong>2.5%</strong>
+            </div>
+          </div>
         </article>
 
         <article class="economic-card economic-span-4">
@@ -145,6 +159,17 @@
           <div id="costViewToggle" class="economic-inline-toggle" aria-label="Cost comparison view">
             <button type="button" class="is-active" data-cost-view="cost">Annual cost</button>
             <button type="button" data-cost-view="hours">Labour hours</button>
+          </div>
+          <div class="economic-compare-strip">
+            <div>
+              <span>Before</span>
+              <strong id="costCompareCurrent">$96,000</strong>
+            </div>
+            <div class="economic-compare-strip__arrow" aria-hidden="true">→</div>
+            <div>
+              <span>After</span>
+              <strong id="costCompareRecommended">$48,000</strong>
+            </div>
           </div>
           <svg id="costComparisonChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Bar chart comparing current and recommended annual cost"></svg>
         </article>
@@ -173,12 +198,17 @@
           <svg id="delayHistoryChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Delay consequence history mini column chart"></svg>
         </article>
 
-        <article class="economic-card economic-card--value economic-span-4">
+        <article class="economic-card economic-card--value economic-card--economic economic-span-4">
           <div class="economic-card__header">
             <div>
               <h2>Economic</h2>
             </div>
             <span class="economic-axis-pill economic-axis-pill--economic">Economic</span>
+          </div>
+          <div class="economic-value-hero">
+            <span class="economic-value-hero__label">Annual saving</span>
+            <strong id="detailEconomicPrimary">$48,000</strong>
+            <span class="economic-value-hero__hint">50% lower than current annual cost</span>
           </div>
           <div class="economic-delta-bar" aria-hidden="true">
             <span class="economic-delta-bar__current"></span>
@@ -200,12 +230,17 @@
           </dl>
         </article>
 
-        <article class="economic-card economic-card--value economic-span-4">
+        <article class="economic-card economic-card--value economic-card--risk economic-span-4">
           <div class="economic-card__header">
             <div>
               <h2>Risk</h2>
             </div>
             <span class="economic-axis-pill economic-axis-pill--risk">Risk</span>
+          </div>
+          <div class="economic-value-hero">
+            <span class="economic-value-hero__label">Expected exposure</span>
+            <strong id="detailRiskPrimary">0.22 events/year</strong>
+            <span class="economic-value-hero__hint">Low change versus current state</span>
           </div>
           <dl class="economic-metric-list">
             <div>
@@ -223,12 +258,17 @@
           </dl>
         </article>
 
-        <article class="economic-card economic-card--value economic-span-4">
+        <article class="economic-card economic-card--value economic-card--operational economic-span-4">
           <div class="economic-card__header">
             <div>
               <h2>Operational</h2>
             </div>
             <span class="economic-axis-pill economic-axis-pill--operational">Operational</span>
+          </div>
+          <div class="economic-value-hero">
+            <span class="economic-value-hero__label">Implementation effort</span>
+            <strong id="detailOperationalPrimary">3/5</strong>
+            <span class="economic-value-hero__hint">Route update and PM master changes required</span>
           </div>
           <dl class="economic-metric-list">
             <div>

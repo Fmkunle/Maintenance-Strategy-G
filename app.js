@@ -711,7 +711,7 @@ const renderEconomicOpportunityDetail = () => {
 
     const width = 980;
     const height = 400;
-    const padding = { top: 42, right: 86, bottom: 74, left: 88 };
+    const padding = { top: 48, right: 88, bottom: 78, left: 92 };
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
     const maxCost = Math.max(...detail.tradeoffModel.map((item) => item.cost));
@@ -756,7 +756,7 @@ const renderEconomicOpportunityDetail = () => {
       svg.appendChild(zoneCaption);
     }
 
-    [0, 0.25, 0.5, 0.75, 1].forEach((tick) => {
+    [0, 0.33, 0.66, 1].forEach((tick) => {
       const y = padding.top + plotHeight - plotHeight * tick;
       svg.appendChild(
         createSvgNode("line", {
@@ -769,7 +769,7 @@ const renderEconomicOpportunityDetail = () => {
       );
 
       const leftLabel = createSvgNode("text", {
-        x: padding.left - 10,
+        x: padding.left - 12,
         y: y + 4,
         "text-anchor": "end",
         class: "tradeoff-chart__axis-label tradeoff-chart__axis-label--left",
@@ -778,7 +778,7 @@ const renderEconomicOpportunityDetail = () => {
       svg.appendChild(leftLabel);
 
       const rightLabel = createSvgNode("text", {
-        x: width - padding.right + 12,
+        x: width - padding.right + 14,
         y: y + 4,
         class: "tradeoff-chart__axis-label tradeoff-chart__axis-label--right",
       });
@@ -787,18 +787,18 @@ const renderEconomicOpportunityDetail = () => {
     });
 
     const leftAxisTitle = createSvgNode("text", {
-      x: 24,
+      x: 28,
       y: padding.top + plotHeight / 2,
-      transform: `rotate(-90 24 ${padding.top + plotHeight / 2})`,
+      transform: `rotate(-90 28 ${padding.top + plotHeight / 2})`,
       class: "tradeoff-chart__axis-title",
     });
     leftAxisTitle.textContent = "Annual cost ($)";
     svg.appendChild(leftAxisTitle);
 
     const rightAxisTitle = createSvgNode("text", {
-      x: width - 18,
+      x: width - 22,
       y: padding.top + plotHeight / 2,
-      transform: `rotate(90 ${width - 18} ${padding.top + plotHeight / 2})`,
+      transform: `rotate(90 ${width - 22} ${padding.top + plotHeight / 2})`,
       class: "tradeoff-chart__axis-title",
     });
     rightAxisTitle.textContent = "Exposure (events/yr)";
@@ -856,13 +856,13 @@ const renderEconomicOpportunityDetail = () => {
         const costHalo = createSvgNode("circle", {
           cx: x,
           cy: yForCost(item.cost),
-          r: 16,
+          r: 12,
           class: "tradeoff-chart__halo",
         });
         const exposureHalo = createSvgNode("circle", {
           cx: x,
           cy: yForExposure(item.exposure),
-          r: 16,
+          r: 12,
           class: "tradeoff-chart__halo",
         });
         svg.appendChild(costHalo);
@@ -872,7 +872,7 @@ const renderEconomicOpportunityDetail = () => {
       const costDot = createSvgNode("circle", {
         cx: x,
         cy: yForCost(item.cost),
-        r: isRecommended ? 10 : isCurrent ? 8 : 5,
+        r: isRecommended ? 8 : isCurrent ? 6 : 4,
         class: [
           "tradeoff-chart__dot",
           "tradeoff-chart__dot--cost",
@@ -886,7 +886,7 @@ const renderEconomicOpportunityDetail = () => {
       const exposureDot = createSvgNode("circle", {
         cx: x,
         cy: yForExposure(item.exposure),
-        r: isRecommended ? 10 : isCurrent ? 8 : 5,
+        r: isRecommended ? 8 : isCurrent ? 6 : 4,
         class: [
           "tradeoff-chart__dot",
           "tradeoff-chart__dot--exposure",
@@ -921,6 +921,7 @@ const renderEconomicOpportunityDetail = () => {
           x,
           y:
             Math.min(yForCost(item.cost), yForExposure(item.exposure)) - (isRecommended ? 30 : 20),
+          dy: isRecommended ? 0 : -2,
           "text-anchor": "middle",
           class: "tradeoff-chart__point-label",
         });
@@ -948,14 +949,14 @@ const renderEconomicOpportunityDetail = () => {
     }
 
     const width = 480;
-    const stageHeight = 28;
+    const stageHeight = 24;
     const baseCount = detail.inspectionYield[0].count;
     svg.innerHTML = "";
 
     detail.inspectionYield.forEach((stage, index) => {
-      const y = 16 + index * 48;
-      const stageWidth = 272 * (stage.count / baseCount);
-      const x = 84 + (272 - stageWidth) / 2;
+      const y = 22 + index * 46;
+      const stageWidth = 248 * (stage.count / baseCount);
+      const x = 124;
       const percentage = (stage.count / baseCount) * 100;
       const priorCount = index === 0 ? baseCount : detail.inspectionYield[index - 1].count;
       const stageConversion = index === 0 ? 100 : (stage.count / priorCount) * 100;
@@ -963,9 +964,9 @@ const renderEconomicOpportunityDetail = () => {
       const hitArea = createSvgNode("rect", {
         x: 16,
         y: y - 6,
-        width: 408,
-        height: 40,
-        rx: 14,
+        width: 436,
+        height: 34,
+        rx: 12,
         class: "funnel-chart__hit-area",
       });
       const bar = createSvgNode("rect", {
@@ -973,25 +974,22 @@ const renderEconomicOpportunityDetail = () => {
         y,
         width: stageWidth,
         height: stageHeight,
-        rx: 14,
+        rx: 12,
         class: `funnel-chart__stage ${stage.key === detailState.selectedEvidenceStageKey ? "is-selected" : ""}`,
       });
-      const label = createSvgNode("text", { x: 20, y: y + 18, class: "funnel-chart__label" });
-      label.textContent = stage.label;
+      const label = createSvgNode("text", { x: 20, y: y + 15, class: "funnel-chart__label" });
+      label.textContent = stage.label.replace("Inspections ", "").replace("Corrective ", "");
       const value = createSvgNode("text", {
         x: width - 16,
-        y: y + 18,
+        y: y + 15,
         "text-anchor": "end",
         class: "funnel-chart__value",
       });
-      value.textContent =
-        index === 0
-          ? `${stage.count}`
-          : `${stage.count} (${stageConversion.toFixed(1)}% from prior)`;
+      value.textContent = `${stage.count}`;
 
       attachTooltip(
         hitArea,
-        `<strong>${stage.label}</strong><span>${stage.count} items</span><span>${percentage.toFixed(1)}% of inspections completed</span><span>${stageConversion.toFixed(1)}% conversion from prior stage</span>`
+          `<strong>${stage.label}</strong><span>${stage.count} items</span><span>${percentage.toFixed(1)}% of completed inspections</span><span>${stageConversion.toFixed(1)}% conversion from prior stage</span>`
       );
       hitArea.addEventListener("click", () => {
         detailState.selectedEvidenceStageKey = stage.key;
@@ -1009,12 +1007,12 @@ const renderEconomicOpportunityDetail = () => {
 
       if (index > 0) {
         const conversionNote = createSvgNode("text", {
-          x: width / 2,
-          y: y - 10,
-          "text-anchor": "middle",
+          x: 74,
+          y: y + 33,
+          "text-anchor": "start",
           class: "funnel-chart__conversion",
         });
-        conversionNote.textContent = `${stageConversion.toFixed(1)}% from prior stage`;
+        conversionNote.textContent = `${stageConversion.toFixed(1)}% from prior`;
         svg.appendChild(conversionNote);
       }
     });
@@ -1069,6 +1067,19 @@ const renderEconomicOpportunityDetail = () => {
           ? `-${delta} hrs / -${percentReduction}%`
           : `-${formatCurrency(delta)} / -${percentReduction}%`;
     }
+
+    setText(
+      "costCompareCurrent",
+      detailState.costView === "hours"
+        ? `${activeView.current} hrs`
+        : formatCurrency(activeView.current)
+    );
+    setText(
+      "costCompareRecommended",
+      detailState.costView === "hours"
+        ? `${activeView.recommended} hrs`
+        : formatCurrency(activeView.recommended)
+    );
 
     svg.innerHTML = "";
     [0, 0.5, 1].forEach((tick) => {
@@ -1256,12 +1267,14 @@ const renderEconomicOpportunityDetail = () => {
   setText("detailRiskChangeHint", "Exposure increase remains limited");
   setText("detailCurrentCost", formatCurrency(detail.currentCost));
   setText("detailRecommendedCost", formatCurrency(detail.recommendedCost));
+  setText("detailEconomicPrimary", formatCurrency(detail.potentialSaving));
   setText("detailPotentialSaving", formatCurrency(detail.potentialSaving));
   setText("detailCostReduction", formatCurrency(detail.potentialSaving));
   setText("detailHoursReleased", detail.hoursReleased);
   setText("detailSavingsDelta", detail.savingsDelta);
   setText("detailCurrentExpectedExposure", detail.currentExpectedExposure);
   setText("detailProposedExpectedExposure", detail.proposedExpectedExposure);
+  setText("detailRiskPrimary", detail.proposedExpectedExposure);
   setText("detailSafetyConsequenceChange", detail.safetyConsequenceChange);
   setText("detailSafetyImpact", detail.safetyImpact);
   setText("detailProductionImpact", detail.productionImpact);
@@ -1271,6 +1284,7 @@ const renderEconomicOpportunityDetail = () => {
   setText("detailRouteRedesignFlag", detail.routeRedesignRequired);
   setText("detailMasterUpdatesNeeded", detail.masterUpdatesNeeded);
   setText("detailImplementationEffortScore", detail.implementationEffortScore);
+  setText("detailOperationalPrimary", detail.implementationEffortScore);
   setText("detailShutdownDependency", detail.shutdownDependency);
   setText("detailConfidenceNote", detail.confidenceNote);
   setText("detailDataReviewed", detail.dataReviewed);

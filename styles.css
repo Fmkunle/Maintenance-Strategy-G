@@ -3851,11 +3851,11 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-chart-legend {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 10px;
+  margin-top: 8px;
   color: var(--economic-text-secondary);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
 }
 
 .economic-chart-legend span {
@@ -3884,18 +3884,18 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .economic-chart-legend__swatch--zone {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 4px;
   background: rgba(109, 94, 245, 0.08);
   border: 1px solid rgba(109, 94, 245, 0.22);
 }
 
 .economic-judgment-callout {
-  margin-top: 14px;
-  padding: 14px 16px 14px 18px;
+  margin-top: 12px;
+  padding: 12px 14px 12px 16px;
   border-left: 3px solid var(--economic-ai-accent);
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.8);
 }
 
@@ -3960,12 +3960,88 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-delta-chip {
   display: inline-flex;
   align-items: center;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 999px;
   background: #eef9f3;
   color: var(--economic-green);
-  font-size: 0.74rem;
+  font-size: 0.82rem;
   font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(46, 139, 87, 0.1);
+}
+
+.economic-insight-strip,
+.economic-compare-strip {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e8eef5;
+  border-radius: 12px;
+  background: #fafbfd;
+}
+
+.economic-insight-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.economic-compare-strip {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.economic-insight-strip span,
+.economic-compare-strip span {
+  display: block;
+  color: var(--economic-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.economic-insight-strip strong,
+.economic-compare-strip strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--economic-text);
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.economic-compare-strip__arrow {
+  color: var(--economic-text-muted);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.economic-value-hero {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f9fbfd;
+}
+
+.economic-value-hero__label {
+  color: var(--economic-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.economic-value-hero strong {
+  color: var(--economic-text);
+  font-size: 1.28rem;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.economic-value-hero__hint {
+  color: var(--economic-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .economic-summary-strip {
@@ -4018,11 +4094,23 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   color: var(--economic-blue);
 }
 
+.economic-card--economic {
+  border-top: 2px solid rgba(46, 139, 87, 0.26);
+}
+
+.economic-card--risk {
+  border-top: 2px solid rgba(214, 69, 69, 0.24);
+}
+
+.economic-card--operational {
+  border-top: 2px solid rgba(59, 130, 246, 0.24);
+}
+
 .economic-delta-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .economic-delta-bar__current,
@@ -4044,13 +4132,13 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .economic-metric-list {
   display: grid;
-  gap: 14px;
-  margin: 16px 0 0;
+  gap: 10px;
+  margin: 12px 0 0;
 }
 
 .economic-metric-list dt {
   color: var(--economic-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -4059,7 +4147,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-metric-list dd {
   margin: 4px 0 0;
   color: var(--economic-text);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
 }
 
@@ -4102,7 +4190,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-accordion-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .economic-accordion {
@@ -4119,7 +4207,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 11px 14px;
   cursor: pointer;
   list-style: none;
   transition: background-color 120ms ease, border-color 120ms ease;
@@ -4132,26 +4220,26 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-accordion__content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .economic-accordion__label {
   color: var(--economic-text);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   font-weight: 600;
 }
 
 .economic-accordion__preview {
   color: var(--economic-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.45;
+  font-size: 0.74rem;
+  line-height: 1.35;
 }
 
 .economic-accordion__trigger {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border: 1px solid var(--economic-border);
-  border-radius: 8px;
+  border-radius: 7px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4166,7 +4254,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .economic-accordion--ai summary {
   border-left: 3px solid var(--economic-ai-accent);
-  padding-left: 13px;
+  padding-left: 11px;
   background: linear-gradient(90deg, rgba(109, 94, 245, 0.06), rgba(109, 94, 245, 0.01) 32%, #ffffff 32%);
 }
 
@@ -4187,25 +4275,25 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-accordion p,
 .economic-accordion ul {
   margin: 0;
-  padding: 14px 16px 16px;
+  padding: 12px 14px 14px;
   color: var(--economic-text);
-  font-size: 0.84rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 .economic-accordion ul {
-  padding-left: 32px;
+  padding-left: 28px;
 }
 
 .economic-detail-page .tradeoff-chart__grid,
 .economic-detail-page .bar-compare__grid,
 .economic-detail-page .delay-chart__grid {
-  stroke: #e6ecf3;
+  stroke: #ebf0f6;
   stroke-width: 1;
 }
 
 .economic-detail-page .tradeoff-chart__axis {
-  stroke: #d7e0ea;
+  stroke: #dde5ee;
   stroke-width: 1;
 }
 
@@ -4227,24 +4315,24 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .economic-detail-page .tradeoff-chart__halo {
-  fill: rgba(109, 94, 245, 0.14);
+  fill: rgba(109, 94, 245, 0.1);
 }
 
 .economic-detail-page .tradeoff-chart__dot--cost {
   fill: #2563eb;
   stroke: #ffffff;
-  stroke-width: 2;
+  stroke-width: 1.5;
 }
 
 .economic-detail-page .tradeoff-chart__dot--exposure {
   fill: #dc2626;
   stroke: #ffffff;
-  stroke-width: 2;
+  stroke-width: 1.5;
 }
 
 .economic-detail-page .tradeoff-chart__dot.is-current {
   fill: #ffffff;
-  stroke-width: 3;
+  stroke-width: 2.5;
 }
 
 .economic-detail-page .tradeoff-chart__dot--cost.is-current {
@@ -4258,7 +4346,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-detail-page .tradeoff-chart__dot.is-recommended {
   fill: #ffffff;
   stroke: var(--economic-ai-accent);
-  stroke-width: 3;
+  stroke-width: 2.5;
 }
 
 .economic-detail-page .tradeoff-chart__dot--cost.is-recommended,
@@ -4280,14 +4368,14 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .economic-detail-page .tradeoff-chart__dot.is-selected {
-  transform: scale(1.08);
+  transform: scale(1.04);
 }
 
 .economic-detail-page .tradeoff-chart__zone-caption {
   fill: var(--economic-ai-text);
   font-family: "72", "Segoe UI", "Helvetica Neue", sans-serif;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .economic-detail-page .tradeoff-chart__axis-title,
@@ -4307,18 +4395,30 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .economic-detail-page .tradeoff-chart__axis-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 }
 
 .economic-detail-page .tradeoff-chart__point-label {
   fill: var(--economic-text);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
 .economic-detail-page .tradeoff-chart__x-label {
+  font-size: 10px;
+}
+
+.economic-detail-page .funnel-chart__label {
+  fill: var(--economic-text);
   font-size: 11px;
+  font-weight: 600;
+}
+
+.economic-detail-page .funnel-chart__value {
+  fill: var(--economic-text);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .economic-detail-page .tradeoff-chart__hit-area,
@@ -4336,7 +4436,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .economic-detail-page .funnel-chart__conversion {
   fill: var(--economic-text-muted);
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .economic-detail-page .bar-compare__bar--current {
