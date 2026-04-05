@@ -6,7 +6,7 @@
   <title>Economic Opportunity Detail</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="fiori-overview-page" data-theme="light">
+<body class="fiori-overview-page economic-detail-page" data-theme="light">
   <div id="economicOpportunityDetail" class="fiori-shell">
     <header class="fiori-shellbar">
       <div class="fiori-shellbar__brand">
@@ -52,409 +52,259 @@
         <span aria-current="page">Opportunity Detail</span>
       </nav>
 
-      <section class="fiori-object-header fiori-object-header--insight">
-        <div class="fiori-object-header__copy">
-          <span id="detailAssetGroup" class="fiori-object-header__eyebrow">Gearboxes MFA-321-GB01 to MFA-321-GB10</span>
+      <section class="economic-header-card">
+        <div class="economic-header-card__copy">
+          <span id="detailAssetGroup" class="economic-header-card__asset">Gearboxes MFA-321-GB01 to MFA-321-GB10</span>
           <h1 id="detailInsightTitle">PM02 inspection frequency may be higher than current risk justifies</h1>
-          <div class="fiori-object-header__signals">
-            <span id="detailConfidence" class="fiori-status fiori-status--economic">Medium confidence</span>
-            <span class="fiori-ai-badge">AI-assisted insight</span>
+          <div class="economic-header-card__badges">
+            <span id="detailConfidence" class="economic-badge economic-badge--confidence">Medium confidence</span>
+            <span class="economic-badge economic-badge--ai">
+              <span class="economic-badge__sparkle" aria-hidden="true"></span>
+              <span>AI-assisted insight</span>
+            </span>
           </div>
         </div>
-        <div class="fiori-object-header__actions">
+        <div class="economic-header-card__actions">
           <a class="fiori-button fiori-button--primary" href="advanced-analysis.html#economic">Open full analysis</a>
         </div>
       </section>
 
-      <section class="fiori-detail-grid">
-        <div class="fiori-detail-main">
-          <section class="fiori-decision-grid" aria-label="Decision snapshot">
-            <article class="fiori-snapshot-card">
-              <span class="fiori-snapshot-card__label">Current frequency</span>
-              <strong id="detailCurrentFrequency">1 month</strong>
-              <span class="fiori-snapshot-card__hint">Current PM02 interval</span>
-            </article>
-            <article class="fiori-snapshot-card">
-              <span class="fiori-snapshot-card__label">Recommended frequency</span>
-              <strong id="detailRecommendedFrequency">2 months</strong>
-              <span class="fiori-snapshot-card__hint">Proposed next review setting</span>
-            </article>
-            <article class="fiori-snapshot-card">
-              <span class="fiori-snapshot-card__label">Estimated annual saving</span>
-              <strong id="detailAnnualSavingKpi">$48,000</strong>
-              <span class="fiori-snapshot-card__hint">Direct maintenance spend reduction</span>
-            </article>
-            <article class="fiori-snapshot-card">
-              <span class="fiori-snapshot-card__label">Expected risk change</span>
-              <strong id="detailRiskChangeKpi">Low</strong>
-              <span class="fiori-snapshot-card__hint">Exposure increase remains limited</span>
-            </article>
-          </section>
+      <section class="economic-detail-layout">
+        <article class="economic-card economic-card--snapshot economic-span-3">
+          <span class="economic-card__label">Current frequency</span>
+          <strong id="detailCurrentFrequency">1 month</strong>
+          <span id="detailCurrentFrequencyHint" class="economic-card__helper">Current PM02 interval</span>
+        </article>
+        <article class="economic-card economic-card--snapshot economic-span-3">
+          <span class="economic-card__label">Recommended frequency</span>
+          <strong id="detailRecommendedFrequency">2 months</strong>
+          <span id="detailRecommendedFrequencyHint" class="economic-card__helper">Selected interval under review</span>
+        </article>
+        <article class="economic-card economic-card--snapshot economic-span-3">
+          <span class="economic-card__label">Estimated annual saving</span>
+          <strong id="detailAnnualSavingKpi">$48,000</strong>
+          <span id="detailAnnualSavingHint" class="economic-card__helper">Relative to current annual cost</span>
+        </article>
+        <article class="economic-card economic-card--snapshot economic-span-3">
+          <span class="economic-card__label">Expected risk change</span>
+          <strong id="detailRiskChangeKpi">Low</strong>
+          <span id="detailRiskChangeHint" class="economic-card__helper">Exposure increase remains limited</span>
+        </article>
 
-          <article class="fiori-detail-card fiori-detail-card--ai fiori-hero-analysis">
-            <div class="fiori-card-header">
-              <div>
-                <h2>Frequency trade-off model</h2>
-                <p>Visual comparison of annual cost against expected exposure across inspection intervals.</p>
-              </div>
-              <span class="fiori-ai-badge fiori-ai-badge--compact">AI-assisted</span>
+        <article class="economic-card economic-card--hero economic-span-8">
+          <div class="economic-card__header economic-card__header--stacked">
+            <div>
+              <h2>Frequency trade-off model</h2>
+              <p>Annual maintenance cost vs expected failure exposure across inspection intervals</p>
             </div>
-            <div class="fiori-hero-analysis__callout">
-              <div>
-                <span class="fiori-hero-analysis__eyebrow">System judgment</span>
-                <p id="detailSummary" class="fiori-detail-card__body">
-                  Current monthly PM02 inspections appear to provide limited defect detection value relative to their cost and labour demand. Available CMMS and delay history suggest the current interval may be more conservative than required for this gearbox group.
-                </p>
-              </div>
-              <div class="fiori-hero-analysis__recommendation">
-                <span class="fiori-status fiori-status--economic">Recommended</span>
-                <strong>Move to 2 months</strong>
-                <span>Retains a low risk change while halving annual cost.</span>
-              </div>
+            <span class="economic-ai-kicker">AI-assisted trade-off model</span>
+          </div>
+          <svg id="tradeoffChartSvg" class="economic-chart economic-chart--hero" viewBox="0 0 980 380" role="img" aria-label="Dual-axis line chart showing annual maintenance cost and expected failure exposure across inspection intervals"></svg>
+          <div class="economic-chart-legend">
+            <span><i class="economic-chart-legend__swatch economic-chart-legend__swatch--cost"></i>Annual maintenance cost</span>
+            <span><i class="economic-chart-legend__swatch economic-chart-legend__swatch--exposure"></i>Expected failure exposure</span>
+            <span><i class="economic-chart-legend__swatch economic-chart-legend__swatch--zone"></i>Recommended trade-off zone</span>
+          </div>
+          <div class="economic-judgment-callout">
+            <span class="economic-judgment-callout__label">System judgment</span>
+            <p id="detailSystemJudgment">Moving to 2 months retains a low risk change while halving annual inspection cost.</p>
+          </div>
+        </article>
+
+        <article class="economic-card economic-card--confidence economic-span-4">
+          <div class="economic-card__header">
+            <div>
+              <h2>Confidence</h2>
             </div>
+            <span class="economic-ai-kicker">AI assessment</span>
+          </div>
+          <strong id="detailConfidenceSide" class="economic-confidence__value">Medium confidence</strong>
+          <p id="detailConfidenceNote" class="economic-confidence__body">
+            Confidence is reduced by limited direct condition evidence, possible inconsistency in historical failure coding, and incomplete mapping between PM findings and prevented failures.
+          </p>
+        </article>
 
-            <div class="tradeoff-chart">
-              <div class="tradeoff-chart__meta">
-                <span>Annual maintenance cost</span>
-                <span>Expected failure exposure / risk index</span>
-              </div>
-              <svg class="tradeoff-chart__svg" viewBox="0 0 760 330" role="img" aria-label="Frequency trade-off model showing annual maintenance cost and expected failure exposure by inspection interval">
-                <rect x="430" y="32" width="92" height="220" class="tradeoff-chart__zone"></rect>
-
-                <line x1="70" y1="60" x2="70" y2="270" class="tradeoff-chart__axis"></line>
-                <line x1="690" y1="60" x2="690" y2="270" class="tradeoff-chart__axis"></line>
-                <line x1="70" y1="270" x2="690" y2="270" class="tradeoff-chart__axis"></line>
-
-                <line x1="70" y1="228" x2="690" y2="228" class="tradeoff-chart__grid"></line>
-                <line x1="70" y1="186" x2="690" y2="186" class="tradeoff-chart__grid"></line>
-                <line x1="70" y1="144" x2="690" y2="144" class="tradeoff-chart__grid"></line>
-                <line x1="70" y1="102" x2="690" y2="102" class="tradeoff-chart__grid"></line>
-
-                <text x="52" y="274" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--left">$0</text>
-                <text x="36" y="232" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--left">$34k</text>
-                <text x="36" y="190" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--left">$67k</text>
-                <text x="36" y="148" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--left">$101k</text>
-                <text x="28" y="106" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--left">$134k</text>
-
-                <text x="702" y="274" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--right">0.00</text>
-                <text x="702" y="232" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--right">0.13</text>
-                <text x="702" y="190" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--right">0.26</text>
-                <text x="702" y="148" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--right">0.39</text>
-                <text x="702" y="106" class="tradeoff-chart__axis-label tradeoff-chart__axis-label--right">0.52</text>
-
-                <rect x="113" y="60" width="42" height="210" class="tradeoff-chart__bar"></rect>
-                <rect x="233" y="150" width="42" height="120" class="tradeoff-chart__bar tradeoff-chart__bar--current"></rect>
-                <rect x="353" y="210" width="42" height="60" class="tradeoff-chart__bar tradeoff-chart__bar--recommended"></rect>
-                <rect x="473" y="225" width="42" height="45" class="tradeoff-chart__bar"></rect>
-                <rect x="593" y="240" width="42" height="30" class="tradeoff-chart__bar"></rect>
-
-                <path d="M134 202 L254 198 L374 182 L494 145 L614 60" class="tradeoff-chart__line"></path>
-                <circle cx="134" cy="202" r="6" class="tradeoff-chart__dot"></circle>
-                <circle cx="254" cy="198" r="7" class="tradeoff-chart__dot tradeoff-chart__dot--current"></circle>
-                <circle cx="374" cy="182" r="7" class="tradeoff-chart__dot tradeoff-chart__dot--recommended"></circle>
-                <circle cx="494" cy="145" r="6" class="tradeoff-chart__dot"></circle>
-                <circle cx="614" cy="60" r="6" class="tradeoff-chart__dot"></circle>
-
-                <text x="134" y="300" class="tradeoff-chart__x-label" text-anchor="middle">2 weeks</text>
-                <text x="254" y="300" class="tradeoff-chart__x-label" text-anchor="middle">1 month</text>
-                <text x="374" y="300" class="tradeoff-chart__x-label" text-anchor="middle">2 months</text>
-                <text x="494" y="300" class="tradeoff-chart__x-label" text-anchor="middle">3 months</text>
-                <text x="614" y="300" class="tradeoff-chart__x-label" text-anchor="middle">6 months</text>
-              </svg>
-
-              <div class="tradeoff-chart__legend">
-                <span><i class="tradeoff-chart__legend-swatch tradeoff-chart__legend-swatch--bar"></i>Annual maintenance cost</span>
-                <span><i class="tradeoff-chart__legend-swatch tradeoff-chart__legend-swatch--line"></i>Expected failure exposure</span>
-                <span><i class="tradeoff-chart__legend-swatch tradeoff-chart__legend-swatch--zone"></i>Recommended trade-off zone</span>
-              </div>
+        <article class="economic-card economic-span-4">
+          <div class="economic-card__header economic-card__header--stacked">
+            <div>
+              <h2>Inspection yield</h2>
+              <p>Detection value relative to inspection effort</p>
             </div>
-          </article>
+          </div>
+          <svg id="inspectionYieldChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Inspection yield staged conversion chart"></svg>
+        </article>
 
-          <section class="fiori-evidence-grid" aria-label="Evidence row">
-            <article class="fiori-evidence-card">
-              <div class="fiori-card-header">
-                <div>
-                  <h2>Inspection yield</h2>
-                  <p>Detection value relative to inspection effort</p>
-                </div>
-              </div>
-              <div class="fiori-evidence-stats">
-                <div>
-                  <span>Inspections completed</span>
-                  <strong>120</strong>
-                </div>
-                <div>
-                  <span>Inspections with findings</span>
-                  <strong>14</strong>
-                </div>
-                <div>
-                  <span>Actionable findings</span>
-                  <strong>3</strong>
-                </div>
-                <div>
-                  <span>Actionable conversion</span>
-                  <strong>2.5%</strong>
-                </div>
-              </div>
-              <div class="fiori-evidence-meter">
-                <span class="fiori-evidence-meter__fill" style="width: 12%;"></span>
-              </div>
-            </article>
-
-            <article class="fiori-evidence-card">
-              <div class="fiori-card-header">
-                <div>
-                  <h2>Cost comparison</h2>
-                  <p>Current versus recommended annual spend</p>
-                </div>
-              </div>
-              <div class="fiori-compare-bars">
-                <div class="fiori-compare-bars__row">
-                  <span>Current</span>
-                  <div class="fiori-compare-bars__track"><span style="width: 100%;"></span></div>
-                  <strong>$96,000</strong>
-                </div>
-                <div class="fiori-compare-bars__row">
-                  <span>Recommended</span>
-                  <div class="fiori-compare-bars__track"><span class="is-recommended" style="width: 50%;"></span></div>
-                  <strong>$48,000</strong>
-                </div>
-              </div>
-              <div class="fiori-evidence-inline">
-                <span>Saving</span>
-                <strong>$48,000</strong>
-              </div>
-            </article>
-
-            <article class="fiori-evidence-card">
-              <div class="fiori-card-header">
-                <div>
-                  <h2>Delay consequence history</h2>
-                  <p>Recent production effect profile</p>
-                </div>
-              </div>
-              <div class="fiori-evidence-stats fiori-evidence-stats--three">
-                <div>
-                  <span>Major delay events</span>
-                  <strong>0</strong>
-                </div>
-                <div>
-                  <span>Minor delay events</span>
-                  <strong>2</strong>
-                </div>
-                <div>
-                  <span>Total hours lost</span>
-                  <strong>3.5</strong>
-                </div>
-              </div>
-              <div class="fiori-mini-trend" aria-hidden="true">
-                <span style="height: 18%;"></span>
-                <span style="height: 22%;"></span>
-                <span style="height: 14%;"></span>
-                <span style="height: 12%;"></span>
-                <span style="height: 20%;"></span>
-                <span style="height: 10%;"></span>
-              </div>
-            </article>
-          </section>
-
-          <section class="fiori-value-stack" aria-label="Value stack">
-            <article class="fiori-value-card fiori-value-card--visual">
-              <div class="fiori-card-header">
-                <div>
-                  <h2>Economic</h2>
-                </div>
-                <span class="fiori-status fiori-status--economic">Value</span>
-              </div>
-              <div class="fiori-mini-bars">
-                <div class="fiori-mini-bars__row">
-                  <span>Current cost</span>
-                  <div class="fiori-mini-bars__track"><span style="width: 100%;"></span></div>
-                </div>
-                <div class="fiori-mini-bars__row">
-                  <span>Recommended</span>
-                  <div class="fiori-mini-bars__track"><span class="is-recommended" style="width: 50%;"></span></div>
-                </div>
-              </div>
-              <dl class="fiori-key-list">
-                <div>
-                  <dt>Annual cost reduction</dt>
-                  <dd id="detailCostReduction">$48,000</dd>
-                </div>
-                <div>
-                  <dt>Hours released</dt>
-                  <dd id="detailHoursReleased">160 hrs</dd>
-                </div>
-                <div>
-                  <dt>Savings delta</dt>
-                  <dd id="detailSavingsDelta">50%</dd>
-                </div>
-              </dl>
-            </article>
-
-            <article class="fiori-value-card fiori-value-card--visual">
-              <div class="fiori-card-header">
-                <div>
-                  <h2>Risk</h2>
-                </div>
-                <span class="fiori-status fiori-status--risk">Exposure</span>
-              </div>
-              <div class="fiori-dual-metric">
-                <div>
-                  <span>Current</span>
-                  <strong id="detailCurrentExpectedExposure">0.18 events/yr</strong>
-                </div>
-                <div>
-                  <span>Proposed</span>
-                  <strong id="detailProposedExpectedExposure">0.22 events/yr</strong>
-                </div>
-              </div>
-              <dl class="fiori-key-list">
-                <div>
-                  <dt>Current expected failure exposure</dt>
-                  <dd>0.18 events/year</dd>
-                </div>
-                <div>
-                  <dt>Proposed expected failure exposure</dt>
-                  <dd>0.22 events/year</dd>
-                </div>
-                <div>
-                  <dt>Safety consequence change</dt>
-                  <dd id="detailSafetyConsequenceChange">No material change</dd>
-                </div>
-              </dl>
-            </article>
-
-            <article class="fiori-value-card fiori-value-card--visual">
-              <div class="fiori-card-header">
-                <div>
-                  <h2>Operational</h2>
-                </div>
-                <span class="fiori-status fiori-status--operational">Delivery</span>
-              </div>
-              <div class="fiori-effort-score">
-                <span>Implementation effort</span>
-                <strong id="detailImplementationEffortScore">3 / 5</strong>
-              </div>
-              <dl class="fiori-key-list">
-                <div>
-                  <dt>Route redesign required</dt>
-                  <dd id="detailRouteRedesignFlag">Yes</dd>
-                </div>
-                <div>
-                  <dt>PM master updates needed</dt>
-                  <dd id="detailMasterUpdatesNeeded">10 records</dd>
-                </div>
-                <div>
-                  <dt>Shutdown dependency</dt>
-                  <dd id="detailShutdownDependency">No</dd>
-                </div>
-              </dl>
-            </article>
-          </section>
-
-          <article class="fiori-detail-card fiori-assumption-card">
-            <div class="fiori-card-header">
-              <div>
-                <h2>Assumption strength matrix</h2>
-                <p>Quick read on where the recommendation is well-supported versus still weak.</p>
-              </div>
+        <article class="economic-card economic-span-4">
+          <div class="economic-card__header economic-card__header--stacked">
+            <div>
+              <h2>Cost comparison</h2>
+              <p>Current versus recommended annual spend</p>
             </div>
-            <div class="fiori-assumption-matrix">
-              <div class="fiori-assumption-row">
-                <span>Detectability</span>
-                <div class="fiori-assumption-row__track"><span class="is-moderate" style="width: 66%;"></span></div>
-                <strong class="fiori-rating-pill fiori-rating-pill--moderate">Moderate</strong>
-              </div>
-              <div class="fiori-assumption-row">
-                <span>P-F interval fit</span>
-                <div class="fiori-assumption-row__track"><span class="is-weak" style="width: 36%;"></span></div>
-                <strong class="fiori-rating-pill fiori-rating-pill--weak">Weak</strong>
-              </div>
-              <div class="fiori-assumption-row">
-                <span>Consequence logic</span>
-                <div class="fiori-assumption-row__track"><span class="is-moderate" style="width: 64%;"></span></div>
-                <strong class="fiori-rating-pill fiori-rating-pill--moderate">Moderate</strong>
-              </div>
-              <div class="fiori-assumption-row">
-                <span>Redundancy logic</span>
-                <div class="fiori-assumption-row__track"><span class="is-moderate" style="width: 62%;"></span></div>
-                <strong class="fiori-rating-pill fiori-rating-pill--moderate">Moderate</strong>
-              </div>
-              <div class="fiori-assumption-row">
-                <span>Demand frequency</span>
-                <div class="fiori-assumption-row__track"><span class="is-weak" style="width: 34%;"></span></div>
-                <strong class="fiori-rating-pill fiori-rating-pill--weak">Weak</strong>
-              </div>
-              <div class="fiori-assumption-row">
-                <span>Cost-benefit justification</span>
-                <div class="fiori-assumption-row__track"><span class="is-weak" style="width: 38%;"></span></div>
-                <strong class="fiori-rating-pill fiori-rating-pill--weak">Weak</strong>
-              </div>
+            <span id="costDeltaChip" class="economic-delta-chip">-$48,000 / -50%</span>
+          </div>
+          <div id="costViewToggle" class="economic-inline-toggle" aria-label="Cost comparison view">
+            <button type="button" class="is-active" data-cost-view="cost">Annual cost</button>
+            <button type="button" data-cost-view="hours">Labour hours</button>
+          </div>
+          <svg id="costComparisonChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Bar chart comparing current and recommended annual cost"></svg>
+        </article>
+
+        <article class="economic-card economic-span-4">
+          <div class="economic-card__header economic-card__header--stacked">
+            <div>
+              <h2>Delay consequence history</h2>
+              <p>Recent production effect profile</p>
             </div>
-          </article>
-
-          <section class="fiori-accordion-group" aria-label="Supporting detail">
-            <details class="fiori-accordion">
-              <summary>
-                <span class="fiori-accordion__content">
-                  <span class="fiori-accordion__label">Inputs reviewed</span>
-                  <span class="fiori-accordion__preview">PM02 work orders, completion history, findings, follow-up, breakdowns, delay log</span>
-                </span>
-                <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
-              </summary>
-              <p id="detailDataReviewed"></p>
-            </details>
-
-            <details class="fiori-accordion">
-              <summary>
-                <span class="fiori-accordion__content">
-                  <span class="fiori-accordion__label">Full observed evidence</span>
-                  <span class="fiori-accordion__preview">120 inspections, 3 actionable defects, limited corrective conversion</span>
-                </span>
-                <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
-              </summary>
-              <ul id="detailObservedEvidence" class="fiori-list"></ul>
-            </details>
-
-            <details class="fiori-accordion">
-              <summary>
-                <span class="fiori-accordion__content">
-                  <span class="fiori-accordion__label">Implementation constraints detail</span>
-                  <span class="fiori-accordion__preview">Route redesign, 10 PM master updates, 14 hrs review effort, no shutdown</span>
-                </span>
-                <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
-              </summary>
-              <ul id="detailOperationalChallenge" class="fiori-list"></ul>
-            </details>
-
-            <details class="fiori-accordion fiori-accordion--ai">
-              <summary>
-                <span class="fiori-accordion__content">
-                  <span class="fiori-accordion__label fiori-accordion__label--ai">Recommended action</span>
-                  <span class="fiori-accordion__preview">Change to 2 months next cycle and monitor findings, conversion, delays, and repeat defects</span>
-                </span>
-                <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
-              </summary>
-              <p id="detailRecommendedAction"></p>
-            </details>
-          </section>
-        </div>
-
-        <aside class="fiori-detail-side">
-          <article class="fiori-detail-card fiori-detail-card--ai">
-            <div class="fiori-card-header">
-              <div>
-                <h2>Confidence</h2>
-              </div>
-              <span class="fiori-ai-badge fiori-ai-badge--compact">AI assessment</span>
+          </div>
+          <div class="economic-summary-strip">
+            <div>
+              <span>Major delay events</span>
+              <strong>0</strong>
             </div>
-            <strong id="detailConfidenceSide" class="fiori-detail-side__value">Medium confidence</strong>
-            <p id="detailConfidenceNote" class="fiori-detail-card__body">
-              Confidence is reduced by limited direct condition evidence, possible inconsistency in historical failure coding, and incomplete mapping between PM findings and prevented failures.
-            </p>
-          </article>
-        </aside>
+            <div>
+              <span>Minor delay events</span>
+              <strong>2</strong>
+            </div>
+            <div>
+              <span>Total hours lost</span>
+              <strong>3.5</strong>
+            </div>
+          </div>
+          <svg id="delayHistoryChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Delay consequence history mini column chart"></svg>
+        </article>
+
+        <article class="economic-card economic-card--value economic-span-4">
+          <div class="economic-card__header">
+            <div>
+              <h2>Economic</h2>
+            </div>
+            <span class="economic-axis-pill economic-axis-pill--economic">Economic</span>
+          </div>
+          <div class="economic-delta-bar" aria-hidden="true">
+            <span class="economic-delta-bar__current"></span>
+            <span class="economic-delta-bar__recommended"></span>
+          </div>
+          <dl class="economic-metric-list">
+            <div>
+              <dt>Current annual cost</dt>
+              <dd id="detailCurrentCost">$96,000</dd>
+            </div>
+            <div>
+              <dt>Recommended annual cost</dt>
+              <dd id="detailRecommendedCost">$48,000</dd>
+            </div>
+            <div>
+              <dt>Labour hours released</dt>
+              <dd id="detailHoursReleased">162 hrs/year</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="economic-card economic-card--value economic-span-4">
+          <div class="economic-card__header">
+            <div>
+              <h2>Risk</h2>
+            </div>
+            <span class="economic-axis-pill economic-axis-pill--risk">Risk</span>
+          </div>
+          <dl class="economic-metric-list">
+            <div>
+              <dt>Current exposure</dt>
+              <dd id="detailCurrentExpectedExposure">0.18 events/year</dd>
+            </div>
+            <div>
+              <dt>Proposed exposure</dt>
+              <dd id="detailProposedExpectedExposure">0.22 events/year</dd>
+            </div>
+            <div>
+              <dt>Safety consequence change</dt>
+              <dd id="detailSafetyConsequenceChange">No material change</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="economic-card economic-card--value economic-span-4">
+          <div class="economic-card__header">
+            <div>
+              <h2>Operational</h2>
+            </div>
+            <span class="economic-axis-pill economic-axis-pill--operational">Operational</span>
+          </div>
+          <dl class="economic-metric-list">
+            <div>
+              <dt>Route redesign required</dt>
+              <dd id="detailRouteRedesignFlag">Yes</dd>
+            </div>
+            <div>
+              <dt>PM master updates needed</dt>
+              <dd id="detailMasterUpdatesNeeded">10</dd>
+            </div>
+            <div>
+              <dt>Implementation effort</dt>
+              <dd id="detailImplementationEffortScore">3/5</dd>
+            </div>
+            <div>
+              <dt>Shutdown required</dt>
+              <dd id="detailShutdownDependency">No</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="economic-card economic-span-12">
+          <div class="economic-card__header economic-card__header--stacked">
+            <div>
+              <h2>Assumptions under review</h2>
+              <p>Current evidence strength against original strategy basis</p>
+            </div>
+          </div>
+          <div id="assumptionMatrix" class="economic-assumption-matrix"></div>
+        </article>
+
+        <section class="economic-accordion-stack economic-span-12" aria-label="Supporting detail">
+          <details class="economic-accordion">
+            <summary>
+              <span class="economic-accordion__content">
+                <span class="economic-accordion__label">Inputs reviewed</span>
+                <span class="economic-accordion__preview">PM02 work orders, findings, delay log, labour hours, service context</span>
+              </span>
+              <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
+            </summary>
+            <p id="detailDataReviewed"></p>
+          </details>
+
+          <details class="economic-accordion">
+            <summary>
+              <span class="economic-accordion__content">
+                <span class="economic-accordion__label">Full observed evidence</span>
+                <span class="economic-accordion__preview">120 inspections, 3 actionable defects, 0 major delay events</span>
+              </span>
+              <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
+            </summary>
+            <ul id="detailObservedEvidence" class="fiori-list"></ul>
+          </details>
+
+          <details class="economic-accordion">
+            <summary>
+              <span class="economic-accordion__content">
+                <span class="economic-accordion__label">Implementation constraints</span>
+                <span class="economic-accordion__preview">route redesign, 10 PM updates, engineering review, no shutdown</span>
+              </span>
+              <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
+            </summary>
+            <ul id="detailOperationalChallenge" class="fiori-list"></ul>
+          </details>
+
+          <details class="economic-accordion economic-accordion--ai">
+            <summary>
+              <span class="economic-accordion__content">
+                <span class="economic-accordion__label">Recommendation detail</span>
+                <span class="economic-accordion__preview">move from 1 month to 2 months and review after 6 months</span>
+              </span>
+              <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
+            </summary>
+            <p id="detailRecommendedAction"></p>
+          </details>
+        </section>
       </section>
     </main>
   </div>

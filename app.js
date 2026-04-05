@@ -66,19 +66,99 @@ const economicOpportunities = [
     currentFrequency: "1 month",
     recommendedFrequency: "2 months",
     expectedRiskChange: "Low",
-    hoursReleased: "160 hrs",
+    hoursReleased: "162 hrs/year",
     savingsDelta: "50%",
     currentExpectedExposure: "0.18 events/year",
     proposedExpectedExposure: "0.22 events/year",
     safetyConsequenceChange: "No material change",
-    masterUpdatesNeeded: "10 records",
+    masterUpdatesNeeded: "10",
     implementationEffortScore: "3 / 5",
+    currentLabourHours: 324,
+    recommendedLabourHours: 162,
+    tradeoffModel: [
+      { key: "2-weeks", label: "2 weeks", cost: 168000, exposure: 0.17, riskIndex: 1.0 },
+      { key: "1-month", label: "1 month", cost: 96000, exposure: 0.18, riskIndex: 1.05 },
+      { key: "2-months", label: "2 months", cost: 48000, exposure: 0.22, riskIndex: 1.12 },
+      { key: "3-months", label: "3 months", cost: 36000, exposure: 0.31, riskIndex: 1.3 },
+      { key: "6-months", label: "6 months", cost: 24000, exposure: 0.52, riskIndex: 1.85 },
+    ],
+    inspectionYield: [
+      {
+        key: "completed",
+        label: "Inspections completed",
+        count: 120,
+        note: "PM02 inspections were executed at high volume, but the detected value remained low.",
+      },
+      {
+        key: "findings",
+        label: "Inspections with findings",
+        count: 14,
+        note: "Only a small portion of inspections surfaced any finding, suggesting low defect yield.",
+      },
+      {
+        key: "actionable",
+        label: "Actionable findings",
+        count: 3,
+        note: "Only three inspections led to findings that justified corrective follow-up or a maintenance decision.",
+      },
+      {
+        key: "conversions",
+        label: "Corrective conversions",
+        count: 3,
+        note: "Corrective conversion remained low, reinforcing the view that monthly inspection demand may be too high.",
+      },
+    ],
+    delayHistoryHours: [0, 0.5, 0, 0, 0.3, 0, 0, 0.6, 0, 0, 0, 0.4, 0, 0, 0, 0.2, 0, 1.5],
+    assumptionsMatrix: [
+      {
+        key: "detectability",
+        label: "Detectability",
+        rating: "Moderate",
+        score: 0.64,
+        rationale: "Defects are sometimes detected by PM02, but the low actionable yield suggests detection strength is only moderate.",
+      },
+      {
+        key: "pf-interval-fit",
+        label: "P-F interval fit",
+        rating: "Weak",
+        score: 0.36,
+        rationale: "The available history does not strongly support a monthly interval as necessary for this gearbox group.",
+      },
+      {
+        key: "consequence-logic",
+        label: "Consequence logic",
+        rating: "Moderate",
+        score: 0.62,
+        rationale: "Service context and delay history suggest consequence exists, but recent major production effect has remained limited.",
+      },
+      {
+        key: "redundancy-logic",
+        label: "Redundancy logic",
+        rating: "Moderate",
+        score: 0.6,
+        rationale: "Redundancy and recoverability appear adequate in most operating states, reducing the need for a highly conservative interval.",
+      },
+      {
+        key: "demand-frequency",
+        label: "Demand frequency",
+        rating: "Weak",
+        score: 0.34,
+        rationale: "Corrective demand triggered by PM02 has been infrequent relative to the current work volume.",
+      },
+      {
+        key: "cost-benefit-justification",
+        label: "Cost-benefit justification",
+        rating: "Weak",
+        score: 0.38,
+        rationale: "The maintenance cost is clear, but the supported avoided consequence is comparatively small.",
+      },
+    ],
     summary:
       "Current monthly PM02 inspections appear to provide limited defect detection value relative to their cost and labour demand. Available CMMS and delay history suggest the current interval may be more conservative than required for this gearbox group.",
     confidenceNote:
       "Confidence is reduced by limited direct condition evidence, possible inconsistency in historical failure coding, and incomplete mapping between PM findings and prevented failures.",
     dataReviewed:
-      "PM02 work order history, inspection completion records, PM findings and corrective follow-up, breakdown history, failure coding, production delay log, downtime duration, task labour hours, asset criticality and service context",
+      "PM02 work orders, PM completion history, PM findings, corrective follow-up, breakdown history, delay log, labour hours, criticality, service context",
     observedEvidence: [
       "120 PM02 inspections completed in 12 months",
       "3 actionable defects identified",
@@ -263,6 +343,20 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(value);
 
+const formatSignedCurrency = (value) => {
+  const sign = value < 0 ? "-" : "";
+  return `${sign}${formatCurrency(Math.abs(value))}`;
+};
+
+const svgNamespace = "http://www.w3.org/2000/svg";
+const createSvgNode = (tagName, attributes = {}) => {
+  const node = document.createElementNS(svgNamespace, tagName);
+  Object.entries(attributes).forEach(([key, value]) => {
+    node.setAttribute(key, String(value));
+  });
+  return node;
+};
+
 const totalEconomicSavings = economicOpportunities.reduce(
   (sum, item) => sum + item.potentialSaving,
   0
@@ -377,13 +471,91 @@ const getOpportunityDetail = (opportunity) => {
     currentFrequency: "Current interval",
     recommendedFrequency: "Reduced interval",
     expectedRiskChange: opportunity.riskImpact === "Low" ? "Low" : "Moderate",
-    hoursReleased: "120 hrs",
+    hoursReleased: "120 hrs/year",
     savingsDelta: "30%",
     currentExpectedExposure: "0.18 events/year",
     proposedExpectedExposure: "0.24 events/year",
     safetyConsequenceChange: "No material change",
-    masterUpdatesNeeded: "6 records",
+    masterUpdatesNeeded: "6",
     implementationEffortScore: "3 / 5",
+    currentLabourHours: 240,
+    recommendedLabourHours: 120,
+    tradeoffModel: [
+      { key: "current", label: "Current", cost: opportunity.currentCost * 1.4, exposure: 0.16, riskIndex: 1.0 },
+      { key: "baseline", label: "Baseline", cost: opportunity.currentCost, exposure: 0.18, riskIndex: 1.08 },
+      { key: "recommended", label: "Recommended", cost: opportunity.recommendedCost, exposure: 0.24, riskIndex: 1.2 },
+    ],
+    inspectionYield: [
+      {
+        key: "completed",
+        label: "Planned tasks completed",
+        count: 100,
+        note: "Planned maintenance volume remains high across the current interval.",
+      },
+      {
+        key: "findings",
+        label: "Tasks with findings",
+        count: 12,
+        note: "Only a small share of planned work surfaces useful findings.",
+      },
+      {
+        key: "actionable",
+        label: "Actionable findings",
+        count: 4,
+        note: "Actionable findings remain limited relative to the inspection volume.",
+      },
+      {
+        key: "conversions",
+        label: "Corrective conversions",
+        count: 3,
+        note: "Corrective conversions remain modest versus the planned work demand.",
+      },
+    ],
+    delayHistoryHours: [0, 0.1, 0, 0, 0.2, 0, 0.1, 0, 0.2, 0, 0, 0.1],
+    assumptionsMatrix: [
+      {
+        key: "detectability",
+        label: "Detectability",
+        rating: "Moderate",
+        score: 0.58,
+        rationale: "Detectability is partially supported, but evidence remains mixed.",
+      },
+      {
+        key: "pf-interval-fit",
+        label: "P-F interval fit",
+        rating: "Weak",
+        score: 0.34,
+        rationale: "Interval fit remains under review due to limited direct evidence.",
+      },
+      {
+        key: "consequence-logic",
+        label: "Consequence logic",
+        rating: "Moderate",
+        score: 0.6,
+        rationale: "Consequence logic is partly supported by service context and delay history.",
+      },
+      {
+        key: "redundancy-logic",
+        label: "Redundancy logic",
+        rating: "Moderate",
+        score: 0.56,
+        rationale: "Redundancy appears adequate in most operating scenarios.",
+      },
+      {
+        key: "demand-frequency",
+        label: "Demand frequency",
+        rating: "Weak",
+        score: 0.32,
+        rationale: "Observed demand remains lower than the current task frequency suggests.",
+      },
+      {
+        key: "cost-benefit-justification",
+        label: "Cost-benefit justification",
+        rating: "Weak",
+        score: 0.36,
+        rationale: "The cost-benefit case remains directional rather than definitive.",
+      },
+    ],
     routeRedesignRequired: opportunity.operationalConstraint.toLowerCase().includes("route")
       ? "Yes"
       : "Partly",
@@ -404,6 +576,16 @@ const renderEconomicOpportunityDetail = () => {
   const selectedOpportunity =
     economicOpportunities.find((item) => item.id === selectedId) || economicOpportunities[0];
   const detail = getOpportunityDetail(selectedOpportunity);
+  const detailState = {
+    selectedScenarioKey:
+      detail.tradeoffModel?.find((scenario) => scenario.label === detail.recommendedFrequency)?.key ??
+      detail.tradeoffModel?.[0]?.key ??
+      null,
+    costView: "cost",
+    selectedEvidenceStageKey: detail.inspectionYield?.[2]?.key ?? detail.inspectionYield?.[0]?.key,
+    selectedAssumptionKey:
+      detail.assumptionsMatrix?.[0]?.key ?? null,
+  };
 
   const setText = (id, value) => {
     const node = document.getElementById(id);
@@ -419,6 +601,621 @@ const renderEconomicOpportunityDetail = () => {
     }
   };
 
+  const getTooltip = () => {
+    let tooltip = document.getElementById("analyticTooltip");
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.id = "analyticTooltip";
+      tooltip.className = "analytic-tooltip";
+      tooltip.hidden = true;
+      document.body.appendChild(tooltip);
+    }
+
+    return tooltip;
+  };
+
+  const showTooltip = (html, event) => {
+    const tooltip = getTooltip();
+    tooltip.innerHTML = html;
+    tooltip.hidden = false;
+    tooltip.style.left = `${event.clientX + 16}px`;
+    tooltip.style.top = `${event.clientY + 16}px`;
+  };
+
+  const moveTooltip = (event) => {
+    const tooltip = getTooltip();
+    if (!tooltip.hidden) {
+      tooltip.style.left = `${event.clientX + 16}px`;
+      tooltip.style.top = `${event.clientY + 16}px`;
+    }
+  };
+
+  const hideTooltip = () => {
+    getTooltip().hidden = true;
+  };
+
+  const attachTooltip = (node, html) => {
+    node.addEventListener("mouseenter", (event) => showTooltip(html, event));
+    node.addEventListener("mousemove", moveTooltip);
+    node.addEventListener("mouseleave", hideTooltip);
+  };
+
+  const classifyRiskChange = (delta) => {
+    if (delta <= 0.01) {
+      return "None";
+    }
+    if (delta <= 0.05) {
+      return "Low";
+    }
+    if (delta <= 0.15) {
+      return "Moderate";
+    }
+    return "High";
+  };
+
+  const getSystemJudgment = (scenario, savings, exposureDelta) => {
+    const riskChange = classifyRiskChange(exposureDelta).toLowerCase();
+    if (scenario.label === detail.currentFrequency) {
+      return "The current monthly interval remains the baseline reference for cost and exposure comparison.";
+    }
+
+    if (savings >= 0) {
+      return `Moving to ${scenario.label} retains a ${riskChange} risk change while shifting ${formatCurrency(
+        savings
+      )} of annual inspection cost out of the current program.`;
+    }
+
+    return `Moving to ${scenario.label} increases annual inspection cost by ${formatCurrency(
+      Math.abs(savings)
+    )} with a ${riskChange} risk change.`;
+  };
+
+  const updateDecisionSnapshot = (scenario) => {
+    const baseline =
+      detail.tradeoffModel.find((item) => item.label === detail.currentFrequency) ??
+      detail.tradeoffModel[0];
+    const savings = baseline.cost - scenario.cost;
+    const exposureDelta = Math.max(0, scenario.exposure - baseline.exposure);
+
+    setText("detailCurrentFrequency", detail.currentFrequency);
+    setText("detailRecommendedFrequency", scenario.label);
+    setText("detailAnnualSavingKpi", formatSignedCurrency(savings));
+    setText("detailRiskChangeKpi", classifyRiskChange(exposureDelta));
+    setText(
+      "detailCurrentFrequencyHint",
+      scenario.label === detail.currentFrequency
+        ? "Current PM02 interval"
+        : `Baseline for ${scenario.label} comparison`
+    );
+    setText("detailRecommendedFrequencyHint", "Selected interval under review");
+    setText(
+      "detailAnnualSavingHint",
+      savings >= 0 ? "Relative to current annual cost" : "Additional cost relative to current"
+    );
+    setText(
+      "detailRiskChangeHint",
+      exposureDelta <= 0.05
+        ? "Exposure increase remains limited"
+        : exposureDelta <= 0.15
+          ? "Exposure rises but remains manageable"
+          : "Exposure rises materially"
+    );
+    setText("detailSystemJudgment", getSystemJudgment(scenario, savings, exposureDelta));
+  };
+
+  const renderTradeoffChart = () => {
+    const svg = document.getElementById("tradeoffChartSvg");
+    if (!svg || !detail.tradeoffModel?.length) {
+      return;
+    }
+
+    const width = 980;
+    const height = 380;
+    const padding = { top: 30, right: 82, bottom: 58, left: 82 };
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+    const maxCost = Math.max(...detail.tradeoffModel.map((item) => item.cost));
+    const maxExposure = Math.max(...detail.tradeoffModel.map((item) => item.exposure));
+    const xStep = plotWidth / (detail.tradeoffModel.length - 1 || 1);
+    const xFor = (index) => padding.left + index * xStep;
+    const yForCost = (value) => padding.top + plotHeight - (value / maxCost) * plotHeight;
+    const yForExposure = (value) =>
+      padding.top + plotHeight - (value / maxExposure) * plotHeight;
+    const selectedScenario =
+      detail.tradeoffModel.find((item) => item.key === detailState.selectedScenarioKey) ??
+      detail.tradeoffModel[0];
+    const currentKey =
+      detail.tradeoffModel.find((item) => item.label === detail.currentFrequency)?.key ??
+      detail.tradeoffModel[0].key;
+    const recommendedKey =
+      detail.tradeoffModel.find((item) => item.label === "2 months")?.key ??
+      detail.tradeoffModel[0].key;
+    const recommendedStart = detail.tradeoffModel.findIndex((item) => item.label === "2 months");
+    const recommendedEnd = detail.tradeoffModel.findIndex((item) => item.label === "3 months");
+
+    svg.innerHTML = "";
+
+    if (recommendedStart >= 0 && recommendedEnd >= 0) {
+      svg.appendChild(
+        createSvgNode("rect", {
+          x: xFor(recommendedStart) - xStep * 0.45,
+          y: padding.top,
+          width: xFor(recommendedEnd) - xFor(recommendedStart) + xStep * 0.9,
+          height: plotHeight,
+          class: "tradeoff-chart__zone",
+        })
+      );
+    }
+
+    [0, 0.25, 0.5, 0.75, 1].forEach((tick) => {
+      const y = padding.top + plotHeight - plotHeight * tick;
+      svg.appendChild(
+        createSvgNode("line", {
+          x1: padding.left,
+          y1: y,
+          x2: width - padding.right,
+          y2: y,
+          class: "tradeoff-chart__grid",
+        })
+      );
+
+      const leftLabel = createSvgNode("text", {
+        x: padding.left - 10,
+        y: y + 4,
+        "text-anchor": "end",
+        class: "tradeoff-chart__axis-label tradeoff-chart__axis-label--left",
+      });
+      leftLabel.textContent = formatCompactCurrency(maxCost * tick);
+      svg.appendChild(leftLabel);
+
+      const rightLabel = createSvgNode("text", {
+        x: width - padding.right + 12,
+        y: y + 4,
+        class: "tradeoff-chart__axis-label tradeoff-chart__axis-label--right",
+      });
+      rightLabel.textContent = (maxExposure * tick).toFixed(2);
+      svg.appendChild(rightLabel);
+    });
+
+    const leftAxisTitle = createSvgNode("text", {
+      x: 24,
+      y: padding.top + plotHeight / 2,
+      transform: `rotate(-90 24 ${padding.top + plotHeight / 2})`,
+      class: "tradeoff-chart__axis-title",
+    });
+    leftAxisTitle.textContent = "Annual maintenance cost";
+    svg.appendChild(leftAxisTitle);
+
+    const rightAxisTitle = createSvgNode("text", {
+      x: width - 18,
+      y: padding.top + plotHeight / 2,
+      transform: `rotate(90 ${width - 18} ${padding.top + plotHeight / 2})`,
+      class: "tradeoff-chart__axis-title",
+    });
+    rightAxisTitle.textContent = "Expected failure exposure";
+    svg.appendChild(rightAxisTitle);
+
+    [
+      { x1: padding.left, y1: padding.top, x2: padding.left, y2: padding.top + plotHeight },
+      {
+        x1: width - padding.right,
+        y1: padding.top,
+        x2: width - padding.right,
+        y2: padding.top + plotHeight,
+      },
+      {
+        x1: padding.left,
+        y1: padding.top + plotHeight,
+        x2: width - padding.right,
+        y2: padding.top + plotHeight,
+      },
+    ].forEach((line) => {
+      svg.appendChild(createSvgNode("line", { ...line, class: "tradeoff-chart__axis" }));
+    });
+
+    const costPath = detail.tradeoffModel
+      .map((item, index) => `${index === 0 ? "M" : "L"} ${xFor(index)} ${yForCost(item.cost)}`)
+      .join(" ");
+    const exposurePath = detail.tradeoffModel
+      .map(
+        (item, index) => `${index === 0 ? "M" : "L"} ${xFor(index)} ${yForExposure(item.exposure)}`
+      )
+      .join(" ");
+
+    svg.appendChild(
+      createSvgNode("path", { d: costPath, class: "tradeoff-chart__line tradeoff-chart__line--cost" })
+    );
+    svg.appendChild(
+      createSvgNode("path", {
+        d: exposurePath,
+        class: "tradeoff-chart__line tradeoff-chart__line--exposure",
+      })
+    );
+
+    detail.tradeoffModel.forEach((item, index) => {
+      const x = xFor(index);
+      const pointTooltip = `
+        <strong>${item.label}</strong>
+        <span>Annual cost: ${formatCurrency(item.cost)}</span>
+        <span>Exposure: ${item.exposure.toFixed(2)} events/year</span>
+        <span>Risk index: ${item.riskIndex.toFixed(2)}</span>
+      `;
+
+      const costDot = createSvgNode("circle", {
+        cx: x,
+        cy: yForCost(item.cost),
+        r: item.key === currentKey || item.key === recommendedKey ? 7 : 5,
+        class: [
+          "tradeoff-chart__dot",
+          "tradeoff-chart__dot--cost",
+          item.key === currentKey ? "is-current" : "",
+          item.key === recommendedKey ? "is-recommended" : "",
+          item.key === selectedScenario.key ? "is-selected" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      });
+      const exposureDot = createSvgNode("circle", {
+        cx: x,
+        cy: yForExposure(item.exposure),
+        r: item.key === currentKey || item.key === recommendedKey ? 7 : 5,
+        class: [
+          "tradeoff-chart__dot",
+          "tradeoff-chart__dot--exposure",
+          item.key === currentKey ? "is-current" : "",
+          item.key === recommendedKey ? "is-recommended" : "",
+          item.key === selectedScenario.key ? "is-selected" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      });
+      const hitArea = createSvgNode("circle", {
+        cx: x,
+        cy: padding.top + plotHeight / 2,
+        r: 20,
+        class: "tradeoff-chart__hit-area",
+      });
+
+      [costDot, exposureDot, hitArea].forEach((node) => {
+        attachTooltip(node, pointTooltip);
+        node.addEventListener("click", () => {
+          detailState.selectedScenarioKey = item.key;
+          renderTradeoffChart();
+        });
+      });
+
+      svg.appendChild(hitArea);
+      svg.appendChild(costDot);
+      svg.appendChild(exposureDot);
+
+      if (item.key === currentKey || item.key === recommendedKey) {
+        const markerLabel = createSvgNode("text", {
+          x,
+          y:
+            item.key === currentKey
+              ? Math.min(yForCost(item.cost), yForExposure(item.exposure)) - 18
+              : Math.min(yForCost(item.cost), yForExposure(item.exposure)) - 26,
+          "text-anchor": "middle",
+          class: "tradeoff-chart__point-label",
+        });
+        markerLabel.textContent = item.key === currentKey ? "Current" : "Recommended";
+        svg.appendChild(markerLabel);
+      }
+
+      const label = createSvgNode("text", {
+        x,
+        y: height - 16,
+        "text-anchor": "middle",
+        class: "tradeoff-chart__x-label",
+      });
+      label.textContent = item.label;
+      svg.appendChild(label);
+    });
+
+    updateDecisionSnapshot(selectedScenario);
+  };
+
+  const renderInspectionYieldChart = () => {
+    const svg = document.getElementById("inspectionYieldChart");
+    if (!svg || !detail.inspectionYield?.length) {
+      return;
+    }
+
+    const width = 480;
+    const stageHeight = 28;
+    const baseCount = detail.inspectionYield[0].count;
+    svg.innerHTML = "";
+
+    detail.inspectionYield.forEach((stage, index) => {
+      const y = 16 + index * 48;
+      const stageWidth = 272 * (stage.count / baseCount);
+      const x = 84 + (272 - stageWidth) / 2;
+      const percentage = (stage.count / baseCount) * 100;
+      const priorCount = index === 0 ? baseCount : detail.inspectionYield[index - 1].count;
+      const stageConversion = index === 0 ? 100 : (stage.count / priorCount) * 100;
+
+      const hitArea = createSvgNode("rect", {
+        x: 16,
+        y: y - 6,
+        width: 408,
+        height: 40,
+        rx: 14,
+        class: "funnel-chart__hit-area",
+      });
+      const bar = createSvgNode("rect", {
+        x,
+        y,
+        width: stageWidth,
+        height: stageHeight,
+        rx: 14,
+        class: `funnel-chart__stage ${stage.key === detailState.selectedEvidenceStageKey ? "is-selected" : ""}`,
+      });
+      const label = createSvgNode("text", { x: 20, y: y + 18, class: "funnel-chart__label" });
+      label.textContent = stage.label;
+      const value = createSvgNode("text", {
+        x: width - 16,
+        y: y + 18,
+        "text-anchor": "end",
+        class: "funnel-chart__value",
+      });
+      value.textContent =
+        index === 0
+          ? `${stage.count}`
+          : `${stage.count} (${stageConversion.toFixed(1)}% from prior)`;
+
+      attachTooltip(
+        hitArea,
+        `<strong>${stage.label}</strong><span>${stage.count} items</span><span>${percentage.toFixed(1)}% of inspections completed</span><span>${stageConversion.toFixed(1)}% conversion from prior stage</span>`
+      );
+      hitArea.addEventListener("click", () => {
+        detailState.selectedEvidenceStageKey = stage.key;
+        showTooltip(
+          `<strong>${stage.label}</strong><span>${stage.count} items</span><span>${stage.note}</span>`,
+          { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 }
+        );
+        renderInspectionYieldChart();
+      });
+
+      svg.appendChild(hitArea);
+      svg.appendChild(bar);
+      svg.appendChild(label);
+      svg.appendChild(value);
+
+      if (index > 0) {
+        const conversionNote = createSvgNode("text", {
+          x: width / 2,
+          y: y - 10,
+          "text-anchor": "middle",
+          class: "funnel-chart__conversion",
+        });
+        conversionNote.textContent = `${stageConversion.toFixed(1)}% from prior stage`;
+        svg.appendChild(conversionNote);
+      }
+    });
+  };
+
+  const renderCostComparisonChart = () => {
+    const svg = document.getElementById("costComparisonChart");
+    const toggle = document.getElementById("costViewToggle");
+    const chip = document.getElementById("costDeltaChip");
+    if (!svg || !toggle) {
+      return;
+    }
+
+    const views = {
+      cost: {
+        current: detail.currentCost,
+        recommended: detail.recommendedCost,
+        formatter: formatCurrency,
+        label: "annual cost",
+      },
+      hours: {
+        current: detail.currentLabourHours,
+        recommended: detail.recommendedLabourHours,
+        formatter: (value) => `${value} hrs`,
+        label: "labour hours",
+      },
+    };
+    const activeView = views[detailState.costView] ?? views.cost;
+    const delta = activeView.current - activeView.recommended;
+    const percentReduction = activeView.current === 0 ? 0 : Math.round((delta / activeView.current) * 100);
+    const width = 480;
+    const height = 240;
+    const padding = { top: 20, right: 20, bottom: 36, left: 44 };
+    const plotHeight = height - padding.top - padding.bottom;
+    const maxValue = Math.max(activeView.current, activeView.recommended) * 1.15;
+    const bars = [
+      { label: "Current", value: activeView.current, className: "current", x: 122 },
+      { label: "Recommended", value: activeView.recommended, className: "recommended", x: 274 },
+    ];
+
+    toggle.querySelectorAll("[data-cost-view]").forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.costView === detailState.costView);
+      button.onclick = () => {
+        detailState.costView = button.dataset.costView;
+        renderCostComparisonChart();
+      };
+    });
+
+    if (chip) {
+      chip.textContent =
+        detailState.costView === "hours"
+          ? `-${delta} hrs / -${percentReduction}%`
+          : `-${formatCurrency(delta)} / -${percentReduction}%`;
+    }
+
+    svg.innerHTML = "";
+    [0, 0.5, 1].forEach((tick) => {
+      const y = padding.top + plotHeight - plotHeight * tick;
+      svg.appendChild(
+        createSvgNode("line", {
+          x1: padding.left,
+          y1: y,
+          x2: width - padding.right,
+          y2: y,
+          class: "bar-compare__grid",
+        })
+      );
+    });
+
+    [0, 0.5, 1].forEach((tick) => {
+      const label = createSvgNode("text", {
+        x: padding.left - 8,
+        y: padding.top + plotHeight - plotHeight * tick + 4,
+        "text-anchor": "end",
+        class: "bar-compare__axis-label",
+      });
+      label.textContent = activeView.formatter(Math.round(maxValue * tick));
+      svg.appendChild(label);
+    });
+
+    bars.forEach((barData) => {
+      const barHeight = (barData.value / maxValue) * plotHeight;
+      const y = padding.top + plotHeight - barHeight;
+      const bar = createSvgNode("rect", {
+        x: barData.x,
+        y,
+        width: 74,
+        height: barHeight,
+        rx: 12,
+        class: `bar-compare__bar bar-compare__bar--${barData.className}`,
+      });
+      attachTooltip(
+        bar,
+        `<strong>${barData.label} ${activeView.label}</strong><span>${activeView.formatter(barData.value)}</span>`
+      );
+      svg.appendChild(bar);
+
+      const value = createSvgNode("text", {
+        x: barData.x + 37,
+        y: y - 10,
+        "text-anchor": "middle",
+        class: "bar-compare__value",
+      });
+      value.textContent = activeView.formatter(barData.value);
+      svg.appendChild(value);
+
+      const label = createSvgNode("text", {
+        x: barData.x + 37,
+        y: height - 12,
+        "text-anchor": "middle",
+        class: "bar-compare__label",
+      });
+      label.textContent = barData.label;
+      svg.appendChild(label);
+    });
+  };
+
+  const renderDelayHistoryChart = () => {
+    const svg = document.getElementById("delayHistoryChart");
+    if (!svg || !detail.delayHistoryHours?.length) {
+      return;
+    }
+
+    const width = 480;
+    const height = 240;
+    const padding = { top: 18, right: 18, bottom: 34, left: 28 };
+    const plotHeight = height - padding.top - padding.bottom;
+    const plotWidth = width - padding.left - padding.right;
+    const maxValue = Math.max(...detail.delayHistoryHours);
+    const step = plotWidth / detail.delayHistoryHours.length;
+    const barWidth = Math.max(8, step - 5);
+    svg.innerHTML = "";
+
+    [0, 0.5, 1].forEach((tick) => {
+      const y = padding.top + plotHeight - plotHeight * tick;
+      svg.appendChild(
+        createSvgNode("line", {
+          x1: padding.left,
+          y1: y,
+          x2: width - padding.right,
+          y2: y,
+          class: "delay-chart__grid",
+        })
+      );
+    });
+
+    [0, 0.5, 1].forEach((tick) => {
+      const label = createSvgNode("text", {
+        x: padding.left - 6,
+        y: padding.top + plotHeight - plotHeight * tick + 4,
+        "text-anchor": "end",
+        class: "delay-chart__axis-label",
+      });
+      label.textContent = (maxValue * tick).toFixed(1);
+      svg.appendChild(label);
+    });
+
+    detail.delayHistoryHours.forEach((value, index) => {
+      const x = padding.left + index * step + (step - barWidth) / 2;
+      const barHeight = maxValue === 0 ? 0 : (value / maxValue) * plotHeight;
+      const y = padding.top + plotHeight - barHeight;
+      const bar = createSvgNode("rect", {
+        x,
+        y,
+        width: barWidth,
+        height: Math.max(2, barHeight),
+        rx: 6,
+        class: "delay-chart__bar",
+      });
+      attachTooltip(bar, `<strong>Month ${index + 1}</strong><span>${value.toFixed(1)} delay hours</span>`);
+      svg.appendChild(bar);
+    });
+
+    [1, 6, 12, 18].forEach((month) => {
+      const x = padding.left + (month - 0.5) * step;
+      const label = createSvgNode("text", {
+        x,
+        y: height - 10,
+        "text-anchor": "middle",
+        class: "delay-chart__label",
+      });
+      label.textContent = `${month}`;
+      svg.appendChild(label);
+    });
+  };
+
+  const renderAssumptionMatrix = () => {
+    const matrix = document.getElementById("assumptionMatrix");
+    if (!matrix || !detail.assumptionsMatrix?.length) {
+      return;
+    }
+
+    matrix.innerHTML = detail.assumptionsMatrix
+      .map(
+        (item) => `
+          <button type="button" class="fiori-assumption-row ${item.key === detailState.selectedAssumptionKey ? "is-selected" : ""}" data-assumption-key="${item.key}">
+            <span>${item.label}</span>
+            <div class="fiori-assumption-row__track">
+              <span class="${item.rating === "Weak" ? "is-weak" : "is-moderate"}" style="width: ${Math.round(item.score * 100)}%;"></span>
+            </div>
+            <strong class="fiori-rating-pill ${item.rating === "Weak" ? "fiori-rating-pill--weak" : "fiori-rating-pill--moderate"}">${item.rating}</strong>
+          </button>
+        `
+      )
+      .join("");
+
+    matrix.querySelectorAll("[data-assumption-key]").forEach((button) => {
+      const assumption = detail.assumptionsMatrix.find((item) => item.key === button.dataset.assumptionKey);
+      if (!assumption) {
+        return;
+      }
+
+      attachTooltip(
+        button,
+        `<strong>${assumption.label}</strong><span>${assumption.rating} support</span><span>${assumption.rationale}</span>`
+      );
+      button.addEventListener("click", (event) => {
+        detailState.selectedAssumptionKey = assumption.key;
+        showTooltip(
+          `<strong>${assumption.label}</strong><span>${assumption.rating} support</span><span>${assumption.rationale}</span>`,
+          event
+        );
+        renderAssumptionMatrix();
+      });
+    });
+  };
+
   setText("detailAssetGroup", detail.assetGroup);
   setText("detailInsightTitle", detail.title);
   setText("detailConfidence", `${detail.confidence} confidence`);
@@ -428,6 +1225,9 @@ const renderEconomicOpportunityDetail = () => {
   setText("detailRecommendedFrequency", detail.recommendedFrequency);
   setText("detailAnnualSavingKpi", formatCurrency(detail.potentialSaving));
   setText("detailRiskChangeKpi", detail.expectedRiskChange);
+  setText("detailRecommendedFrequencyHint", "Selected interval under review");
+  setText("detailAnnualSavingHint", "Relative to current annual cost");
+  setText("detailRiskChangeHint", "Exposure increase remains limited");
   setText("detailCurrentCost", formatCurrency(detail.currentCost));
   setText("detailRecommendedCost", formatCurrency(detail.recommendedCost));
   setText("detailPotentialSaving", formatCurrency(detail.potentialSaving));
@@ -452,6 +1252,11 @@ const renderEconomicOpportunityDetail = () => {
   setList("detailAssumptions", detail.assumptions);
   setList("detailOperationalChallenge", detail.operationalChallenge);
   setText("detailRecommendedAction", detail.recommendedAction);
+  renderTradeoffChart();
+  renderInspectionYieldChart();
+  renderCostComparisonChart();
+  renderDelayHistoryChart();
+  renderAssumptionMatrix();
 };
 
 themeToggle?.addEventListener("click", () => {
