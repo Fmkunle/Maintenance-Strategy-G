@@ -2569,8 +2569,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   display: none;
 }
 
-.fiori-accordion summary::after {
-  content: "";
+.fiori-accordion__icon {
   width: 0.55rem;
   height: 0.55rem;
   border-right: 2px solid var(--fiori-text-muted);
@@ -2591,7 +2590,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   border-bottom: 1px solid var(--fiori-row-border);
 }
 
-.fiori-accordion[open] summary::after {
+.fiori-accordion[open] .fiori-accordion__icon {
   transform: rotate(45deg);
   border-color: var(--fiori-link);
 }
