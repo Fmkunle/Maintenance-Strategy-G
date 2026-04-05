@@ -1856,14 +1856,20 @@ body.fiori-overview-page[data-theme="dark"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 1.5rem;
-  border-radius: 2px;
-  background: linear-gradient(135deg, #0a6ed1 0%, #0a6ed1 58%, #53b8ff 58%, #53b8ff 100%);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.fiori-shellbar__logo svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
 }
 
 .fiori-shellbar__titles strong,
