@@ -109,6 +109,55 @@ const economicOpportunities = [
       },
     ],
     delayHistoryHours: [0, 0.5, 0, 0, 0.3, 0, 0, 0.6, 0, 0, 0, 0.4, 0, 0, 0, 0.2, 0, 1.5],
+    strategyBasis: [
+      {
+        key: "failure-mode-understanding",
+        label: "Failure mode understanding",
+        systemScore: 78,
+        rationale: "Failure behavior is reasonably understood for this gearbox group from work history and engineering context.",
+      },
+      {
+        key: "mitigation-strategy-understanding",
+        label: "Mitigation strategy understanding",
+        systemScore: 74,
+        rationale: "The current PM02 strategy intent is understood, but its present interval logic is only partly supported.",
+      },
+      {
+        key: "detection-evidence",
+        label: "Detection evidence",
+        systemScore: 38,
+        rationale: "Inspection yield remains weak relative to volume, limiting evidence that the current interval materially improves control.",
+      },
+      {
+        key: "cmms-history-coverage",
+        label: "CMMS history coverage",
+        systemScore: 82,
+        rationale: "Work order coverage is strong enough to support a review of current demand, findings, and follow-up patterns.",
+      },
+      {
+        key: "data-quality-traceability",
+        label: "Data quality and traceability",
+        systemScore: 57,
+        rationale: "PM-to-outcome traceability is incomplete, reducing confidence in how findings link to avoided failures.",
+      },
+      {
+        key: "delay-consequence-history",
+        label: "Delay and consequence history",
+        systemScore: 71,
+        rationale: "Delay history is available and consequence has been reviewed, though major event frequency remains limited.",
+      },
+      {
+        key: "operating-context-stability",
+        label: "Operating context stability",
+        systemScore: 76,
+        rationale: "Operating duty and service context appear stable enough for interval review without major scenario drift.",
+      },
+    ],
+    confidenceImprovements: [
+      "Cleaner failure coding",
+      "More structured PM finding capture",
+      "Clearer delay-event linkage",
+    ],
     assumptionsMatrix: [
       {
         key: "detectability",
@@ -512,6 +561,55 @@ const getOpportunityDetail = (opportunity) => {
       },
     ],
     delayHistoryHours: [0, 0.1, 0, 0, 0.2, 0, 0.1, 0, 0.2, 0, 0, 0.1],
+    strategyBasis: [
+      {
+        key: "failure-mode-understanding",
+        label: "Failure mode understanding",
+        systemScore: 72,
+        rationale: "Failure behavior is partly understood from recent work history and engineering standards.",
+      },
+      {
+        key: "mitigation-strategy-understanding",
+        label: "Mitigation strategy understanding",
+        systemScore: 69,
+        rationale: "Current mitigation logic is understood, but interval justification remains under review.",
+      },
+      {
+        key: "detection-evidence",
+        label: "Detection evidence",
+        systemScore: 42,
+        rationale: "Observed detection evidence remains limited relative to planned work volume.",
+      },
+      {
+        key: "cmms-history-coverage",
+        label: "CMMS history coverage",
+        systemScore: 77,
+        rationale: "History coverage is directionally strong enough for review and comparison.",
+      },
+      {
+        key: "data-quality-traceability",
+        label: "Data quality and traceability",
+        systemScore: 54,
+        rationale: "Traceability between findings, follow-up, and avoided consequence is incomplete.",
+      },
+      {
+        key: "delay-consequence-history",
+        label: "Delay and consequence history",
+        systemScore: 66,
+        rationale: "Delay history provides some support but remains incomplete across all scenarios.",
+      },
+      {
+        key: "operating-context-stability",
+        label: "Operating context stability",
+        systemScore: 73,
+        rationale: "Operating context appears stable enough to review interval or task-scope changes.",
+      },
+    ],
+    confidenceImprovements: [
+      "Cleaner failure coding",
+      "More structured PM finding capture",
+      "Clearer delay-event linkage",
+    ],
     assumptionsMatrix: [
       {
         key: "detectability",
@@ -584,8 +682,14 @@ const renderEconomicOpportunityDetail = () => {
     hoveredScenarioKey: null,
     costView: "cost",
     selectedEvidenceStageKey: detail.inspectionYield?.[2]?.key ?? detail.inspectionYield?.[0]?.key,
-    selectedAssumptionKey:
-      detail.assumptionsMatrix?.[0]?.key ?? null,
+    reviewedStrategyBasis:
+      detail.strategyBasis?.map((item) => ({
+        ...item,
+        reviewedScore: item.systemScore,
+        reviewStatus: "Accepted",
+      })) ?? [],
+    showComparison: false,
+    simulatedConfidenceScore: null,
   };
 
   const setText = (id, value) => {
@@ -654,21 +758,99 @@ const renderEconomicOpportunityDetail = () => {
     return "High";
   };
 
+  const clampScore = (value) => Math.max(0, Math.min(100, Number(value) || 0));
+
+  const getEvidenceStatus = (score) => {
+    if (score >= 75) {
+      return "Strong";
+    }
+    if (score >= 55) {
+      return "Moderate";
+    }
+    return "Weak";
+  };
+
+  const getConfidenceLevel = (score) => {
+    if (score >= 75) {
+      return "High confidence";
+    }
+    if (score >= 55) {
+      return "Medium confidence";
+    }
+    return "Low confidence";
+  };
+
+  const getRecommendationStrength = (score, scenario) => {
+    const baseline =
+      detail.tradeoffModel.find((item) => item.label === detail.currentFrequency) ??
+      detail.tradeoffModel[0];
+    const exposureDelta = Math.max(0, scenario.exposure - baseline.exposure);
+    if (score >= 75 && exposureDelta <= 0.08) {
+      return "Strong";
+    }
+    if (score >= 55) {
+      return "Moderate";
+    }
+    return "Cautious";
+  };
+
+  const getStrategyBasisModel = (basisRows) => {
+    const effectiveScores = basisRows.map((item) =>
+      clampScore(item.reviewedScore) - (item.reviewStatus === "Uncertain" ? 8 : 0)
+    );
+    const score = Math.round(
+      effectiveScores.reduce((sum, value) => sum + value, 0) / (effectiveScores.length || 1)
+    );
+    const sortedRows = [...basisRows].sort(
+      (left, right) => clampScore(right.reviewedScore) - clampScore(left.reviewedScore)
+    );
+
+    return {
+      score,
+      level: getConfidenceLevel(score),
+      strongest: sortedRows.slice(0, 2),
+      limitations: sortedRows.slice(-2),
+    };
+  };
+
+  const systemConfidenceModel = getStrategyBasisModel(
+    detail.strategyBasis.map((item) => ({
+      ...item,
+      reviewedScore: item.systemScore,
+      reviewStatus: "Accepted",
+    }))
+  );
+  detailState.simulatedConfidenceScore = systemConfidenceModel.score;
+
+  const getFactorShortNote = (factor) => {
+    const notes = {
+      "detection-evidence": "Detection evidence is weak",
+      "data-quality-traceability": "PM-to-outcome traceability is incomplete",
+      "cmms-history-coverage": "CMMS history coverage",
+      "failure-mode-understanding": "Failure mode understanding",
+    };
+
+    return notes[factor.key] ?? factor.label;
+  };
+
   const getSystemJudgment = (scenario, savings, exposureDelta) => {
     const riskChange = classifyRiskChange(exposureDelta).toLowerCase();
+    const confidenceScore =
+      detailState.simulatedConfidenceScore ?? systemConfidenceModel.score;
+    const recommendationStrength = getRecommendationStrength(confidenceScore, scenario);
     if (scenario.label === detail.currentFrequency) {
-      return "The current monthly interval remains the baseline reference for cost and exposure comparison.";
+      return `The current monthly interval remains the baseline reference for cost and exposure comparison. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
     }
 
     if (savings >= 0) {
       return `Moving to ${scenario.label} retains a ${riskChange} risk change while shifting ${formatCurrency(
         savings
-      )} of annual inspection cost out of the current program.`;
+      )} of annual inspection cost out of the current program. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
     }
 
     return `Moving to ${scenario.label} increases annual inspection cost by ${formatCurrency(
       Math.abs(savings)
-    )} with a ${riskChange} risk change.`;
+    )} with a ${riskChange} risk change. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
   };
 
   const updateDecisionSnapshot = (scenario) => {
@@ -677,6 +859,7 @@ const renderEconomicOpportunityDetail = () => {
       detail.tradeoffModel[0];
     const savings = baseline.cost - scenario.cost;
     const exposureDelta = Math.max(0, scenario.exposure - baseline.exposure);
+    const confidenceScore = detailState.simulatedConfidenceScore ?? systemConfidenceModel.score;
 
     setText("detailCurrentFrequency", detail.currentFrequency);
     setText("detailRecommendedFrequency", scenario.label);
@@ -701,6 +884,7 @@ const renderEconomicOpportunityDetail = () => {
           ? "Exposure rises but remains manageable"
           : "Exposure rises materially"
     );
+    setText("recommendationStrength", getRecommendationStrength(confidenceScore, scenario));
     setText("detailSystemJudgment", getSystemJudgment(scenario, savings, exposureDelta));
   };
 
@@ -1264,46 +1448,230 @@ const renderEconomicOpportunityDetail = () => {
     });
   };
 
-  const renderAssumptionMatrix = () => {
-    const matrix = document.getElementById("assumptionMatrix");
-    if (!matrix || !detail.assumptionsMatrix?.length) {
+  const renderConfidenceModel = () => {
+    const confidenceDrivers = document.getElementById("confidenceDrivers");
+    const confidenceStrengths = document.getElementById("confidenceStrengths");
+    const confidenceLimitations = document.getElementById("confidenceLimitations");
+    const confidenceImprovements = document.getElementById("confidenceImprovements");
+    const model = getStrategyBasisModel(detailState.reviewedStrategyBasis);
+
+    setText("detailConfidence", model.level);
+    setText("detailConfidenceSide", model.level);
+    setText("detailConfidenceScore", String(model.score));
+
+    if (confidenceDrivers) {
+      confidenceDrivers.innerHTML = detailState.reviewedStrategyBasis
+        .map((factor) => {
+          const score = clampScore(factor.reviewedScore);
+          return `
+            <div class="economic-confidence-driver">
+              <span>${factor.label}</span>
+              <div class="economic-confidence-driver__track">
+                <span class="is-${getEvidenceStatus(score).toLowerCase()}" style="width: ${score}%;"></span>
+              </div>
+              <strong>${score}</strong>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    if (confidenceStrengths) {
+      confidenceStrengths.innerHTML = model.strongest
+        .map((factor) => `<li>${getFactorShortNote(factor)}</li>`)
+        .join("");
+    }
+
+    if (confidenceLimitations) {
+      confidenceLimitations.innerHTML = model.limitations
+        .map((factor) => `<li>${getFactorShortNote(factor)}</li>`)
+        .join("");
+    }
+
+    if (confidenceImprovements) {
+      confidenceImprovements.innerHTML = (detail.confidenceImprovements ?? [])
+        .map((item) => `<li>${item}</li>`)
+        .join("");
+    }
+
+    setText(
+      "recommendationStrength",
+      getRecommendationStrength(
+        detailState.simulatedConfidenceScore ?? systemConfidenceModel.score,
+        detail.tradeoffModel.find((item) => item.key === detailState.selectedScenarioKey) ??
+          detail.tradeoffModel[0]
+      )
+    );
+  };
+
+  const renderStrategyBasisTable = () => {
+    const tableBody = document.getElementById("strategyBasisRows");
+    const comparePanel = document.getElementById("strategyComparePanel");
+
+    if (!tableBody || !detailState.reviewedStrategyBasis.length) {
       return;
     }
 
-    matrix.innerHTML = detail.assumptionsMatrix
+    tableBody.innerHTML = detailState.reviewedStrategyBasis
       .map(
-        (item) => `
-          <button type="button" class="fiori-assumption-row ${item.key === detailState.selectedAssumptionKey ? "is-selected" : ""}" data-assumption-key="${item.key}">
-            <span>${item.label}</span>
-            <div class="fiori-assumption-row__track">
-              <span class="${item.rating === "Weak" ? "is-weak" : "is-moderate"}" style="width: ${Math.round(item.score * 100)}%;"></span>
-            </div>
-            <strong class="fiori-rating-pill ${item.rating === "Weak" ? "fiori-rating-pill--weak" : "fiori-rating-pill--moderate"}">${item.rating}</strong>
-          </button>
+        (item) => {
+          const reviewedScore = clampScore(item.reviewedScore);
+          const evidenceStatus = getEvidenceStatus(reviewedScore);
+          return `
+          <tr data-factor-key="${item.key}">
+            <td>
+              <div class="economic-review-factor">
+                <strong>${item.label}</strong>
+              </div>
+            </td>
+            <td>
+              <div class="economic-score-cell">
+                <strong>${item.systemScore}</strong>
+                <div class="economic-score-bar">
+                  <span class="is-${getEvidenceStatus(item.systemScore).toLowerCase()}" style="width: ${item.systemScore}%;"></span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="economic-score-input">
+                <input type="number" min="0" max="100" value="${reviewedScore}" data-review-score="${item.key}" aria-label="Reviewed score for ${item.label}">
+                <div class="economic-score-bar economic-score-bar--reviewed">
+                  <span class="is-${evidenceStatus.toLowerCase()}" style="width: ${reviewedScore}%;"></span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="economic-evidence-pill economic-evidence-pill--${evidenceStatus.toLowerCase()}">${evidenceStatus}</span>
+            </td>
+            <td>
+              <select data-review-status="${item.key}" aria-label="Review status for ${item.label}">
+                ${["Accepted", "Adjusted", "Uncertain"]
+                  .map(
+                    (status) =>
+                      `<option value="${status}" ${item.reviewStatus === status ? "selected" : ""}>${status}</option>`
+                  )
+                  .join("")}
+              </select>
+            </td>
+            <td>
+              <span class="economic-review-note">${item.rationale}</span>
+            </td>
+          </tr>
         `
+        }
       )
       .join("");
 
-    matrix.querySelectorAll("[data-assumption-key]").forEach((button) => {
-      const assumption = detail.assumptionsMatrix.find((item) => item.key === button.dataset.assumptionKey);
-      if (!assumption) {
+    tableBody.querySelectorAll("[data-review-score]").forEach((input) => {
+      input.addEventListener("input", () => {
+        const factor = detailState.reviewedStrategyBasis.find(
+          (item) => item.key === input.dataset.reviewScore
+        );
+        if (!factor) {
+          return;
+        }
+
+        factor.reviewedScore = clampScore(input.value);
+        if (factor.reviewStatus !== "Uncertain") {
+          factor.reviewStatus =
+            factor.reviewedScore === factor.systemScore ? "Accepted" : "Adjusted";
+        }
+        renderStrategyBasisTable();
+        renderConfidenceModel();
+      });
+    });
+
+    tableBody.querySelectorAll("[data-review-status]").forEach((select) => {
+      select.addEventListener("change", () => {
+        const factor = detailState.reviewedStrategyBasis.find(
+          (item) => item.key === select.dataset.reviewStatus
+        );
+        if (!factor) {
+          return;
+        }
+
+        factor.reviewStatus = select.value;
+        renderStrategyBasisTable();
+        renderConfidenceModel();
+      });
+    });
+
+    tableBody.querySelectorAll("tr[data-factor-key]").forEach((row) => {
+      const factor = detailState.reviewedStrategyBasis.find(
+        (item) => item.key === row.dataset.factorKey
+      );
+      if (!factor) {
         return;
       }
 
       attachTooltip(
-        button,
-        `<strong>${assumption.label}</strong><span>${assumption.rating} support</span><span>${assumption.rationale}</span>`
+        row,
+        `<strong>${factor.label}</strong><span>System score: ${factor.systemScore}</span><span>${factor.rationale}</span>`
       );
-      button.addEventListener("click", (event) => {
-        detailState.selectedAssumptionKey = assumption.key;
-        showTooltip(
-          `<strong>${assumption.label}</strong><span>${assumption.rating} support</span><span>${assumption.rationale}</span>`,
-          event
-        );
-        renderAssumptionMatrix();
-      });
     });
+
+    const reviewedModel = getStrategyBasisModel(detailState.reviewedStrategyBasis);
+    const simulatedScenario =
+      detail.tradeoffModel.find((item) => item.key === detailState.selectedScenarioKey) ??
+      detail.tradeoffModel[0];
+    const reviewedStrength = getRecommendationStrength(reviewedModel.score, simulatedScenario);
+    const confidenceDelta = reviewedModel.score - systemConfidenceModel.score;
+
+    if (comparePanel) {
+      comparePanel.hidden = !detailState.showComparison;
+    }
+    setText("compareConfidenceBefore", `${systemConfidenceModel.score} / 100`);
+    setText("compareConfidenceAfter", `${reviewedModel.score} / 100`);
+    setText("compareConfidenceDelta", confidenceDelta === 0 ? "0" : `${confidenceDelta > 0 ? "+" : ""}${confidenceDelta}`);
+    setText(
+      "compareStrengthBefore",
+      `${getRecommendationStrength(systemConfidenceModel.score, simulatedScenario)} recommendation strength`
+    );
+    setText("compareStrengthAfter", `${reviewedStrength} recommendation strength`);
+    setText(
+      "compareDeltaInterpretation",
+      confidenceDelta === 0
+        ? "No confidence change after review"
+        : confidenceDelta > 0
+          ? "Reviewed strategy basis increases confidence in the recommendation"
+          : "Reviewed strategy basis reduces confidence in the recommendation"
+    );
   };
+
+  const rerenderRecommendationModel = () => {
+    const currentScenario =
+      detail.tradeoffModel.find((item) => item.key === detailState.selectedScenarioKey) ??
+      detail.tradeoffModel[0];
+    updateDecisionSnapshot(currentScenario);
+    renderConfidenceModel();
+    renderStrategyBasisTable();
+  };
+
+  document.getElementById("resimulateRecommendation")?.addEventListener("click", () => {
+    const reviewedModel = getStrategyBasisModel(detailState.reviewedStrategyBasis);
+    const currentScenario =
+      detail.tradeoffModel.find((item) => item.key === detailState.selectedScenarioKey) ??
+      detail.tradeoffModel[0];
+
+    detailState.simulatedConfidenceScore = reviewedModel.score;
+    detailState.showComparison = true;
+    rerenderRecommendationModel();
+  });
+
+  document.getElementById("resetStrategyBasis")?.addEventListener("click", () => {
+    detailState.reviewedStrategyBasis = detail.strategyBasis.map((item) => ({
+      ...item,
+      reviewedScore: item.systemScore,
+      reviewStatus: "Accepted",
+    }));
+    detailState.simulatedConfidenceScore = systemConfidenceModel.score;
+    rerenderRecommendationModel();
+  });
+
+  document.getElementById("toggleBasisCompare")?.addEventListener("click", () => {
+    detailState.showComparison = !detailState.showComparison;
+    renderStrategyBasisTable();
+  });
 
   setText("detailAssetGroup", detail.assetGroup);
   setText("detailInsightTitle", detail.title);
@@ -1338,7 +1706,6 @@ const renderEconomicOpportunityDetail = () => {
   setText("detailImplementationEffortScore", detail.implementationEffortScore);
   setText("detailOperationalPrimary", detail.implementationEffortScore);
   setText("detailShutdownDependency", detail.shutdownDependency);
-  setText("detailConfidenceNote", detail.confidenceNote);
   setText("detailDataReviewed", detail.dataReviewed);
   setList("detailObservedEvidence", detail.observedEvidence);
   setList("detailAssumptions", detail.assumptions);
@@ -1348,7 +1715,8 @@ const renderEconomicOpportunityDetail = () => {
   renderInspectionYieldChart();
   renderCostComparisonChart();
   renderDelayHistoryChart();
-  renderAssumptionMatrix();
+  renderConfidenceModel();
+  renderStrategyBasisTable();
 };
 
 themeToggle?.addEventListener("click", () => {

@@ -118,10 +118,36 @@
             </div>
             <span class="economic-ai-kicker">AI assessment</span>
           </div>
-          <strong id="detailConfidenceSide" class="economic-confidence__value">Medium confidence</strong>
-          <p id="detailConfidenceNote" class="economic-confidence__body">
-            Confidence is reduced by limited direct condition evidence, possible inconsistency in historical failure coding, and incomplete mapping between PM findings and prevented failures.
-          </p>
+          <div class="economic-confidence-summary">
+            <div class="economic-confidence-summary__main">
+              <span class="economic-confidence-summary__label">Confidence level</span>
+              <strong id="detailConfidenceSide" class="economic-confidence__value">Medium confidence</strong>
+            </div>
+            <div class="economic-confidence-score">
+              <span class="economic-confidence-summary__label">Confidence score</span>
+              <strong><span id="detailConfidenceScore">68</span><small>/100</small></strong>
+            </div>
+          </div>
+          <p class="economic-confidence__cue">Derived from reviewed strategy basis and evidence completeness.</p>
+          <div id="confidenceDrivers" class="economic-confidence-drivers"></div>
+          <div class="economic-confidence-groups">
+            <section>
+              <span class="economic-confidence-groups__label">Strongest support</span>
+              <ul id="confidenceStrengths" class="economic-confidence-list"></ul>
+            </section>
+            <section>
+              <span class="economic-confidence-groups__label">Main limitations</span>
+              <ul id="confidenceLimitations" class="economic-confidence-list"></ul>
+            </section>
+          </div>
+          <div class="economic-confidence-improvements">
+            <span class="economic-confidence-groups__label">Confidence could improve with:</span>
+            <ul id="confidenceImprovements" class="economic-confidence-list"></ul>
+          </div>
+          <div class="economic-confidence-recommendation">
+            <span>Recommendation strength</span>
+            <strong id="recommendationStrength">Moderate</strong>
+          </div>
         </article>
 
         <article class="economic-card economic-span-4">
@@ -290,14 +316,52 @@
           </dl>
         </article>
 
-        <article class="economic-card economic-span-12">
-          <div class="economic-card__header economic-card__header--stacked">
+        <article class="economic-card economic-span-12 economic-review-model">
+          <div class="economic-card__header economic-card__header--stacked economic-review-model__header">
             <div>
-              <h2>Assumptions under review</h2>
+              <h2>Strategy basis under review</h2>
               <p>Current evidence strength against original strategy basis</p>
             </div>
+            <div class="economic-review-actions">
+              <button id="resimulateRecommendation" type="button" class="fiori-button fiori-button--primary">Re-simulate recommendation</button>
+              <button id="resetStrategyBasis" type="button" class="fiori-button fiori-button--ghost">Reset to system scores</button>
+              <button id="toggleBasisCompare" type="button" class="fiori-button fiori-button--ghost">Compare before / after review</button>
+            </div>
           </div>
-          <div id="assumptionMatrix" class="economic-assumption-matrix"></div>
+          <div class="economic-review-table-wrap">
+            <table class="economic-review-table">
+              <thead>
+                <tr>
+                  <th>Factor</th>
+                  <th>System score</th>
+                  <th>Reviewed score</th>
+                  <th>Evidence status</th>
+                  <th>Review status</th>
+                  <th>Notes / rationale</th>
+                </tr>
+              </thead>
+              <tbody id="strategyBasisRows"></tbody>
+            </table>
+          </div>
+          <div id="strategyComparePanel" class="economic-compare-panel" hidden>
+            <div class="economic-compare-panel__summary">
+              <div>
+                <span>Before review</span>
+                <strong id="compareConfidenceBefore">68 / 100</strong>
+                <em id="compareStrengthBefore">Moderate recommendation strength</em>
+              </div>
+              <div>
+                <span>After review</span>
+                <strong id="compareConfidenceAfter">68 / 100</strong>
+                <em id="compareStrengthAfter">Moderate recommendation strength</em>
+              </div>
+              <div>
+                <span>Delta</span>
+                <strong id="compareConfidenceDelta">0</strong>
+                <em id="compareDeltaInterpretation">No confidence change after review</em>
+              </div>
+            </div>
+          </div>
         </article>
 
         <section class="economic-accordion-stack economic-span-12" aria-label="Supporting detail">

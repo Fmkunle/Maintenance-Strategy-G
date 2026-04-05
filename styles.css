@@ -3987,11 +3987,157 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   font-weight: 600;
 }
 
-.economic-confidence__body {
+.economic-confidence-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  margin-top: 10px;
+}
+
+.economic-confidence-summary__label {
+  display: block;
+  color: var(--economic-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.economic-confidence-score {
+  text-align: right;
+}
+
+.economic-confidence-score strong {
+  color: var(--economic-text);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.economic-confidence-score small {
+  color: var(--economic-text-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.economic-confidence__cue {
   margin: 10px 0 0;
   color: var(--economic-text-secondary);
-  font-size: 0.84rem;
-  line-height: 1.6;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.economic-confidence-drivers {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.economic-confidence-driver {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.economic-confidence-driver span:first-child {
+  color: var(--economic-text);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.economic-confidence-driver strong {
+  color: var(--economic-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.economic-confidence-driver__track,
+.economic-score-bar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e9eef5;
+}
+
+.economic-confidence-driver__track span,
+.economic-score-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.economic-confidence-driver__track .is-strong,
+.economic-score-bar .is-strong {
+  background: var(--economic-green);
+}
+
+.economic-confidence-driver__track .is-moderate,
+.economic-score-bar .is-moderate {
+  background: #f59e0b;
+}
+
+.economic-confidence-driver__track .is-weak,
+.economic-score-bar .is-weak {
+  background: var(--economic-red);
+}
+
+.economic-confidence-groups,
+.economic-confidence-improvements {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e4ebf3;
+}
+
+.economic-confidence-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.economic-confidence-groups__label {
+  display: block;
+  color: var(--economic-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.economic-confidence-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--economic-text);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.economic-confidence-improvements .economic-confidence-list {
+  margin-top: 8px;
+}
+
+.economic-confidence-recommendation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e4ebf3;
+}
+
+.economic-confidence-recommendation span {
+  color: var(--economic-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.economic-confidence-recommendation strong {
+  color: var(--economic-text);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .economic-inline-toggle {
@@ -4220,6 +4366,155 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   flex-direction: column;
   gap: 10px;
   margin-top: 12px;
+}
+
+.economic-review-model__header {
+  align-items: flex-start;
+}
+
+.economic-review-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.economic-review-table-wrap {
+  overflow-x: auto;
+  margin-top: 12px;
+  border: 1px solid #e5ecf4;
+  border-radius: 14px;
+}
+
+.economic-review-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.economic-review-table th,
+.economic-review-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e8eef5;
+  text-align: left;
+  vertical-align: top;
+}
+
+.economic-review-table th {
+  color: var(--economic-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: #f8fafd;
+}
+
+.economic-review-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.economic-review-factor strong {
+  color: var(--economic-text);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.economic-score-cell,
+.economic-score-input {
+  display: grid;
+  gap: 8px;
+}
+
+.economic-score-cell strong,
+.economic-score-input input {
+  color: var(--economic-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.economic-score-input input,
+.economic-review-table select {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d9e1ea;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--economic-text);
+}
+
+.economic-score-bar--reviewed {
+  background: #eef3f9;
+}
+
+.economic-evidence-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.economic-evidence-pill--strong {
+  background: #eaf7ee;
+  color: #1f7a45;
+}
+
+.economic-evidence-pill--moderate {
+  background: #fff4dd;
+  color: #a16207;
+}
+
+.economic-evidence-pill--weak {
+  background: #fdecec;
+  color: var(--economic-red);
+}
+
+.economic-review-note {
+  color: var(--economic-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.economic-compare-panel {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--economic-ai-border);
+  border-radius: 14px;
+  background: var(--economic-ai-bg);
+}
+
+.economic-compare-panel__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.economic-compare-panel__summary span {
+  display: block;
+  color: var(--economic-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.economic-compare-panel__summary strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--economic-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.economic-compare-panel__summary em {
+  display: block;
+  margin-top: 6px;
+  color: var(--economic-text-secondary);
+  font-size: 0.76rem;
+  font-style: normal;
+  line-height: 1.4;
 }
 
 .economic-assumption-matrix .fiori-assumption-row {
