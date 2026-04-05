@@ -3886,6 +3886,22 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   width: 100%;
   height: auto;
   display: block;
+  color: var(--economic-text);
+  stroke: none;
+  overflow: visible;
+}
+
+.economic-chart text {
+  stroke: none !important;
+  paint-order: normal;
+  text-rendering: geometricPrecision;
+}
+
+.economic-chart circle,
+.economic-chart rect,
+.economic-chart path,
+.economic-chart line {
+  vector-effect: non-scaling-stroke;
 }
 
 .economic-chart--hero {
@@ -4472,6 +4488,8 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-detail-page .tradeoff-chart__hit-area,
 .economic-detail-page .funnel-chart__hit-area {
   cursor: pointer;
+  stroke: none !important;
+  fill: transparent;
 }
 
 .economic-detail-page .funnel-chart__stage {
