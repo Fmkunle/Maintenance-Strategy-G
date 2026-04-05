@@ -3680,6 +3680,10 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   display: none !important;
 }
 
+.economic-header-card__actions[hidden] {
+  display: none !important;
+}
+
 .economic-header-card,
 .economic-card,
 .economic-accordion {
@@ -3821,6 +3825,13 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  margin-left: auto;
+  min-width: 260px;
+}
+
+.economic-header-card__actions--executive {
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .economic-header-card__actions .fiori-button--ghost {
