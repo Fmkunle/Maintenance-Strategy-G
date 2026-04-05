@@ -4366,6 +4366,12 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   stroke: rgba(109, 94, 245, 0.22);
 }
 
+.economic-detail-page .tradeoff-chart__guide-line {
+  stroke: rgba(95, 114, 136, 0.45);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
 .economic-detail-page .tradeoff-chart__line--cost {
   stroke: #2563eb;
   stroke-width: 2.5;
@@ -4379,7 +4385,9 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .economic-detail-page .tradeoff-chart__halo {
-  fill: rgba(109, 94, 245, 0.1);
+  fill: none;
+  stroke: rgba(109, 94, 245, 0.22);
+  stroke-width: 2;
 }
 
 .economic-detail-page .tradeoff-chart__dot--cost {
@@ -4473,6 +4481,11 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   font-size: 10px;
 }
 
+.economic-detail-page .tradeoff-chart__x-label.is-active {
+  fill: var(--economic-text);
+  font-weight: 700;
+}
+
 .economic-detail-page .funnel-chart__label {
   fill: var(--economic-text);
   font-size: 11px;
@@ -4490,6 +4503,11 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   cursor: pointer;
   stroke: none !important;
   fill: transparent;
+}
+
+.economic-detail-page .tradeoff-chart__overlay {
+  fill: transparent;
+  cursor: col-resize;
 }
 
 .economic-detail-page .funnel-chart__stage {

@@ -581,6 +581,7 @@ const renderEconomicOpportunityDetail = () => {
       detail.tradeoffModel?.find((scenario) => scenario.label === detail.recommendedFrequency)?.key ??
       detail.tradeoffModel?.[0]?.key ??
       null,
+    hoveredScenarioKey: null,
     costView: "cost",
     selectedEvidenceStageKey: detail.inspectionYield?.[2]?.key ?? detail.inspectionYield?.[0]?.key,
     selectedAssumptionKey:
@@ -724,6 +725,9 @@ const renderEconomicOpportunityDetail = () => {
     const selectedScenario =
       detail.tradeoffModel.find((item) => item.key === detailState.selectedScenarioKey) ??
       detail.tradeoffModel[0];
+    const hoveredScenario =
+      detail.tradeoffModel.find((item) => item.key === detailState.hoveredScenarioKey) ?? null;
+    const activeScenario = hoveredScenario ?? selectedScenario;
     const currentKey =
       detail.tradeoffModel.find((item) => item.label === detail.currentFrequency)?.key ??
       detail.tradeoffModel[0].key;
@@ -841,16 +845,31 @@ const renderEconomicOpportunityDetail = () => {
       })
     );
 
+    const activeIndex = detail.tradeoffModel.findIndex((item) => item.key === activeScenario.key);
+    if (activeIndex >= 0) {
+      svg.appendChild(
+        createSvgNode("line", {
+          x1: xFor(activeIndex),
+          y1: padding.top,
+          x2: xFor(activeIndex),
+          y2: padding.top + plotHeight,
+          class: "tradeoff-chart__guide-line",
+        })
+      );
+    }
+
+    const buildScenarioTooltip = (item) => `
+      <strong>${item.label}</strong>
+      <span>Annual cost: ${formatCurrency(item.cost)}</span>
+      <span>Exposure: ${item.exposure.toFixed(2)} events/year</span>
+      <span>Risk index: ${item.riskIndex.toFixed(2)}</span>
+    `;
+
     detail.tradeoffModel.forEach((item, index) => {
       const x = xFor(index);
       const isCurrent = item.key === currentKey;
       const isRecommended = item.key === recommendedKey;
-      const pointTooltip = `
-        <strong>${item.label}</strong>
-        <span>Annual cost: ${formatCurrency(item.cost)}</span>
-        <span>Exposure: ${item.exposure.toFixed(2)} events/year</span>
-        <span>Risk index: ${item.riskIndex.toFixed(2)}</span>
-      `;
+      const pointTooltip = buildScenarioTooltip(item);
 
       if (isRecommended) {
         const costHalo = createSvgNode("circle", {
@@ -878,7 +897,7 @@ const renderEconomicOpportunityDetail = () => {
           "tradeoff-chart__dot--cost",
           isCurrent ? "is-current" : "",
           isRecommended ? "is-recommended" : "",
-          item.key === selectedScenario.key ? "is-selected" : "",
+          item.key === activeScenario.key ? "is-selected" : "",
         ]
           .filter(Boolean)
           .join(" "),
@@ -892,19 +911,13 @@ const renderEconomicOpportunityDetail = () => {
           "tradeoff-chart__dot--exposure",
           isCurrent ? "is-current" : "",
           isRecommended ? "is-recommended" : "",
-          item.key === selectedScenario.key ? "is-selected" : "",
+          item.key === activeScenario.key ? "is-selected" : "",
         ]
           .filter(Boolean)
           .join(" "),
       });
-      const hitArea = createSvgNode("circle", {
-        cx: x,
-        cy: padding.top + plotHeight / 2,
-        r: 20,
-        class: "tradeoff-chart__hit-area",
-      });
 
-      [costDot, exposureDot, hitArea].forEach((node) => {
+      [costDot, exposureDot].forEach((node) => {
         attachTooltip(node, pointTooltip);
         node.addEventListener("click", () => {
           detailState.selectedScenarioKey = item.key;
@@ -912,7 +925,6 @@ const renderEconomicOpportunityDetail = () => {
         });
       });
 
-      svg.appendChild(hitArea);
       svg.appendChild(costDot);
       svg.appendChild(exposureDot);
 
@@ -933,11 +945,53 @@ const renderEconomicOpportunityDetail = () => {
         x,
         y: height - 16,
         "text-anchor": "middle",
-        class: "tradeoff-chart__x-label",
+        class: `tradeoff-chart__x-label ${item.key === activeScenario.key ? "is-active" : ""}`,
       });
       label.textContent = item.label;
       svg.appendChild(label);
     });
+
+    const overlay = createSvgNode("rect", {
+      x: padding.left - xStep * 0.5,
+      y: padding.top,
+      width: plotWidth + xStep,
+      height: plotHeight,
+      class: "tradeoff-chart__overlay",
+    });
+
+    overlay.addEventListener("mousemove", (event) => {
+      const rect = svg.getBoundingClientRect();
+      const relativeX = ((event.clientX - rect.left) / rect.width) * width;
+      const nearestScenario =
+        detail.tradeoffModel.reduce((closest, item, index) => {
+          const distance = Math.abs(relativeX - xFor(index));
+          if (!closest || distance < closest.distance) {
+            return { item, distance };
+          }
+          return closest;
+        }, null)?.item ?? detail.tradeoffModel[0];
+
+      if (detailState.hoveredScenarioKey !== nearestScenario.key) {
+        detailState.hoveredScenarioKey = nearestScenario.key;
+        renderTradeoffChart();
+      }
+
+      showTooltip(buildScenarioTooltip(nearestScenario), event);
+    });
+
+    overlay.addEventListener("mouseleave", () => {
+      detailState.hoveredScenarioKey = null;
+      hideTooltip();
+      renderTradeoffChart();
+    });
+
+    overlay.addEventListener("click", () => {
+      const activeKey = detailState.hoveredScenarioKey ?? selectedScenario.key;
+      detailState.selectedScenarioKey = activeKey;
+      renderTradeoffChart();
+    });
+
+    svg.appendChild(overlay);
 
     updateDecisionSnapshot(selectedScenario);
   };
