@@ -4645,7 +4645,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 #engineeringView .economic-review-model {
-  order: -30;
+  order: -24;
 }
 
 #engineeringView .economic-card--confidence {
@@ -4653,7 +4653,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 #engineeringView .economic-card--hero {
-  order: -28;
+  order: -30;
 }
 
 #engineeringView .economic-accordion-stack {
