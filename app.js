@@ -1018,20 +1018,19 @@ const renderEconomicOpportunityDetail = () => {
     detailState.viewMode = mode === "engineering" ? "engineering" : "executive";
     const executiveView = document.getElementById("executiveView");
     const engineeringView = document.getElementById("engineeringView");
+    const sharedHeaderActions = document.getElementById("sharedHeaderActions");
     if (executiveView) {
       executiveView.hidden = detailState.viewMode !== "executive";
     }
     if (engineeringView) {
       engineeringView.hidden = detailState.viewMode !== "engineering";
     }
-
-    document.querySelectorAll("[data-mode-actions]").forEach((node) => {
-      const isActive = node.getAttribute("data-mode-actions") === detailState.viewMode;
-      node.hidden = !isActive;
-      node.setAttribute("aria-hidden", isActive ? "false" : "true");
-      node.classList.toggle("is-active-mode", isActive);
-      node.style.display = isActive ? "" : "none";
-    });
+    if (sharedHeaderActions) {
+      const showExecutiveActions = detailState.viewMode === "executive";
+      sharedHeaderActions.hidden = !showExecutiveActions;
+      sharedHeaderActions.setAttribute("aria-hidden", showExecutiveActions ? "false" : "true");
+      sharedHeaderActions.style.display = showExecutiveActions ? "" : "none";
+    }
 
     document.querySelectorAll("[data-view-mode]").forEach((button) => {
       const isActive = button.getAttribute("data-view-mode") === detailState.viewMode;

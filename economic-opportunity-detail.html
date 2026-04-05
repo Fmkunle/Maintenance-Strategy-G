@@ -81,14 +81,9 @@
             </span>
           </div>
         </div>
-        <div class="economic-header-card__actions economic-header-card__actions--executive" data-mode-actions="executive">
+        <div id="sharedHeaderActions" class="economic-header-card__actions economic-header-card__actions--executive">
           <button id="executivePrimaryAction" type="button" class="fiori-button fiori-button--primary">Request engineering review</button>
           <button id="executiveReviewEngineering" type="button" class="fiori-button fiori-button--ghost">Review engineering details</button>
-        </div>
-        <div class="economic-header-card__actions economic-header-card__actions--engineering" data-mode-actions="engineering" hidden>
-          <button id="resimulateRecommendation" type="button" class="fiori-button fiori-button--primary">Re-simulate recommendation</button>
-          <button id="toggleBasisCompare" type="button" class="fiori-button fiori-button--ghost">Compare before / after review</button>
-          <button id="resetStrategyBasis" type="button" class="fiori-button fiori-button--ghost">Reset to system scores</button>
         </div>
       </section>
 
@@ -248,6 +243,18 @@
 
       <section id="engineeringView" class="decision-mode decision-mode--engineering" aria-label="Engineering view" role="tabpanel" hidden>
       <section class="economic-detail-layout economic-detail-layout--engineering">
+        <article class="economic-card engineering-action-bar economic-span-12">
+          <div>
+            <h2>Engineering controls</h2>
+            <p>Review the strategy basis, compare scored changes, and re-simulate the recommendation.</p>
+          </div>
+          <div class="decision-action-bar__buttons">
+            <button id="resimulateRecommendation" type="button" class="fiori-button fiori-button--primary">Re-simulate recommendation</button>
+            <button id="toggleBasisCompare" type="button" class="fiori-button fiori-button--ghost">Compare before / after review</button>
+            <button id="resetStrategyBasis" type="button" class="fiori-button fiori-button--ghost">Reset to system scores</button>
+          </div>
+        </article>
+
         <article class="economic-card economic-card--snapshot economic-card--snapshot-current economic-span-3">
           <span class="economic-card__label">Current frequency</span>
           <strong id="detailCurrentFrequency">1 month</strong>

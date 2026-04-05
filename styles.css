@@ -3829,13 +3829,28 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   min-width: 260px;
 }
 
-.economic-header-card__actions:not(.is-active-mode) {
-  display: none !important;
-}
-
 .economic-header-card__actions--executive {
   flex-direction: column;
   align-items: flex-end;
+}
+
+.engineering-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.engineering-action-bar h2 {
+  margin: 0;
+  color: var(--economic-text);
+  font-size: 1rem;
+}
+
+.engineering-action-bar p {
+  margin: 6px 0 0;
+  color: var(--economic-text-secondary);
+  font-size: 0.82rem;
 }
 
 .economic-header-card__actions .fiori-button--ghost {
@@ -5121,6 +5136,11 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   }
 
   .decision-action-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .engineering-action-bar {
     flex-direction: column;
     align-items: flex-start;
   }
