@@ -3829,6 +3829,10 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   min-width: 260px;
 }
 
+.economic-header-card__actions:not(.is-active-mode) {
+  display: none !important;
+}
+
 .economic-header-card__actions--executive {
   flex-direction: column;
   align-items: flex-end;

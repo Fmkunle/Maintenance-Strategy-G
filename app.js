@@ -1026,7 +1026,11 @@ const renderEconomicOpportunityDetail = () => {
     }
 
     document.querySelectorAll("[data-mode-actions]").forEach((node) => {
-      node.hidden = node.getAttribute("data-mode-actions") !== detailState.viewMode;
+      const isActive = node.getAttribute("data-mode-actions") === detailState.viewMode;
+      node.hidden = !isActive;
+      node.setAttribute("aria-hidden", isActive ? "false" : "true");
+      node.classList.toggle("is-active-mode", isActive);
+      node.style.display = isActive ? "" : "none";
     });
 
     document.querySelectorAll("[data-view-mode]").forEach((button) => {
