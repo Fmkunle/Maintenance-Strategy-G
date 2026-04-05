@@ -52,11 +52,14 @@
         <span aria-current="page">Opportunity Detail</span>
       </nav>
 
-      <section class="fiori-object-header">
+      <section class="fiori-object-header fiori-object-header--insight">
         <div class="fiori-object-header__copy">
           <span id="detailAssetGroup" class="fiori-object-header__eyebrow">Gearboxes MFA-321-GB01 to MFA-321-GB10</span>
           <h1 id="detailInsightTitle">PM02 inspection frequency may be higher than current risk justifies</h1>
-          <span id="detailConfidence" class="fiori-status fiori-status--economic">Medium confidence</span>
+          <div class="fiori-object-header__signals">
+            <span id="detailConfidence" class="fiori-status fiori-status--economic">Medium confidence</span>
+            <span class="fiori-ai-badge">AI-assisted insight</span>
+          </div>
         </div>
         <div class="fiori-object-header__actions">
           <a class="fiori-button fiori-button--primary" href="advanced-analysis.html#economic">Open full analysis</a>
@@ -65,11 +68,12 @@
 
       <section class="fiori-detail-grid">
         <div class="fiori-detail-main">
-          <article class="fiori-detail-card">
+          <article class="fiori-detail-card fiori-detail-card--ai">
             <div class="fiori-card-header">
               <div>
                 <h2>Insight summary</h2>
               </div>
+              <span class="fiori-ai-badge fiori-ai-badge--compact">AI-assisted</span>
             </div>
             <p id="detailSummary" class="fiori-detail-card__body">
               Current monthly PM02 inspections appear to provide limited defect detection value relative to their cost and labour demand. Available CMMS and delay history suggest the current interval may be more conservative than required for this gearbox group.
@@ -150,23 +154,32 @@
           <section class="fiori-accordion-group" aria-label="Supporting detail">
             <details class="fiori-accordion">
               <summary>
-                <span class="fiori-accordion__label">Data reviewed</span>
+                <span class="fiori-accordion__content">
+                  <span class="fiori-accordion__label">Data reviewed</span>
+                  <span class="fiori-accordion__preview">PM history, PM findings, breakdowns, delay log, labour hours</span>
+                </span>
                 <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
               </summary>
               <p id="detailDataReviewed"></p>
             </details>
 
-            <details class="fiori-accordion">
+            <details class="fiori-accordion fiori-accordion--ai">
               <summary>
-                <span class="fiori-accordion__label">Observed evidence</span>
+                <span class="fiori-accordion__content">
+                  <span class="fiori-accordion__label fiori-accordion__label--ai">Observed evidence</span>
+                  <span class="fiori-accordion__preview">120 inspections, 3 actionable defects, limited corrective conversion</span>
+                </span>
                 <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
               </summary>
               <ul id="detailObservedEvidence" class="fiori-list"></ul>
             </details>
 
-            <details class="fiori-accordion">
+            <details class="fiori-accordion fiori-accordion--ai">
               <summary>
-                <span class="fiori-accordion__label">Assumptions under review</span>
+                <span class="fiori-accordion__content">
+                  <span class="fiori-accordion__label fiori-accordion__label--ai">Assumptions under review</span>
+                  <span class="fiori-accordion__preview">Detectability, interval fit, consequence logic, redundancy</span>
+                </span>
                 <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
               </summary>
               <ul id="detailAssumptions" class="fiori-list"></ul>
@@ -174,15 +187,21 @@
 
             <details class="fiori-accordion">
               <summary>
-                <span class="fiori-accordion__label">Operational challenge</span>
+                <span class="fiori-accordion__content">
+                  <span class="fiori-accordion__label">Operational challenge</span>
+                  <span class="fiori-accordion__preview">Route changes, PM master data, engineering approval</span>
+                </span>
                 <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
               </summary>
               <ul id="detailOperationalChallenge" class="fiori-list"></ul>
             </details>
 
-            <details class="fiori-accordion">
+            <details class="fiori-accordion fiori-accordion--ai">
               <summary>
-                <span class="fiori-accordion__label">Recommended action</span>
+                <span class="fiori-accordion__content">
+                  <span class="fiori-accordion__label fiori-accordion__label--ai">Recommended action</span>
+                  <span class="fiori-accordion__preview">Trial a 2-month interval, then monitor defect yield and delay impact</span>
+                </span>
                 <span class="fiori-accordion__trigger" aria-hidden="true">&#9662;</span>
               </summary>
               <p id="detailRecommendedAction"></p>
@@ -191,11 +210,12 @@
         </div>
 
         <aside class="fiori-detail-side">
-          <article class="fiori-detail-card">
+          <article class="fiori-detail-card fiori-detail-card--ai">
             <div class="fiori-card-header">
               <div>
                 <h2>Confidence</h2>
               </div>
+              <span class="fiori-ai-badge fiori-ai-badge--compact">AI assessment</span>
             </div>
             <strong id="detailConfidenceSide" class="fiori-detail-side__value">Medium confidence</strong>
             <p id="detailConfidenceNote" class="fiori-detail-card__body">
