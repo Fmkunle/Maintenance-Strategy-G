@@ -4426,23 +4426,6 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   filter: none;
 }
 
-.economic-detail-page .tradeoff-chart__dot--cost.is-selected,
-.economic-detail-page .tradeoff-chart__dot--exposure.is-selected {
-  stroke-width: 3;
-}
-
-.economic-detail-page .tradeoff-chart__dot--cost.is-selected:not(.is-current):not(.is-recommended) {
-  fill: #1d4ed8;
-}
-
-.economic-detail-page .tradeoff-chart__dot--exposure.is-selected:not(.is-current):not(.is-recommended) {
-  fill: #b91c1c;
-}
-
-.economic-detail-page .tradeoff-chart__dot.is-selected {
-  transform: scale(1.04);
-}
-
 .economic-detail-page .tradeoff-chart__zone-caption {
   fill: var(--economic-ai-text);
   font-family: "72", "Segoe UI", "Helvetica Neue", sans-serif;

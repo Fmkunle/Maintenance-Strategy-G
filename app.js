@@ -16,7 +16,7 @@ const toolDefinitions = {
   cba: {
     title: "Reliability Insights",
     description:
-      "Surfaces cost, risk, and operational trade-offs in your maintenance strategy.",
+      "Reliability Insights shows where maintenance cost, exposure, and execution logic are misaligned.",
     meta: [
       "Cost impact",
       "Risk gaps",
@@ -897,7 +897,6 @@ const renderEconomicOpportunityDetail = () => {
           "tradeoff-chart__dot--cost",
           isCurrent ? "is-current" : "",
           isRecommended ? "is-recommended" : "",
-          item.key === activeScenario.key ? "is-selected" : "",
         ]
           .filter(Boolean)
           .join(" "),
@@ -911,7 +910,6 @@ const renderEconomicOpportunityDetail = () => {
           "tradeoff-chart__dot--exposure",
           isCurrent ? "is-current" : "",
           isRecommended ? "is-recommended" : "",
-          item.key === activeScenario.key ? "is-selected" : "",
         ]
           .filter(Boolean)
           .join(" "),
