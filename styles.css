@@ -3779,36 +3779,84 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .economic-card--snapshot {
-  border-top: 2px solid var(--economic-ai-accent);
-  padding-top: 16px;
-  background:
-    linear-gradient(180deg, rgba(109, 94, 245, 0.05) 0, rgba(109, 94, 245, 0.02) 16px, #ffffff 16px);
+  --snapshot-accent: var(--economic-ai-accent);
+  position: relative;
+  min-height: 118px;
+  padding: 18px 20px 16px;
+  border: 1px solid #dfe6ef;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0, rgba(248, 250, 252, 0.92) 100%);
+  box-shadow:
+    0 10px 24px rgba(20, 38, 63, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
+  overflow: hidden;
+}
+
+.economic-card--snapshot::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 18px;
+  width: 72px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--snapshot-accent);
+  opacity: 0.85;
+}
+
+.economic-card--snapshot::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--snapshot-accent) 18%, white);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--snapshot-accent) 7%, transparent);
+}
+
+.economic-card--snapshot-current {
+  --snapshot-accent: #64748b;
+}
+
+.economic-card--snapshot-recommended {
+  --snapshot-accent: #6d5ef5;
+}
+
+.economic-card--snapshot-savings {
+  --snapshot-accent: #2e8b57;
+}
+
+.economic-card--snapshot-risk {
+  --snapshot-accent: #3b82f6;
 }
 
 .economic-card__label {
   display: block;
   color: var(--economic-text-secondary);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .economic-card--snapshot strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 14px;
   color: var(--economic-text);
-  font-size: 1.38rem;
-  line-height: 1.15;
-  font-weight: 600;
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 .economic-card__helper {
   display: block;
-  margin-top: 6px;
+  margin-top: 10px;
   color: var(--economic-text-muted);
-  font-size: 0.76rem;
-  line-height: 1.45;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  max-width: 28ch;
 }
 
 .economic-card--hero,
