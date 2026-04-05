@@ -58,24 +58,196 @@
         <span aria-current="page">Opportunity Detail</span>
       </nav>
 
-      <section class="economic-header-card">
+      <section class="decision-page-toolbar" aria-label="View mode">
+        <div class="view-mode-toggle" role="tablist" aria-label="Opportunity detail mode">
+          <button id="viewModeExecutive" type="button" class="is-active" data-view-mode="executive" role="tab" aria-selected="true" aria-controls="executiveView">Executive View</button>
+          <button id="viewModeEngineering" type="button" data-view-mode="engineering" role="tab" aria-selected="false" aria-controls="engineeringView">Engineering View</button>
+        </div>
+      </section>
+
+      <section class="economic-header-card economic-header-card--decision">
         <div class="economic-header-card__copy">
           <span id="detailAssetGroup" class="economic-header-card__asset">Gearboxes MFA-321-GB01 to MFA-321-GB10</span>
-          <h1 id="detailInsightTitle">PM02 inspection frequency may be higher than current risk justifies</h1>
+          <span id="detailContextMeta" class="economic-header-card__meta">Crushing and conveying - MFA-321 gearbox group</span>
+          <h1 id="detailModeHeadline">Save $48,000/year with minimal risk impact</h1>
+          <p id="detailModeSubheadline" class="economic-header-card__subheadline">Inspection interval optimization for gearbox PM02 route</p>
           <div class="economic-header-card__badges">
             <span id="detailConfidence" class="economic-badge economic-badge--confidence">Medium confidence</span>
+            <span id="detailOpportunityType" class="economic-badge economic-badge--type">Cost Reduction</span>
+            <span id="detailReadinessStatus" class="economic-badge economic-badge--status">Requires engineering review</span>
             <span class="economic-badge economic-badge--ai">
               <span class="economic-badge__sparkle" aria-hidden="true"></span>
               <span>AI-assisted insight</span>
             </span>
           </div>
         </div>
-        <div class="economic-header-card__actions">
-          <a class="fiori-button fiori-button--primary" href="advanced-analysis.html#economic">Open full analysis</a>
+        <div class="economic-header-card__actions economic-header-card__actions--executive" data-mode-actions="executive">
+          <button id="executivePrimaryAction" type="button" class="fiori-button fiori-button--primary">Request engineering review</button>
+          <button id="executiveReviewEngineering" type="button" class="fiori-button fiori-button--ghost">Review engineering details</button>
+        </div>
+        <div class="economic-header-card__actions economic-header-card__actions--engineering" data-mode-actions="engineering" hidden>
+          <button id="resimulateRecommendation" type="button" class="fiori-button fiori-button--primary">Re-simulate recommendation</button>
+          <button id="toggleBasisCompare" type="button" class="fiori-button fiori-button--ghost">Compare before / after review</button>
+          <button id="resetStrategyBasis" type="button" class="fiori-button fiori-button--ghost">Reset to system scores</button>
         </div>
       </section>
 
-      <section class="economic-detail-layout">
+      <section id="executiveView" class="decision-mode decision-mode--executive" aria-label="Executive view" role="tabpanel">
+        <section class="executive-snapshot-grid" aria-label="Decision snapshot">
+          <article class="economic-card executive-snapshot-card executive-snapshot-card--neutral">
+            <span class="economic-card__label">Current state</span>
+            <strong id="execCurrentFrequency">1 month</strong>
+            <p id="execCurrentCost">Annual cost: $96,000</p>
+            <p id="execCurrentRisk">Current risk level: Low</p>
+          </article>
+          <article class="economic-card executive-snapshot-card executive-snapshot-card--brand">
+            <span class="economic-card__label">Recommended state</span>
+            <strong id="execRecommendedFrequency">2 months</strong>
+            <p id="execRecommendedCost">Annual cost: $48,000</p>
+            <p id="execRecommendedRisk">Expected risk change: Low</p>
+          </article>
+          <article class="economic-card executive-snapshot-card executive-snapshot-card--economic">
+            <span class="economic-card__label">Business impact</span>
+            <strong id="execBusinessImpact">$48,000 / year</strong>
+            <p id="execHoursReleased">162 hrs/year released</p>
+            <p id="execProductionImpact">No material production impact expected</p>
+          </article>
+          <article class="economic-card executive-snapshot-card executive-snapshot-card--risk">
+            <span class="economic-card__label">Risk exposure</span>
+            <strong id="execRiskSummary">Low exposure change</strong>
+            <p id="execWorstCaseConsequence">Worst-case consequence estimate not yet available</p>
+            <p id="execExposureDelta">Exposure change: +0.04 events/year</p>
+          </article>
+          <article class="economic-card executive-snapshot-card executive-snapshot-card--confidence">
+            <span class="economic-card__label">Decision confidence</span>
+            <strong id="execConfidenceScore">68 / 100</strong>
+            <p id="execConfidenceLabel">Medium confidence</p>
+            <p id="execConfidenceSummary">Moderate confidence due to strong CMMS coverage but incomplete PM-to-outcome traceability.</p>
+          </article>
+        </section>
+
+        <section class="economic-detail-layout economic-detail-layout--executive">
+          <article class="economic-card economic-card--hero economic-span-8">
+            <div class="economic-card__header economic-card__header--stacked">
+              <div>
+                <h2>Cost vs Risk Trade-off</h2>
+                <p>Annual maintenance cost versus expected failure exposure across inspection intervals</p>
+              </div>
+              <span class="economic-ai-kicker">AI-assisted trade-off model</span>
+            </div>
+            <svg id="tradeoffChartSvgExecutive" class="economic-chart economic-chart--hero" viewBox="0 0 980 400" role="img" aria-label="Dual-axis line chart showing annual maintenance cost and expected failure exposure across inspection intervals"></svg>
+            <div class="economic-chart-legend">
+              <span><i class="economic-chart-legend__swatch economic-chart-legend__swatch--cost"></i>Annual cost</span>
+              <span><i class="economic-chart-legend__swatch economic-chart-legend__swatch--exposure"></i>Failure exposure</span>
+              <span><i class="economic-chart-legend__swatch economic-chart-legend__swatch--zone"></i>Preferred zone</span>
+            </div>
+            <div class="economic-judgment-callout">
+              <span class="economic-judgment-callout__label">System judgment</span>
+              <p id="detailSystemJudgmentExecutive">Moving to 2 months retains a low risk change while shifting $48,000 of annual inspection cost out of the program.</p>
+            </div>
+          </article>
+
+          <article class="economic-card executive-impact-card economic-span-4">
+            <div class="economic-card__header economic-card__header--stacked">
+              <div>
+                <h2>Implementation Impact</h2>
+                <p>Operational effort and coordination needed before approval</p>
+              </div>
+              <span class="economic-axis-pill economic-axis-pill--operational">Operational</span>
+            </div>
+            <div class="executive-impact-card__summary">
+              <strong id="detailImplementationSummary">Moderate coordination required</strong>
+              <p id="detailImplementationTime">Estimated implementation time pending planner logic</p>
+            </div>
+            <dl class="executive-impact-list">
+              <div>
+                <dt>Route redesign required</dt>
+                <dd id="execRouteRedesignRequired">Yes</dd>
+              </div>
+              <div>
+                <dt>PM master updates needed</dt>
+                <dd id="execMasterUpdatesNeeded">10</dd>
+              </div>
+              <div>
+                <dt>Planner effort</dt>
+                <dd id="execPlannerEffort">8 hrs</dd>
+              </div>
+              <div>
+                <dt>Engineering review effort</dt>
+                <dd id="execEngineeringEffort">6 hrs</dd>
+              </div>
+              <div>
+                <dt>Shutdown required</dt>
+                <dd id="execShutdownRequired">No</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="economic-card decision-action-bar economic-span-12">
+            <div>
+              <h2>Decision actions</h2>
+              <p>Use the manager brief to decide whether this recommendation can move forward now.</p>
+            </div>
+            <div class="decision-action-bar__buttons">
+              <button id="executiveDecisionPrimary" type="button" class="fiori-button fiori-button--primary">Request engineering review</button>
+              <button id="executiveSendPlanner" type="button" class="fiori-button fiori-button--ghost">Send to planner</button>
+              <button id="executiveReviewEngineeringSecondary" type="button" class="fiori-button fiori-button--ghost">Review engineering details</button>
+              <button id="executiveRunSimulation" type="button" class="fiori-button fiori-button--ghost">Run further simulation</button>
+            </div>
+          </article>
+
+          <section class="economic-accordion-stack economic-span-12" aria-label="Executive summaries">
+            <details class="economic-accordion economic-accordion--ai">
+              <summary>
+                <span class="economic-accordion__content">
+                  <span class="economic-accordion__label">Why this recommendation</span>
+                  <span id="execWhyPreview" class="economic-accordion__preview">Low finding yield relative to inspection effort; no material evidence current frequency improves control.</span>
+                </span>
+                <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
+              </summary>
+              <p id="execWhyRecommendation"></p>
+            </details>
+
+            <details class="economic-accordion">
+              <summary>
+                <span class="economic-accordion__content">
+                  <span class="economic-accordion__label">Confidence summary</span>
+                  <span id="execConfidencePreview" class="economic-accordion__preview">68/100 - strongest in CMMS history, weakest in detection evidence.</span>
+                </span>
+                <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
+              </summary>
+              <div class="economic-accordion__panel economic-accordion__panel--compact">
+                <p id="execConfidenceDetail"></p>
+              </div>
+            </details>
+
+            <details class="economic-accordion">
+              <summary>
+                <span class="economic-accordion__content">
+                  <span class="economic-accordion__label">Implementation considerations</span>
+                  <span id="execImplementationPreview" class="economic-accordion__preview">Route redesign required; no shutdown needed.</span>
+                </span>
+                <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
+              </summary>
+              <ul id="execImplementationConsiderations" class="fiori-list"></ul>
+            </details>
+
+            <details class="economic-accordion">
+              <summary>
+                <span class="economic-accordion__content">
+                  <span class="economic-accordion__label">Evidence snapshot</span>
+                  <span id="execEvidencePreview" class="economic-accordion__preview">120 inspections, 3 actionable findings, 0 major delay events.</span>
+                </span>
+                <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
+              </summary>
+              <ul id="execEvidenceSnapshot" class="fiori-list"></ul>
+            </details>
+          </section>
+        </section>
+      </section>
+
+      <section id="engineeringView" class="decision-mode decision-mode--engineering" aria-label="Engineering view" role="tabpanel" hidden>
+      <section class="economic-detail-layout economic-detail-layout--engineering">
         <article class="economic-card economic-card--snapshot economic-card--snapshot-current economic-span-3">
           <span class="economic-card__label">Current frequency</span>
           <strong id="detailCurrentFrequency">1 month</strong>
@@ -100,8 +272,8 @@
         <article class="economic-card economic-card--hero economic-span-8">
           <div class="economic-card__header economic-card__header--stacked">
             <div>
-              <h2>Frequency trade-off model</h2>
-              <p>Annual maintenance cost vs expected failure exposure across inspection intervals</p>
+              <h2>Cost vs Risk Trade-off</h2>
+              <p>Annual maintenance cost versus expected failure exposure across inspection intervals</p>
             </div>
             <span class="economic-ai-kicker">AI-assisted trade-off model</span>
           </div>
@@ -159,11 +331,11 @@
         <article class="economic-card economic-span-4">
           <div class="economic-card__header economic-card__header--stacked">
             <div>
-              <h2>Inspection yield</h2>
+              <h2>Detection effectiveness</h2>
               <p>Detection value relative to inspection effort</p>
             </div>
           </div>
-          <svg id="inspectionYieldChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Inspection yield staged conversion chart"></svg>
+          <svg id="inspectionYieldChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Detection effectiveness staged conversion chart"></svg>
           <div class="economic-insight-strip economic-insight-strip--yield">
             <div>
               <span>Completed</span>
@@ -197,7 +369,7 @@
               <span>Before</span>
               <strong id="costCompareCurrent">$96,000</strong>
             </div>
-            <div class="economic-compare-strip__arrow" aria-hidden="true">→</div>
+            <div class="economic-compare-strip__arrow" aria-hidden="true">-&gt;</div>
             <div>
               <span>After</span>
               <strong id="costCompareRecommended">$48,000</strong>
@@ -209,7 +381,7 @@
         <article class="economic-card economic-span-4">
           <div class="economic-card__header economic-card__header--stacked">
             <div>
-              <h2>Delay consequence history</h2>
+              <h2>Production impact history</h2>
               <p>Recent production effect profile</p>
             </div>
           </div>
@@ -227,7 +399,7 @@
               <strong>3.5</strong>
             </div>
           </div>
-          <svg id="delayHistoryChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Delay consequence history mini column chart"></svg>
+          <svg id="delayHistoryChart" class="economic-chart economic-chart--evidence" viewBox="0 0 480 240" role="img" aria-label="Production impact history mini column chart"></svg>
         </article>
 
         <article class="economic-card economic-card--value economic-card--economic economic-span-4">
@@ -322,16 +494,11 @@
           </dl>
         </article>
 
-        <article class="economic-card economic-span-12 economic-review-model">
+        <article class="economic-card economic-span-8 economic-review-model">
           <div class="economic-card__header economic-card__header--stacked economic-review-model__header">
             <div>
-              <h2>Strategy basis under review</h2>
-              <p>Current evidence strength against original strategy basis</p>
-            </div>
-            <div class="economic-review-actions">
-              <button id="resimulateRecommendation" type="button" class="fiori-button fiori-button--primary">Re-simulate recommendation</button>
-              <button id="resetStrategyBasis" type="button" class="fiori-button fiori-button--ghost">Reset to system scores</button>
-              <button id="toggleBasisCompare" type="button" class="fiori-button fiori-button--ghost">Compare before / after review</button>
+              <h2>Strategy basis review</h2>
+              <p>Current evidence strength against original maintenance strategy basis</p>
             </div>
           </div>
           <div class="economic-review-table-wrap">
@@ -371,7 +538,7 @@
         </article>
 
         <section class="economic-accordion-stack economic-span-12" aria-label="Supporting detail">
-          <details class="economic-accordion">
+          <details class="economic-accordion" open>
             <summary>
               <span class="economic-accordion__content">
                 <span class="economic-accordion__label">Inputs reviewed</span>
@@ -382,7 +549,7 @@
             <p id="detailDataReviewed"></p>
           </details>
 
-          <details class="economic-accordion">
+          <details class="economic-accordion" open>
             <summary>
               <span class="economic-accordion__content">
                 <span class="economic-accordion__label">Full observed evidence</span>
@@ -393,7 +560,7 @@
             <ul id="detailObservedEvidence" class="fiori-list"></ul>
           </details>
 
-          <details class="economic-accordion">
+          <details class="economic-accordion" open>
             <summary>
               <span class="economic-accordion__content">
                 <span class="economic-accordion__label">Implementation constraints</span>
@@ -404,7 +571,7 @@
             <ul id="detailOperationalChallenge" class="fiori-list"></ul>
           </details>
 
-          <details class="economic-accordion economic-accordion--ai">
+          <details class="economic-accordion economic-accordion--ai" open>
             <summary>
               <span class="economic-accordion__content">
                 <span class="economic-accordion__label">Recommendation detail</span>
@@ -415,6 +582,7 @@
             <p id="detailRecommendedAction"></p>
           </details>
         </section>
+      </section>
       </section>
     </main>
   </div>

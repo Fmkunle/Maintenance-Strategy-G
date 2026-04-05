@@ -675,6 +675,7 @@ const renderEconomicOpportunityDetail = () => {
     economicOpportunities.find((item) => item.id === selectedId) || economicOpportunities[0];
   const detail = getOpportunityDetail(selectedOpportunity);
   const detailState = {
+    viewMode: params.get("mode") === "engineering" ? "engineering" : "executive",
     selectedScenarioKey:
       detail.tradeoffModel?.find((scenario) => scenario.label === detail.recommendedFrequency)?.key ??
       detail.tradeoffModel?.[0]?.key ??
@@ -833,6 +834,68 @@ const renderEconomicOpportunityDetail = () => {
     return notes[factor.key] ?? factor.label;
   };
 
+  const getSelectedScenario = () =>
+    detail.tradeoffModel.find((item) => item.key === detailState.selectedScenarioKey) ??
+    detail.tradeoffModel[0];
+
+  const getReadinessModel = () => {
+    const confidence = (detail.confidence || "").toLowerCase();
+    if (detail.shutdownDependency === "Yes") {
+      return {
+        label: "Blocked by constraints",
+        primaryAction: "Request engineering review",
+      };
+    }
+    if (confidence === "high") {
+      return {
+        label: "Ready for approval",
+        primaryAction: "Approve recommendation",
+      };
+    }
+    return {
+      label: "Requires engineering review",
+      primaryAction: "Request engineering review",
+    };
+  };
+
+  const getProductionImpactStatement = (exposureDelta) => {
+    if (detail.shutdownDependency === "Yes") {
+      return "Requires shutdown window";
+    }
+    if (exposureDelta <= 0.05) {
+      return "No material production impact expected";
+    }
+    if (exposureDelta <= 0.15) {
+      return "Minor planning disruption expected";
+    }
+    return "Elevated production uncertainty";
+  };
+
+  const getImplementationSummary = () => {
+    if (detail.shutdownDependency === "Yes") {
+      return "Operationally constrained";
+    }
+    if (detail.routeRedesignRequired === "Yes" || Number(detail.masterUpdatesNeeded) > 0) {
+      return "Moderate coordination required";
+    }
+    return "Easy to implement";
+  };
+
+  const extractEffortHours = (labelPrefix) => {
+    const match = (detail.operationalChallenge ?? [])
+      .find((item) => item.toLowerCase().includes(labelPrefix))
+      ?.match(/(\d+)\s*hrs?/i);
+    return match ? `${match[1]} hrs` : "Pending review";
+  };
+
+  const syncDetailUrl = () => {
+    const nextParams = new URLSearchParams(window.location.search);
+    nextParams.set("id", selectedOpportunity.id);
+    nextParams.set("mode", detailState.viewMode);
+    const nextUrl = `${window.location.pathname}?${nextParams.toString()}`;
+    window.history.replaceState({}, "", nextUrl);
+  };
+
   const getSystemJudgment = (scenario, savings, exposureDelta) => {
     const riskChange = classifyRiskChange(exposureDelta).toLowerCase();
     const confidenceScore =
@@ -851,6 +914,129 @@ const renderEconomicOpportunityDetail = () => {
     return `Moving to ${scenario.label} increases annual inspection cost by ${formatCurrency(
       Math.abs(savings)
     )} with a ${riskChange} risk change. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
+  };
+
+  const renderSharedHeader = (scenario) => {
+    const baseline =
+      detail.tradeoffModel.find((item) => item.label === detail.currentFrequency) ??
+      detail.tradeoffModel[0];
+    const savings = baseline.cost - scenario.cost;
+    const exposureDelta = Math.max(0, scenario.exposure - baseline.exposure);
+    const readiness = getReadinessModel();
+    const confidenceScore = detailState.simulatedConfidenceScore ?? systemConfidenceModel.score;
+    const modeHeadline =
+      detailState.viewMode === "engineering"
+        ? `Recommended PM02 interval change from ${detail.currentFrequency} to ${scenario.label} based on low detection yield and stable failure exposure`
+        : savings >= 0
+          ? `Save ${formatCurrency(savings)}/year with ${classifyRiskChange(exposureDelta).toLowerCase()} risk impact`
+          : `Current interval remains the reference case under review`;
+    const modeSubheadline =
+      detailState.viewMode === "engineering"
+        ? "Engineering review of maintenance strategy basis, confidence, and implementation constraints"
+        : "Inspection interval optimization for gearbox PM02 route";
+
+    setText("detailContextMeta", `${detail.area} - ${detail.equipment}`);
+    setText("detailModeHeadline", modeHeadline);
+    setText("detailModeSubheadline", modeSubheadline);
+    setText("detailOpportunityType", "Cost Reduction");
+    setText("detailReadinessStatus", readiness.label);
+    setText("detailConfidence", getConfidenceLevel(confidenceScore));
+    const confidenceBadge = document.getElementById("detailConfidence");
+    if (confidenceBadge) {
+      confidenceBadge.classList.remove("is-high", "is-medium", "is-low");
+      confidenceBadge.classList.add(
+        confidenceScore >= 75 ? "is-high" : confidenceScore >= 55 ? "is-medium" : "is-low"
+      );
+    }
+
+    ["executivePrimaryAction", "executiveDecisionPrimary"].forEach((id) => {
+      setText(id, readiness.primaryAction);
+    });
+  };
+
+  const renderExecutiveSummary = (scenario) => {
+    const baseline =
+      detail.tradeoffModel.find((item) => item.label === detail.currentFrequency) ??
+      detail.tradeoffModel[0];
+    const savings = baseline.cost - scenario.cost;
+    const exposureDelta = Math.max(0, scenario.exposure - baseline.exposure);
+    const confidenceModel = getStrategyBasisModel(detailState.reviewedStrategyBasis);
+    const strongest = confidenceModel.strongest.map((factor) => getFactorShortNote(factor));
+    const limitations = confidenceModel.limitations.map((factor) => getFactorShortNote(factor));
+
+    setText("execCurrentFrequency", detail.currentFrequency);
+    setText("execCurrentCost", `Annual cost: ${formatCurrency(baseline.cost)}`);
+    setText("execCurrentRisk", `Current risk level: ${detail.safetyImpact}`);
+    setText("execRecommendedFrequency", scenario.label);
+    setText("execRecommendedCost", `Annual cost: ${formatCurrency(scenario.cost)}`);
+    setText("execRecommendedRisk", `Expected risk change: ${classifyRiskChange(exposureDelta)}`);
+    setText("execBusinessImpact", `${formatSignedCurrency(savings)} / year`);
+    setText("execHoursReleased", `${detail.hoursReleased} released`);
+    setText("execProductionImpact", getProductionImpactStatement(exposureDelta));
+    setText("execRiskSummary", `${classifyRiskChange(exposureDelta)} exposure change`);
+    setText("execWorstCaseConsequence", "Worst-case consequence estimate not yet available");
+    setText("execExposureDelta", `Exposure change: ${(scenario.exposure - baseline.exposure).toFixed(2)} events/year`);
+    setText("execConfidenceScore", `${confidenceModel.score} / 100`);
+    setText("execConfidenceLabel", confidenceModel.level);
+    setText(
+      "execConfidenceSummary",
+      `${confidenceModel.level} due to strong ${strongest.join(" and ").toLowerCase()} but ${limitations.join(" and ").toLowerCase()}.`
+    );
+    setText("detailImplementationSummary", getImplementationSummary());
+    setText("detailImplementationTime", "Estimated implementation time pending planner logic");
+    setText("execRouteRedesignRequired", detail.routeRedesignRequired);
+    setText("execMasterUpdatesNeeded", detail.masterUpdatesNeeded);
+    setText("execPlannerEffort", extractEffortHours("planner effort"));
+    setText("execEngineeringEffort", extractEffortHours("engineering review effort"));
+    setText("execShutdownRequired", detail.shutdownDependency);
+    setText("execWhyRecommendation", detail.summary);
+    setText(
+      "execWhyPreview",
+      "Low finding yield relative to inspection effort; no material evidence current frequency improves control."
+    );
+    setText(
+      "execConfidencePreview",
+      `${confidenceModel.score}/100 - strongest in ${strongest[0]?.toLowerCase() ?? "CMMS history"}, weakest in ${limitations[0]?.toLowerCase() ?? "detection evidence"}.`
+    );
+    setText(
+      "execConfidenceDetail",
+      `${confidenceModel.level}. Strongest support: ${strongest.join(", ")}. Main limitations: ${limitations.join(", ")}.`
+    );
+    setText(
+      "execImplementationPreview",
+      `${detail.routeRedesignRequired === "Yes" ? "Route redesign required" : "Route redesign not required"}; ${detail.shutdownDependency === "Yes" ? "shutdown needed" : "no shutdown needed"}.`
+    );
+    setText(
+      "execEvidencePreview",
+      `${detail.inspectionYield?.[0]?.count ?? 0} inspections, ${detail.inspectionYield?.[2]?.count ?? 0} actionable findings, 0 major delay events.`
+    );
+    setList("execImplementationConsiderations", detail.operationalChallenge);
+    setList("execEvidenceSnapshot", detail.observedEvidence.slice(0, 4));
+  };
+
+  const applyViewMode = (mode) => {
+    detailState.viewMode = mode === "engineering" ? "engineering" : "executive";
+    const executiveView = document.getElementById("executiveView");
+    const engineeringView = document.getElementById("engineeringView");
+    if (executiveView) {
+      executiveView.hidden = detailState.viewMode !== "executive";
+    }
+    if (engineeringView) {
+      engineeringView.hidden = detailState.viewMode !== "engineering";
+    }
+
+    document.querySelectorAll("[data-mode-actions]").forEach((node) => {
+      node.hidden = node.getAttribute("data-mode-actions") !== detailState.viewMode;
+    });
+
+    document.querySelectorAll("[data-view-mode]").forEach((button) => {
+      const isActive = button.getAttribute("data-view-mode") === detailState.viewMode;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+
+    renderSharedHeader(getSelectedScenario());
+    syncDetailUrl();
   };
 
   const updateDecisionSnapshot = (scenario) => {
@@ -885,12 +1071,24 @@ const renderEconomicOpportunityDetail = () => {
           : "Exposure rises materially"
     );
     setText("recommendationStrength", getRecommendationStrength(confidenceScore, scenario));
-    setText("detailSystemJudgment", getSystemJudgment(scenario, savings, exposureDelta));
+    ["detailSystemJudgment", "detailSystemJudgmentExecutive"].forEach((id) => {
+      setText(id, getSystemJudgment(scenario, savings, exposureDelta));
+    });
+    setText("detailCurrentCost", formatCurrency(baseline.cost));
+    setText("detailRecommendedCost", formatCurrency(scenario.cost));
+    setText("detailEconomicPrimary", formatSignedCurrency(savings));
+    setText("detailRiskPrimary", `${scenario.exposure.toFixed(2)} events/year`);
+    setText("detailProposedExpectedExposure", `${scenario.exposure.toFixed(2)} events/year`);
+    renderSharedHeader(scenario);
+    renderExecutiveSummary(scenario);
   };
 
   const renderTradeoffChart = () => {
-    const svg = document.getElementById("tradeoffChartSvg");
-    if (!svg || !detail.tradeoffModel?.length) {
+    const chartTargets = ["tradeoffChartSvgExecutive", "tradeoffChartSvg"]
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+
+    if (!chartTargets.length || !detail.tradeoffModel?.length) {
       return;
     }
 
@@ -906,9 +1104,7 @@ const renderEconomicOpportunityDetail = () => {
     const yForCost = (value) => padding.top + plotHeight - (value / maxCost) * plotHeight;
     const yForExposure = (value) =>
       padding.top + plotHeight - (value / maxExposure) * plotHeight;
-    const selectedScenario =
-      detail.tradeoffModel.find((item) => item.key === detailState.selectedScenarioKey) ??
-      detail.tradeoffModel[0];
+    const selectedScenario = getSelectedScenario();
     const hoveredScenario =
       detail.tradeoffModel.find((item) => item.key === detailState.hoveredScenarioKey) ?? null;
     const activeScenario = hoveredScenario ?? selectedScenario;
@@ -921,127 +1117,6 @@ const renderEconomicOpportunityDetail = () => {
     const recommendedStart = detail.tradeoffModel.findIndex((item) => item.label === "2 months");
     const recommendedEnd = detail.tradeoffModel.findIndex((item) => item.label === "3 months");
 
-    svg.innerHTML = "";
-
-    if (recommendedStart >= 0 && recommendedEnd >= 0) {
-      svg.appendChild(
-        createSvgNode("rect", {
-          x: xFor(recommendedStart) - xStep * 0.45,
-          y: padding.top,
-          width: xFor(recommendedEnd) - xFor(recommendedStart) + xStep * 0.9,
-          height: plotHeight,
-          class: "tradeoff-chart__zone",
-        })
-      );
-
-      const zoneCaption = createSvgNode("text", {
-        x: (xFor(recommendedStart) + xFor(recommendedEnd)) / 2,
-        y: padding.top + 18,
-        "text-anchor": "middle",
-        class: "tradeoff-chart__zone-caption",
-      });
-      zoneCaption.textContent = "Preferred trade-off zone";
-      svg.appendChild(zoneCaption);
-    }
-
-    [0, 0.33, 0.66, 1].forEach((tick) => {
-      const y = padding.top + plotHeight - plotHeight * tick;
-      svg.appendChild(
-        createSvgNode("line", {
-          x1: padding.left,
-          y1: y,
-          x2: width - padding.right,
-          y2: y,
-          class: "tradeoff-chart__grid",
-        })
-      );
-
-      const leftLabel = createSvgNode("text", {
-        x: padding.left - 12,
-        y: y + 4,
-        "text-anchor": "end",
-        class: "tradeoff-chart__axis-label tradeoff-chart__axis-label--left",
-      });
-      leftLabel.textContent = formatCompactCurrency(maxCost * tick);
-      svg.appendChild(leftLabel);
-
-      const rightLabel = createSvgNode("text", {
-        x: width - padding.right + 14,
-        y: y + 4,
-        class: "tradeoff-chart__axis-label tradeoff-chart__axis-label--right",
-      });
-      rightLabel.textContent = (maxExposure * tick).toFixed(2);
-      svg.appendChild(rightLabel);
-    });
-
-    const leftAxisTitle = createSvgNode("text", {
-      x: 28,
-      y: padding.top + plotHeight / 2,
-      transform: `rotate(-90 28 ${padding.top + plotHeight / 2})`,
-      class: "tradeoff-chart__axis-title",
-    });
-    leftAxisTitle.textContent = "Annual cost ($)";
-    svg.appendChild(leftAxisTitle);
-
-    const rightAxisTitle = createSvgNode("text", {
-      x: width - 22,
-      y: padding.top + plotHeight / 2,
-      transform: `rotate(90 ${width - 22} ${padding.top + plotHeight / 2})`,
-      class: "tradeoff-chart__axis-title",
-    });
-    rightAxisTitle.textContent = "Exposure (events/yr)";
-    svg.appendChild(rightAxisTitle);
-
-    [
-      { x1: padding.left, y1: padding.top, x2: padding.left, y2: padding.top + plotHeight },
-      {
-        x1: width - padding.right,
-        y1: padding.top,
-        x2: width - padding.right,
-        y2: padding.top + plotHeight,
-      },
-      {
-        x1: padding.left,
-        y1: padding.top + plotHeight,
-        x2: width - padding.right,
-        y2: padding.top + plotHeight,
-      },
-    ].forEach((line) => {
-      svg.appendChild(createSvgNode("line", { ...line, class: "tradeoff-chart__axis" }));
-    });
-
-    const costPath = detail.tradeoffModel
-      .map((item, index) => `${index === 0 ? "M" : "L"} ${xFor(index)} ${yForCost(item.cost)}`)
-      .join(" ");
-    const exposurePath = detail.tradeoffModel
-      .map(
-        (item, index) => `${index === 0 ? "M" : "L"} ${xFor(index)} ${yForExposure(item.exposure)}`
-      )
-      .join(" ");
-
-    svg.appendChild(
-      createSvgNode("path", { d: costPath, class: "tradeoff-chart__line tradeoff-chart__line--cost" })
-    );
-    svg.appendChild(
-      createSvgNode("path", {
-        d: exposurePath,
-        class: "tradeoff-chart__line tradeoff-chart__line--exposure",
-      })
-    );
-
-    const activeIndex = detail.tradeoffModel.findIndex((item) => item.key === activeScenario.key);
-    if (activeIndex >= 0) {
-      svg.appendChild(
-        createSvgNode("line", {
-          x1: xFor(activeIndex),
-          y1: padding.top,
-          x2: xFor(activeIndex),
-          y2: padding.top + plotHeight,
-          class: "tradeoff-chart__guide-line",
-        })
-      );
-    }
-
     const buildScenarioTooltip = (item) => `
       <strong>${item.label}</strong>
       <span>Annual cost: ${formatCurrency(item.cost)}</span>
@@ -1049,131 +1124,259 @@ const renderEconomicOpportunityDetail = () => {
       <span>Risk index: ${item.riskIndex.toFixed(2)}</span>
     `;
 
-    detail.tradeoffModel.forEach((item, index) => {
-      const x = xFor(index);
-      const isCurrent = item.key === currentKey;
-      const isRecommended = item.key === recommendedKey;
-      const pointTooltip = buildScenarioTooltip(item);
+    const bindOverlayEvents = (svg, overlay) => {
+      overlay.addEventListener("mousemove", (event) => {
+        const rect = svg.getBoundingClientRect();
+        const relativeX = ((event.clientX - rect.left) / rect.width) * width;
+        const nearestScenario =
+          detail.tradeoffModel.reduce((closest, item, index) => {
+            const distance = Math.abs(relativeX - xFor(index));
+            if (!closest || distance < closest.distance) {
+              return { item, distance };
+            }
+            return closest;
+          }, null)?.item ?? detail.tradeoffModel[0];
 
-      if (isRecommended) {
-        const costHalo = createSvgNode("circle", {
+        if (detailState.hoveredScenarioKey !== nearestScenario.key) {
+          detailState.hoveredScenarioKey = nearestScenario.key;
+          renderTradeoffChart();
+        }
+
+        showTooltip(buildScenarioTooltip(nearestScenario), event);
+      });
+
+      overlay.addEventListener("mouseleave", () => {
+        detailState.hoveredScenarioKey = null;
+        hideTooltip();
+        renderTradeoffChart();
+      });
+
+      overlay.addEventListener("click", () => {
+        const activeKey = detailState.hoveredScenarioKey ?? selectedScenario.key;
+        detailState.selectedScenarioKey = activeKey;
+        renderTradeoffChart();
+      });
+    };
+
+    chartTargets.forEach((svg) => {
+      svg.innerHTML = "";
+
+      if (recommendedStart >= 0 && recommendedEnd >= 0) {
+        svg.appendChild(
+          createSvgNode("rect", {
+            x: xFor(recommendedStart) - xStep * 0.45,
+            y: padding.top,
+            width: xFor(recommendedEnd) - xFor(recommendedStart) + xStep * 0.9,
+            height: plotHeight,
+            class: "tradeoff-chart__zone",
+          })
+        );
+
+        const zoneCaption = createSvgNode("text", {
+          x: (xFor(recommendedStart) + xFor(recommendedEnd)) / 2,
+          y: padding.top + 18,
+          "text-anchor": "middle",
+          class: "tradeoff-chart__zone-caption",
+        });
+        zoneCaption.textContent = "Preferred trade-off zone";
+        svg.appendChild(zoneCaption);
+      }
+
+      [0, 0.33, 0.66, 1].forEach((tick) => {
+        const y = padding.top + plotHeight - plotHeight * tick;
+        svg.appendChild(
+          createSvgNode("line", {
+            x1: padding.left,
+            y1: y,
+            x2: width - padding.right,
+            y2: y,
+            class: "tradeoff-chart__grid",
+          })
+        );
+
+        const leftLabel = createSvgNode("text", {
+          x: padding.left - 12,
+          y: y + 4,
+          "text-anchor": "end",
+          class: "tradeoff-chart__axis-label tradeoff-chart__axis-label--left",
+        });
+        leftLabel.textContent = formatCompactCurrency(maxCost * tick);
+        svg.appendChild(leftLabel);
+
+        const rightLabel = createSvgNode("text", {
+          x: width - padding.right + 14,
+          y: y + 4,
+          class: "tradeoff-chart__axis-label tradeoff-chart__axis-label--right",
+        });
+        rightLabel.textContent = (maxExposure * tick).toFixed(2);
+        svg.appendChild(rightLabel);
+      });
+
+      const leftAxisTitle = createSvgNode("text", {
+        x: 28,
+        y: padding.top + plotHeight / 2,
+        transform: `rotate(-90 28 ${padding.top + plotHeight / 2})`,
+        class: "tradeoff-chart__axis-title",
+      });
+      leftAxisTitle.textContent = "Annual cost ($)";
+      svg.appendChild(leftAxisTitle);
+
+      const rightAxisTitle = createSvgNode("text", {
+        x: width - 22,
+        y: padding.top + plotHeight / 2,
+        transform: `rotate(90 ${width - 22} ${padding.top + plotHeight / 2})`,
+        class: "tradeoff-chart__axis-title",
+      });
+      rightAxisTitle.textContent = "Exposure (events/yr)";
+      svg.appendChild(rightAxisTitle);
+
+      [
+        { x1: padding.left, y1: padding.top, x2: padding.left, y2: padding.top + plotHeight },
+        {
+          x1: width - padding.right,
+          y1: padding.top,
+          x2: width - padding.right,
+          y2: padding.top + plotHeight,
+        },
+        {
+          x1: padding.left,
+          y1: padding.top + plotHeight,
+          x2: width - padding.right,
+          y2: padding.top + plotHeight,
+        },
+      ].forEach((line) => {
+        svg.appendChild(createSvgNode("line", { ...line, class: "tradeoff-chart__axis" }));
+      });
+
+      const costPath = detail.tradeoffModel
+        .map((item, index) => `${index === 0 ? "M" : "L"} ${xFor(index)} ${yForCost(item.cost)}`)
+        .join(" ");
+      const exposurePath = detail.tradeoffModel
+        .map(
+          (item, index) => `${index === 0 ? "M" : "L"} ${xFor(index)} ${yForExposure(item.exposure)}`
+        )
+        .join(" ");
+
+      svg.appendChild(
+        createSvgNode("path", { d: costPath, class: "tradeoff-chart__line tradeoff-chart__line--cost" })
+      );
+      svg.appendChild(
+        createSvgNode("path", {
+          d: exposurePath,
+          class: "tradeoff-chart__line tradeoff-chart__line--exposure",
+        })
+      );
+
+      const activeIndex = detail.tradeoffModel.findIndex((item) => item.key === activeScenario.key);
+      if (activeIndex >= 0) {
+        svg.appendChild(
+          createSvgNode("line", {
+            x1: xFor(activeIndex),
+            y1: padding.top,
+            x2: xFor(activeIndex),
+            y2: padding.top + plotHeight,
+            class: "tradeoff-chart__guide-line",
+          })
+        );
+      }
+
+      detail.tradeoffModel.forEach((item, index) => {
+        const x = xFor(index);
+        const isCurrent = item.key === currentKey;
+        const isRecommended = item.key === recommendedKey;
+        const pointTooltip = buildScenarioTooltip(item);
+
+        if (isRecommended) {
+          svg.appendChild(
+            createSvgNode("circle", {
+              cx: x,
+              cy: yForCost(item.cost),
+              r: 12,
+              class: "tradeoff-chart__halo",
+            })
+          );
+          svg.appendChild(
+            createSvgNode("circle", {
+              cx: x,
+              cy: yForExposure(item.exposure),
+              r: 12,
+              class: "tradeoff-chart__halo",
+            })
+          );
+        }
+
+        const costDot = createSvgNode("circle", {
           cx: x,
           cy: yForCost(item.cost),
-          r: 12,
-          class: "tradeoff-chart__halo",
+          r: isRecommended ? 8 : isCurrent ? 6 : 4,
+          class: [
+            "tradeoff-chart__dot",
+            "tradeoff-chart__dot--cost",
+            isCurrent ? "is-current" : "",
+            isRecommended ? "is-recommended" : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
         });
-        const exposureHalo = createSvgNode("circle", {
+        const exposureDot = createSvgNode("circle", {
           cx: x,
           cy: yForExposure(item.exposure),
-          r: 12,
-          class: "tradeoff-chart__halo",
+          r: isRecommended ? 8 : isCurrent ? 6 : 4,
+          class: [
+            "tradeoff-chart__dot",
+            "tradeoff-chart__dot--exposure",
+            isCurrent ? "is-current" : "",
+            isRecommended ? "is-recommended" : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
         });
-        svg.appendChild(costHalo);
-        svg.appendChild(exposureHalo);
-      }
 
-      const costDot = createSvgNode("circle", {
-        cx: x,
-        cy: yForCost(item.cost),
-        r: isRecommended ? 8 : isCurrent ? 6 : 4,
-        class: [
-          "tradeoff-chart__dot",
-          "tradeoff-chart__dot--cost",
-          isCurrent ? "is-current" : "",
-          isRecommended ? "is-recommended" : "",
-        ]
-          .filter(Boolean)
-          .join(" "),
-      });
-      const exposureDot = createSvgNode("circle", {
-        cx: x,
-        cy: yForExposure(item.exposure),
-        r: isRecommended ? 8 : isCurrent ? 6 : 4,
-        class: [
-          "tradeoff-chart__dot",
-          "tradeoff-chart__dot--exposure",
-          isCurrent ? "is-current" : "",
-          isRecommended ? "is-recommended" : "",
-        ]
-          .filter(Boolean)
-          .join(" "),
-      });
-
-      [costDot, exposureDot].forEach((node) => {
-        attachTooltip(node, pointTooltip);
-        node.addEventListener("click", () => {
-          detailState.selectedScenarioKey = item.key;
-          renderTradeoffChart();
+        [costDot, exposureDot].forEach((node) => {
+          attachTooltip(node, pointTooltip);
+          node.addEventListener("click", () => {
+            detailState.selectedScenarioKey = item.key;
+            renderTradeoffChart();
+          });
         });
-      });
 
-      svg.appendChild(costDot);
-      svg.appendChild(exposureDot);
+        svg.appendChild(costDot);
+        svg.appendChild(exposureDot);
 
-      if (isCurrent || isRecommended) {
-        const markerLabel = createSvgNode("text", {
+        if (isCurrent || isRecommended) {
+          const markerLabel = createSvgNode("text", {
+            x,
+            y:
+              Math.min(yForCost(item.cost), yForExposure(item.exposure)) - (isRecommended ? 30 : 20),
+            dy: isRecommended ? 0 : -2,
+            "text-anchor": "middle",
+            class: "tradeoff-chart__point-label",
+          });
+          markerLabel.textContent = isCurrent ? "Current" : "Recommended";
+          svg.appendChild(markerLabel);
+        }
+
+        const label = createSvgNode("text", {
           x,
-          y:
-            Math.min(yForCost(item.cost), yForExposure(item.exposure)) - (isRecommended ? 30 : 20),
-          dy: isRecommended ? 0 : -2,
+          y: height - 16,
           "text-anchor": "middle",
-          class: "tradeoff-chart__point-label",
+          class: `tradeoff-chart__x-label ${item.key === activeScenario.key ? "is-active" : ""}`,
         });
-        markerLabel.textContent = isCurrent ? "Current" : "Recommended";
-        svg.appendChild(markerLabel);
-      }
-
-      const label = createSvgNode("text", {
-        x,
-        y: height - 16,
-        "text-anchor": "middle",
-        class: `tradeoff-chart__x-label ${item.key === activeScenario.key ? "is-active" : ""}`,
+        label.textContent = item.label;
+        svg.appendChild(label);
       });
-      label.textContent = item.label;
-      svg.appendChild(label);
+
+      const overlay = createSvgNode("rect", {
+        x: padding.left - xStep * 0.5,
+        y: padding.top,
+        width: plotWidth + xStep,
+        height: plotHeight,
+        class: "tradeoff-chart__overlay",
+      });
+
+      bindOverlayEvents(svg, overlay);
+      svg.appendChild(overlay);
     });
-
-    const overlay = createSvgNode("rect", {
-      x: padding.left - xStep * 0.5,
-      y: padding.top,
-      width: plotWidth + xStep,
-      height: plotHeight,
-      class: "tradeoff-chart__overlay",
-    });
-
-    overlay.addEventListener("mousemove", (event) => {
-      const rect = svg.getBoundingClientRect();
-      const relativeX = ((event.clientX - rect.left) / rect.width) * width;
-      const nearestScenario =
-        detail.tradeoffModel.reduce((closest, item, index) => {
-          const distance = Math.abs(relativeX - xFor(index));
-          if (!closest || distance < closest.distance) {
-            return { item, distance };
-          }
-          return closest;
-        }, null)?.item ?? detail.tradeoffModel[0];
-
-      if (detailState.hoveredScenarioKey !== nearestScenario.key) {
-        detailState.hoveredScenarioKey = nearestScenario.key;
-        renderTradeoffChart();
-      }
-
-      showTooltip(buildScenarioTooltip(nearestScenario), event);
-    });
-
-    overlay.addEventListener("mouseleave", () => {
-      detailState.hoveredScenarioKey = null;
-      hideTooltip();
-      renderTradeoffChart();
-    });
-
-    overlay.addEventListener("click", () => {
-      const activeKey = detailState.hoveredScenarioKey ?? selectedScenario.key;
-      detailState.selectedScenarioKey = activeKey;
-      renderTradeoffChart();
-    });
-
-    svg.appendChild(overlay);
 
     updateDecisionSnapshot(selectedScenario);
   };
@@ -1502,6 +1705,9 @@ const renderEconomicOpportunityDetail = () => {
           detail.tradeoffModel[0]
       )
     );
+
+    renderSharedHeader(getSelectedScenario());
+    renderExecutiveSummary(getSelectedScenario());
   };
 
   const renderStrategyBasisTable = () => {
@@ -1673,11 +1879,25 @@ const renderEconomicOpportunityDetail = () => {
     renderStrategyBasisTable();
   });
 
+  document.querySelectorAll("[data-view-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      applyViewMode(button.getAttribute("data-view-mode"));
+    });
+  });
+
+  ["executiveReviewEngineering", "executiveReviewEngineeringSecondary", "executivePrimaryAction", "executiveDecisionPrimary"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("click", () => {
+      applyViewMode("engineering");
+    });
+  });
+
+  document.getElementById("executiveRunSimulation")?.addEventListener("click", () => {
+    applyViewMode("engineering");
+  });
+
   setText("detailAssetGroup", detail.assetGroup);
-  setText("detailInsightTitle", detail.title);
   setText("detailConfidence", `${detail.confidence} confidence`);
   setText("detailConfidenceSide", `${detail.confidence} confidence`);
-  setText("detailSummary", detail.summary);
   setText("detailCurrentFrequency", detail.currentFrequency);
   setText("detailRecommendedFrequency", detail.recommendedFrequency);
   setText("detailAnnualSavingKpi", formatCurrency(detail.potentialSaving));
@@ -1708,7 +1928,6 @@ const renderEconomicOpportunityDetail = () => {
   setText("detailShutdownDependency", detail.shutdownDependency);
   setText("detailDataReviewed", detail.dataReviewed);
   setList("detailObservedEvidence", detail.observedEvidence);
-  setList("detailAssumptions", detail.assumptions);
   setList("detailOperationalChallenge", detail.operationalChallenge);
   setText("detailRecommendedAction", detail.recommendedAction);
   renderTradeoffChart();
@@ -1717,6 +1936,7 @@ const renderEconomicOpportunityDetail = () => {
   renderDelayHistoryChart();
   renderConfidenceModel();
   renderStrategyBasisTable();
+  applyViewMode(detailState.viewMode);
 };
 
 themeToggle?.addEventListener("click", () => {
