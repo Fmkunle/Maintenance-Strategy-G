@@ -2570,14 +2570,28 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .fiori-accordion__icon {
+  display: inline-flex;
   width: 0.55rem;
   height: 0.55rem;
   border-right: 2px solid var(--fiori-text-muted);
   border-bottom: 2px solid var(--fiori-text-muted);
-  transform: rotate(-45deg);
+  transform: rotate(45deg);
   transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.fiori-accordion__trigger {
+  width: 1.625rem;
+  height: 1.625rem;
+  border: 1px solid var(--fiori-button-border);
+  border-radius: 0.3rem;
+  background: var(--fiori-button-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
   margin-left: 0.75rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .fiori-accordion summary:hover,
@@ -2586,12 +2600,23 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   outline: none;
 }
 
+.fiori-accordion summary:hover .fiori-accordion__trigger,
+.fiori-accordion summary:focus-visible .fiori-accordion__trigger {
+  border-color: color-mix(in srgb, var(--fiori-link) 56%, var(--fiori-button-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fiori-link) 12%, transparent);
+}
+
 .fiori-accordion[open] summary {
   border-bottom: 1px solid var(--fiori-row-border);
 }
 
+.fiori-accordion[open] .fiori-accordion__trigger {
+  border-color: color-mix(in srgb, var(--fiori-link) 60%, var(--fiori-button-border));
+  background: color-mix(in srgb, var(--fiori-link) 8%, var(--fiori-button-bg));
+}
+
 .fiori-accordion[open] .fiori-accordion__icon {
-  transform: rotate(45deg);
+  transform: rotate(-135deg);
   border-color: var(--fiori-link);
 }
 
