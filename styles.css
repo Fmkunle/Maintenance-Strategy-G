@@ -3830,8 +3830,15 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .economic-header-card__actions--executive {
-  flex-direction: column;
-  align-items: flex-end;
+  display: grid;
+  grid-auto-flow: row;
+  justify-items: end;
+  align-content: start;
+  width: max-content;
+}
+
+.economic-header-card__actions--executive .fiori-button {
+  width: 100%;
 }
 
 .engineering-action-bar {
