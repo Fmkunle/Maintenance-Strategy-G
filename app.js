@@ -688,6 +688,9 @@ const renderEconomicOpportunityDetail = () => {
         ...item,
         reviewedScore: item.systemScore,
         reviewStatus: "Accepted",
+        engineerNote: "",
+        isExpanded: false,
+        excludeDirtyData: false,
       })) ?? [],
     showComparison: false,
     simulatedConfidenceScore: null,
@@ -772,7 +775,7 @@ const renderEconomicOpportunityDetail = () => {
   };
 
   const getConfidenceLevel = (score) => {
-    if (score >= 75) {
+    if (score >= 80) {
       return "High confidence";
     }
     if (score >= 55) {
@@ -796,11 +799,9 @@ const renderEconomicOpportunityDetail = () => {
   };
 
   const getStrategyBasisModel = (basisRows) => {
-    const effectiveScores = basisRows.map((item) =>
-      clampScore(item.reviewedScore) - (item.reviewStatus === "Uncertain" ? 8 : 0)
-    );
     const score = Math.round(
-      effectiveScores.reduce((sum, value) => sum + value, 0) / (effectiveScores.length || 1)
+      basisRows.reduce((sum, item) => sum + clampScore(item.reviewedScore), 0) /
+        (basisRows.length || 1)
     );
     const sortedRows = [...basisRows].sort(
       (left, right) => clampScore(right.reviewedScore) - clampScore(left.reviewedScore)
@@ -832,6 +833,201 @@ const renderEconomicOpportunityDetail = () => {
     };
 
     return notes[factor.key] ?? factor.label;
+  };
+
+  const escapeHtml = (value) =>
+    String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+
+  const reviewStatusOptions = [
+    "Accepted",
+    "Adjusted",
+    "Incorrect mapping",
+    "Insufficient evidence",
+    "Dirty data",
+  ];
+
+  const getEvidenceQualityClass = (quality) => {
+    const normalized = (quality || "").toLowerCase();
+    if (normalized.includes("strong")) {
+      return "strong";
+    }
+    if (normalized.includes("moderate")) {
+      return "moderate";
+    }
+    if (normalized.includes("partial")) {
+      return "partial";
+    }
+    if (normalized.includes("dirty")) {
+      return "dirty";
+    }
+    return "weak";
+  };
+
+  const getStrategyBasisReviewContent = (factor) => {
+    const shared = {
+      "failure-mode-understanding": {
+        basisSummary:
+          "System mapped PM02 to gearbox degradation detection for bearing / lubrication-related failure modes.",
+        evidenceQuality: "Strong",
+        interpretation: [
+          "Failure mode identified: gearbox bearing degradation / lubrication-related deterioration",
+          "PM mapped: PM02 monthly inspection",
+          "Interpreted PM purpose: detect progressive degradation before loss of function",
+          "Mapping judgment: mostly aligned",
+        ],
+        dataReviewed: [
+          "FMEA text",
+          "PM task description",
+          "CMMS work order history",
+          "failure codes",
+          "corrective follow-up",
+          "delay history",
+        ],
+        qualityNote:
+          "Failure mode mapping is supported by strategy text and work history, but task-to-mode alignment is not perfectly explicit in all records.",
+        reviewPrompt:
+          "Does the system correctly understand the failure mode and the PM it is intended to mitigate?",
+      },
+      "mitigation-strategy-understanding": {
+        basisSummary:
+          "System interprets PM02 as a routine degradation-detection task rather than a compliance-only inspection.",
+        evidenceQuality: "Moderate",
+        interpretation: [
+          "PM02 interpreted as a degradation-detection task",
+          "Current monthly interval interpreted as conservative surveillance",
+          "Strategy intent is partly explicit in PM task and planning structure",
+        ],
+        dataReviewed: [
+          "PM task text",
+          "job plans",
+          "inspection route design",
+          "planner notes",
+          "work order outcomes",
+        ],
+        qualityNote:
+          "The task purpose is mostly visible, but interval justification is not strongly evidenced in current records.",
+        reviewPrompt:
+          "Does the system correctly understand what the PM is intended to detect, prevent, or control?",
+      },
+      "detection-evidence": {
+        basisSummary:
+          "System found low actionable defect yield from PM02 inspections relative to inspection volume.",
+        evidenceQuality: "Weak",
+        interpretation: [
+          "120 inspections completed",
+          "14 inspections with findings",
+          "3 actionable findings",
+          "3 corrective conversions",
+          "low evidence that monthly frequency materially improves control",
+        ],
+        dataReviewed: [
+          "PM completion history",
+          "PM findings",
+          "corrective follow-up",
+          "repeat defect history",
+        ],
+        qualityNote:
+          "Detection evidence is weak because meaningful findings are rare relative to inspection effort.",
+        reviewPrompt:
+          "Does the observed inspection yield provide enough evidence that the current frequency is effective?",
+      },
+      "cmms-history-coverage": {
+        basisSummary:
+          "System found enough post-installation work order history to assess findings and follow-up patterns.",
+        evidenceQuality: "Strong",
+        interpretation: [
+          "post-installation history is sufficient for trend review",
+          "enough inspections and follow-up records exist to support comparison",
+        ],
+        dataReviewed: [
+          "asset history",
+          "PM work orders",
+          "corrective work orders",
+          "installation timeline",
+          "equipment master records",
+        ],
+        qualityNote: "Record volume is sufficient for review and trend interpretation.",
+        reviewPrompt:
+          "Is the available CMMS history broad and complete enough for this recommendation?",
+      },
+      "data-quality-traceability": {
+        basisSummary:
+          "System found usable but incomplete linkage between PM findings, corrective work, and avoided failure outcomes.",
+        evidenceQuality: "Moderate",
+        interpretation: [
+          "source data is usable",
+          "PM findings are not always cleanly linked to avoided failure outcomes",
+          "some coding inconsistency exists",
+        ],
+        dataReviewed: [
+          "failure codes",
+          "PM finding text",
+          "corrective close-out",
+          "equipment references",
+          "planner records",
+        ],
+        qualityNote:
+          "Data is usable but not fully structured for clean traceability from PM activity to prevented consequence.",
+        reviewPrompt:
+          "Is the source data reliable enough, or is poor data quality limiting the system score?",
+      },
+      "delay-consequence-history": {
+        basisSummary:
+          "System found low realized consequence history with enough delay data to assess recent production impact.",
+        evidenceQuality: "Moderate",
+        interpretation: [
+          "low recent production consequence",
+          "0 major delay events",
+          "2 minor delay events",
+          "3.5 total hours lost",
+        ],
+        dataReviewed: [
+          "delay log",
+          "downtime records",
+          "event classification",
+          "production impact notes",
+        ],
+        qualityNote:
+          "Consequence history is available and useful, but low event frequency limits statistical strength.",
+        reviewPrompt:
+          "Does the delay history accurately reflect the real consequence of this failure mode?",
+      },
+      "operating-context-stability": {
+        basisSummary:
+          "System found no major evidence of duty or service-context shift that would invalidate recent history.",
+        evidenceQuality: "Strong",
+        interpretation: [
+          "recent service context appears stable",
+          "no major duty shift detected",
+          "historical evidence remains relevant for interval review",
+        ],
+        dataReviewed: [
+          "service context",
+          "asset group operating pattern",
+          "planner notes",
+          "duty / load context",
+          "operational history",
+        ],
+        qualityNote:
+          "The system found no major change in operating context that would invalidate the recent evidence set.",
+        reviewPrompt:
+          "Is recent operating context stable enough that historical PM and delay evidence is still relevant?",
+      },
+    };
+
+    return shared[factor.key] ?? {
+      basisSummary: factor.rationale,
+      interpretation: [factor.rationale],
+      dataReviewed: ["Maintenance strategy text", "CMMS work order history", "PM findings"],
+      evidenceQuality: getEvidenceStatus(factor.systemScore),
+      qualityNote: factor.rationale,
+      reviewPrompt: "Review the system interpretation and confirm whether the current score is justified.",
+    };
   };
 
   const getSelectedScenario = () =>
@@ -945,7 +1141,7 @@ const renderEconomicOpportunityDetail = () => {
     if (confidenceBadge) {
       confidenceBadge.classList.remove("is-high", "is-medium", "is-low");
       confidenceBadge.classList.add(
-        confidenceScore >= 75 ? "is-high" : confidenceScore >= 55 ? "is-medium" : "is-low"
+        confidenceScore >= 80 ? "is-high" : confidenceScore >= 55 ? "is-medium" : "is-low"
       );
     }
 
@@ -1716,6 +1912,7 @@ const renderEconomicOpportunityDetail = () => {
   const renderStrategyBasisTable = () => {
     const tableBody = document.getElementById("strategyBasisRows");
     const comparePanel = document.getElementById("strategyComparePanel");
+    const compareChangedFactors = document.getElementById("compareChangedFactors");
 
     if (!tableBody || !detailState.reviewedStrategyBasis.length) {
       return;
@@ -1725,13 +1922,16 @@ const renderEconomicOpportunityDetail = () => {
       .map(
         (item) => {
           const reviewedScore = clampScore(item.reviewedScore);
-          const evidenceStatus = getEvidenceStatus(reviewedScore);
+          const reviewContent = getStrategyBasisReviewContent(item);
+          const evidenceQualityClass = getEvidenceQualityClass(reviewContent.evidenceQuality);
+          const reviewedEvidenceStatus = getEvidenceStatus(reviewedScore).toLowerCase();
           return `
-          <tr data-factor-key="${item.key}">
+          <tr class="economic-review-row" data-factor-key="${item.key}">
             <td>
-              <div class="economic-review-factor">
+              <span class="economic-review-factor">
                 <strong>${item.label}</strong>
-              </div>
+                <span class="economic-review-factor__subline">Review interpretation, source mapping, and evidence quality</span>
+              </span>
             </td>
             <td>
               <div class="economic-score-cell">
@@ -1742,28 +1942,101 @@ const renderEconomicOpportunityDetail = () => {
               </div>
             </td>
             <td>
-              <div class="economic-score-input">
-                <input type="number" min="0" max="100" value="${reviewedScore}" data-review-score="${item.key}" aria-label="Reviewed score for ${item.label}">
+              <span class="economic-review-note">${escapeHtml(reviewContent.basisSummary)}</span>
+            </td>
+            <td>
+              <span class="economic-evidence-pill economic-evidence-pill--${evidenceQualityClass}">${reviewContent.evidenceQuality}</span>
+            </td>
+            <td>
+              <span class="economic-review-status economic-review-status--${item.reviewStatus.toLowerCase().replace(/[^a-z]+/g, "-")}">${item.reviewStatus}</span>
+            </td>
+            <td>
+              <div class="economic-score-cell economic-score-cell--compact">
+                <strong>${reviewedScore}</strong>
                 <div class="economic-score-bar economic-score-bar--reviewed">
-                  <span class="is-${evidenceStatus.toLowerCase()}" style="width: ${reviewedScore}%;"></span>
+                  <span class="is-${reviewedEvidenceStatus}" style="width: ${reviewedScore}%;"></span>
                 </div>
+                <span class="economic-review-summary-hint">Edit in expanded review</span>
               </div>
             </td>
             <td>
-              <span class="economic-evidence-pill economic-evidence-pill--${evidenceStatus.toLowerCase()}">${evidenceStatus}</span>
+              <span class="economic-review-note">${escapeHtml(item.rationale)}</span>
             </td>
-            <td>
-              <select data-review-status="${item.key}" aria-label="Review status for ${item.label}">
-                ${["Accepted", "Adjusted", "Uncertain"]
-                  .map(
-                    (status) =>
-                      `<option value="${status}" ${item.reviewStatus === status ? "selected" : ""}>${status}</option>`
-                  )
-                  .join("")}
-              </select>
+            <td class="economic-review-expand-cell">
+              <button type="button" class="economic-review-expand ${item.isExpanded ? "is-expanded" : ""}" data-review-expand="${item.key}" aria-expanded="${item.isExpanded ? "true" : "false"}" aria-label="${item.isExpanded ? "Collapse" : "Expand"} ${item.label}">
+                <span class="economic-review-expand__chevron" aria-hidden="true">&#9662;</span>
+              </button>
             </td>
-            <td>
-              <span class="economic-review-note">${item.rationale}</span>
+          </tr>
+          <tr class="economic-review-detail-row ${item.isExpanded ? "is-expanded" : ""}" ${item.isExpanded ? "" : "hidden"}>
+            <td colspan="8">
+              <div class="economic-review-detail-card">
+                <div class="economic-review-prompt">
+                  <span class="economic-review-detail-section__label">Engineer review prompt</span>
+                  <p>${escapeHtml(reviewContent.reviewPrompt)}</p>
+                </div>
+                <div class="economic-review-detail-grid">
+                  <section class="economic-review-detail-section">
+                    <span class="economic-review-detail-section__label">System interpretation</span>
+                    <ul class="economic-review-interpretation-list">
+                      ${reviewContent.interpretation
+                        .map(
+                          (value) => `
+                            <li>${escapeHtml(value)}</li>
+                          `
+                        )
+                        .join("")}
+                    </ul>
+                  </section>
+                  <section class="economic-review-detail-section">
+                    <span class="economic-review-detail-section__label">Data reviewed</span>
+                    <div class="economic-review-chip-list">
+                      ${reviewContent.dataReviewed
+                        .map((source) => `<span class="economic-review-chip">${escapeHtml(source)}</span>`)
+                        .join("")}
+                    </div>
+                  </section>
+                  <section class="economic-review-detail-section">
+                    <span class="economic-review-detail-section__label">Evidence quality explanation</span>
+                    <div class="economic-review-quality">
+                      <span class="economic-evidence-pill economic-evidence-pill--${evidenceQualityClass}">${reviewContent.evidenceQuality}</span>
+                      <p>${escapeHtml(reviewContent.qualityNote)}</p>
+                    </div>
+                  </section>
+                </div>
+                <div class="economic-review-controls">
+                  <div class="economic-review-control">
+                    <label for="review-status-${item.key}">Review outcome</label>
+                    <select id="review-status-${item.key}" data-panel-review-status="${item.key}" aria-label="Engineer review action for ${item.label}">
+                      ${reviewStatusOptions
+                        .map(
+                          (status) =>
+                            `<option value="${status}" ${item.reviewStatus === status ? "selected" : ""}>${status}</option>`
+                        )
+                        .join("")}
+                    </select>
+                  </div>
+                  <div class="economic-review-control">
+                    <label for="review-score-${item.key}">Reviewed score</label>
+                    <div class="economic-score-input">
+                      <input id="review-score-${item.key}" type="number" min="0" max="100" value="${reviewedScore}" data-panel-review-score="${item.key}" aria-label="Reviewed score for ${item.label}">
+                      <div class="economic-score-bar economic-score-bar--reviewed">
+                        <span class="is-${reviewedEvidenceStatus}" style="width: ${reviewedScore}%;"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="economic-review-control economic-review-control--checkbox">
+                    <label class="economic-review-checkbox">
+                      <input type="checkbox" data-panel-review-dirty="${item.key}" ${item.excludeDirtyData ? "checked" : ""}>
+                      <span>Exclude dirty data from this factor where possible</span>
+                    </label>
+                  </div>
+                  <div class="economic-review-control economic-review-control--note">
+                    <label for="review-note-${item.key}">Engineer note</label>
+                    <textarea id="review-note-${item.key}" rows="3" data-panel-review-note="${item.key}" placeholder="Explain whether the mapping, evidence, or score needs adjustment.">${escapeHtml(item.engineerNote || "")}</textarea>
+                  </div>
+                </div>
+              </div>
             </td>
           </tr>
         `
@@ -1771,29 +2044,47 @@ const renderEconomicOpportunityDetail = () => {
       )
       .join("");
 
-    tableBody.querySelectorAll("[data-review-score]").forEach((input) => {
+    tableBody.querySelectorAll("[data-review-expand]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const factor = detailState.reviewedStrategyBasis.find(
+          (entry) => entry.key === button.dataset.reviewExpand
+        );
+        if (!factor) {
+          return;
+        }
+
+        factor.isExpanded = !factor.isExpanded;
+        renderStrategyBasisTable();
+      });
+    });
+
+    tableBody.querySelectorAll("[data-panel-review-score]").forEach((input) => {
       input.addEventListener("input", () => {
         const factor = detailState.reviewedStrategyBasis.find(
-          (item) => item.key === input.dataset.reviewScore
+          (item) => item.key === input.dataset.panelReviewScore
         );
         if (!factor) {
           return;
         }
 
         factor.reviewedScore = clampScore(input.value);
-        if (factor.reviewStatus !== "Uncertain") {
-          factor.reviewStatus =
-            factor.reviewedScore === factor.systemScore ? "Accepted" : "Adjusted";
+        if (factor.reviewStatus === "Accepted" && factor.reviewedScore !== factor.systemScore) {
+          factor.reviewStatus = "Adjusted";
+        } else if (
+          factor.reviewStatus === "Adjusted" &&
+          factor.reviewedScore === factor.systemScore
+        ) {
+          factor.reviewStatus = "Accepted";
         }
         renderStrategyBasisTable();
         renderConfidenceModel();
       });
     });
 
-    tableBody.querySelectorAll("[data-review-status]").forEach((select) => {
+    tableBody.querySelectorAll("[data-panel-review-status]").forEach((select) => {
       select.addEventListener("change", () => {
         const factor = detailState.reviewedStrategyBasis.find(
-          (item) => item.key === select.dataset.reviewStatus
+          (item) => item.key === select.dataset.panelReviewStatus
         );
         if (!factor) {
           return;
@@ -1805,6 +2096,40 @@ const renderEconomicOpportunityDetail = () => {
       });
     });
 
+    tableBody.querySelectorAll("[data-panel-review-dirty]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const factor = detailState.reviewedStrategyBasis.find(
+          (item) => item.key === input.dataset.panelReviewDirty
+        );
+        if (!factor) {
+          return;
+        }
+
+        factor.excludeDirtyData = input.checked;
+        if (input.checked && factor.reviewStatus === "Accepted") {
+          factor.reviewStatus = "Dirty data";
+        } else if (!input.checked && factor.reviewStatus === "Dirty data") {
+          factor.reviewStatus =
+            clampScore(factor.reviewedScore) === factor.systemScore ? "Accepted" : "Adjusted";
+        }
+        renderStrategyBasisTable();
+        renderConfidenceModel();
+      });
+    });
+
+    tableBody.querySelectorAll("[data-panel-review-note]").forEach((textarea) => {
+      textarea.addEventListener("input", () => {
+        const factor = detailState.reviewedStrategyBasis.find(
+          (item) => item.key === textarea.dataset.panelReviewNote
+        );
+        if (!factor) {
+          return;
+        }
+
+        factor.engineerNote = textarea.value;
+      });
+    });
+
     tableBody.querySelectorAll("tr[data-factor-key]").forEach((row) => {
       const factor = detailState.reviewedStrategyBasis.find(
         (item) => item.key === row.dataset.factorKey
@@ -1813,9 +2138,10 @@ const renderEconomicOpportunityDetail = () => {
         return;
       }
 
+      const reviewContent = getStrategyBasisReviewContent(factor);
       attachTooltip(
         row,
-        `<strong>${factor.label}</strong><span>System score: ${factor.systemScore}</span><span>${factor.rationale}</span>`
+        `<strong>${factor.label}</strong><span>System score: ${factor.systemScore}</span><span>${reviewContent.evidenceQuality} evidence quality</span><span>${reviewContent.basisSummary}</span>`
       );
     });
 
@@ -1845,6 +2171,19 @@ const renderEconomicOpportunityDetail = () => {
           ? "Reviewed strategy basis increases confidence in the recommendation"
           : "Reviewed strategy basis reduces confidence in the recommendation"
     );
+    if (compareChangedFactors) {
+      const changedFactors = detailState.reviewedStrategyBasis.filter(
+        (item) => clampScore(item.reviewedScore) !== item.systemScore
+      );
+      compareChangedFactors.innerHTML = changedFactors.length
+        ? changedFactors
+            .map(
+              (item) =>
+                `<li>${escapeHtml(item.label)}: ${item.systemScore} to ${clampScore(item.reviewedScore)}</li>`
+            )
+            .join("")
+        : "<li>No reviewed score changes yet.</li>";
+    }
   };
 
   const rerenderRecommendationModel = () => {
@@ -1872,6 +2211,9 @@ const renderEconomicOpportunityDetail = () => {
       ...item,
       reviewedScore: item.systemScore,
       reviewStatus: "Accepted",
+      engineerNote: "",
+      isExpanded: false,
+      excludeDirtyData: false,
     }));
     detailState.simulatedConfidenceScore = systemConfidenceModel.score;
     rerenderRecommendationModel();
