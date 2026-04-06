@@ -243,27 +243,6 @@
 
       <section id="engineeringView" class="decision-mode decision-mode--engineering" aria-label="Engineering view" role="tabpanel" hidden>
       <section class="economic-detail-layout economic-detail-layout--engineering">
-        <article class="economic-card economic-card--snapshot economic-card--snapshot-current economic-span-3">
-          <span class="economic-card__label">Current frequency</span>
-          <strong id="detailCurrentFrequency">1 month</strong>
-          <span id="detailCurrentFrequencyHint" class="economic-card__helper">Current PM02 interval</span>
-        </article>
-        <article class="economic-card economic-card--snapshot economic-card--snapshot-recommended economic-span-3">
-          <span class="economic-card__label">Recommended frequency</span>
-          <strong id="detailRecommendedFrequency">2 months</strong>
-          <span id="detailRecommendedFrequencyHint" class="economic-card__helper">Selected interval under review</span>
-        </article>
-        <article class="economic-card economic-card--snapshot economic-card--snapshot-savings economic-span-3">
-          <span class="economic-card__label">Estimated annual saving</span>
-          <strong id="detailAnnualSavingKpi">$48,000</strong>
-          <span id="detailAnnualSavingHint" class="economic-card__helper">Relative to current annual cost</span>
-        </article>
-        <article class="economic-card economic-card--snapshot economic-card--snapshot-risk economic-span-3">
-          <span class="economic-card__label">Expected risk change</span>
-          <strong id="detailRiskChangeKpi">Low</strong>
-          <span id="detailRiskChangeHint" class="economic-card__helper">Exposure increase remains limited</span>
-        </article>
-
         <article class="economic-card economic-card--hero economic-span-8">
           <div class="economic-card__header economic-card__header--stacked">
             <div>
@@ -377,7 +356,7 @@
           <div class="economic-card__header economic-card__header--stacked">
             <div>
               <h2>Production impact history</h2>
-              <p>Recent production effect profile</p>
+              <p>Recent production consequence profile</p>
             </div>
           </div>
           <div class="economic-summary-strip">
@@ -489,7 +468,7 @@
           </dl>
         </article>
 
-        <article class="economic-card economic-span-8 economic-review-model">
+        <article class="economic-card economic-span-12 economic-review-model">
           <div class="economic-card__header economic-card__header--stacked economic-review-model__header">
             <div>
               <h2>Strategy basis review</h2>
@@ -544,48 +523,81 @@
         </article>
 
         <section class="economic-accordion-stack economic-span-12" aria-label="Supporting detail">
-          <details class="economic-accordion" open>
+          <details class="economic-accordion">
             <summary>
               <span class="economic-accordion__content">
-                <span class="economic-accordion__label">Inputs reviewed</span>
+                <span class="economic-accordion__label">Evidence inputs</span>
+                <span class="economic-accordion__subtitle">Data sources used for this recommendation</span>
                 <span class="economic-accordion__preview">PM02 work orders, findings, delay log, labour hours, service context</span>
               </span>
               <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
             </summary>
-            <p id="detailDataReviewed"></p>
+            <div class="economic-supporting-section">
+              <p class="economic-supporting-section__intro">Data sources used for this recommendation</p>
+              <div id="detailEvidenceInputs" class="economic-chip-list" aria-label="Evidence input sources"></div>
+            </div>
           </details>
 
-          <details class="economic-accordion" open>
+          <details class="economic-accordion">
             <summary>
               <span class="economic-accordion__content">
-                <span class="economic-accordion__label">Full observed evidence</span>
+                <span class="economic-accordion__label">Observed signals</span>
+                <span class="economic-accordion__subtitle">Key patterns identified from reviewed evidence</span>
                 <span class="economic-accordion__preview">120 inspections, 3 actionable defects, 0 major delay events</span>
               </span>
               <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
             </summary>
-            <ul id="detailObservedEvidence" class="fiori-list"></ul>
+            <div class="economic-supporting-section">
+              <p class="economic-supporting-section__intro">Key patterns identified from reviewed evidence</p>
+              <ul id="detailObservedEvidence" class="fiori-list"></ul>
+            </div>
           </details>
 
-          <details class="economic-accordion" open>
+          <details class="economic-accordion">
             <summary>
               <span class="economic-accordion__content">
                 <span class="economic-accordion__label">Implementation constraints</span>
+                <span class="economic-accordion__subtitle">Factors that may limit or delay change</span>
                 <span class="economic-accordion__preview">route redesign, 10 PM updates, engineering review, no shutdown</span>
               </span>
               <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
             </summary>
-            <ul id="detailOperationalChallenge" class="fiori-list"></ul>
+            <div class="economic-supporting-section">
+              <p class="economic-supporting-section__intro">Factors that may limit or delay change</p>
+              <ul id="detailOperationalChallenge" class="fiori-list"></ul>
+            </div>
           </details>
 
-          <details class="economic-accordion economic-accordion--ai" open>
+          <details class="economic-accordion economic-accordion--ai">
             <summary>
               <span class="economic-accordion__content">
-                <span class="economic-accordion__label">Recommendation detail</span>
+                <span class="economic-accordion__label">Recommended action</span>
+                <span class="economic-accordion__subtitle">Proposed strategy change and follow-up monitoring</span>
                 <span class="economic-accordion__preview">move from 1 month to 2 months and review after 6 months</span>
               </span>
               <span class="economic-accordion__trigger" aria-hidden="true">&#9662;</span>
             </summary>
-            <p id="detailRecommendedAction"></p>
+            <div class="economic-supporting-section economic-supporting-section--ai">
+              <p class="economic-supporting-section__intro">Proposed strategy change and follow-up monitoring</p>
+              <div class="economic-action-structure">
+                <section>
+                  <span class="economic-action-structure__label">Action</span>
+                  <p id="detailRecommendedActionStep">Change PM02 inspection interval from 1 month to 2 months</p>
+                </section>
+                <section>
+                  <span class="economic-action-structure__label">Review period</span>
+                  <p id="detailRecommendedReviewPeriod">Review after 6 months</p>
+                </section>
+                <section>
+                  <span class="economic-action-structure__label">Monitor</span>
+                  <ul id="detailRecommendedMonitor" class="fiori-list"></ul>
+                </section>
+                <section>
+                  <span class="economic-action-structure__label">Summary</span>
+                  <p id="detailRecommendedAction"></p>
+                </section>
+              </div>
+            </div>
           </details>
         </section>
       </section>

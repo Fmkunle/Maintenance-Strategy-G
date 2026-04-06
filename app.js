@@ -1024,6 +1024,19 @@ const renderEconomicOpportunityDetail = () => {
   const selectedOpportunity =
     seededReliabilityOpportunities.find((item) => item.id === selectedId) || seededReliabilityOpportunities[0];
   const detail = getOpportunityDetail(selectedOpportunity);
+  const evidenceInputItems =
+    detail.evidenceInputs ??
+    String(detail.dataReviewed ?? "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  const recommendedActionStep =
+    detail.currentFrequency && detail.recommendedFrequency && detail.currentFrequency !== "Current interval"
+      ? `Change PM02 inspection interval from ${detail.currentFrequency} to ${detail.recommendedFrequency}`
+      : detail.recommendedChange || "Review recommended maintenance strategy change";
+  const recommendedReviewPeriod = detail.reviewPeriod || "Review after 6 months";
+  const recommendedMonitorItems =
+    detail.recommendedMonitor ?? ["findings rate", "corrective conversion", "delay events", "repeat defects"];
   const detailState = {
     viewMode: params.get("mode") === "engineering" ? "engineering" : "executive",
     selectedScenarioKey:
@@ -2629,9 +2642,17 @@ const renderEconomicOpportunityDetail = () => {
   setText("detailImplementationEffortScore", detail.implementationEffortScore);
   setText("detailOperationalPrimary", detail.implementationEffortScore);
   setText("detailShutdownDependency", detail.shutdownDependency);
-  setText("detailDataReviewed", detail.dataReviewed);
+  const evidenceInputsNode = document.getElementById("detailEvidenceInputs");
+  if (evidenceInputsNode) {
+    evidenceInputsNode.innerHTML = evidenceInputItems
+      .map((item) => `<span class="economic-review-chip">${escapeHtml(item)}</span>`)
+      .join("");
+  }
   setList("detailObservedEvidence", detail.observedEvidence);
   setList("detailOperationalChallenge", detail.operationalChallenge);
+  setText("detailRecommendedActionStep", recommendedActionStep);
+  setText("detailRecommendedReviewPeriod", recommendedReviewPeriod);
+  setList("detailRecommendedMonitor", recommendedMonitorItems);
   setText("detailRecommendedAction", detail.recommendedAction);
   renderTradeoffChart();
   renderInspectionYieldChart();
