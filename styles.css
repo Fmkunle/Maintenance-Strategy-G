@@ -3828,12 +3828,24 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   padding-bottom: 24px;
 }
 
+.economic-header-card__eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
 .economic-header-card__asset {
   display: inline-flex;
-  margin-bottom: 8px;
   color: var(--economic-text-muted);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 600;
+}
+
+.economic-header-card__eyebrow-sep {
+  color: #a4b1c2;
+  font-size: 0.86rem;
 }
 
 .economic-header-card h1 {
@@ -3850,18 +3862,23 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .economic-header-card__meta {
-  margin-bottom: 10px;
   color: var(--economic-text-secondary);
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.economic-header-card__type-inline {
+  color: var(--economic-ai-text);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .economic-header-card__subheadline {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   color: var(--economic-text-secondary);
-  font-size: 0.94rem;
-  line-height: 1.5;
-  max-width: 52rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  max-width: 44rem;
 }
 
 .economic-header-card__badges {
@@ -3869,7 +3886,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .economic-badge {
@@ -3901,11 +3918,6 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .economic-badge--ai {
   background: var(--economic-ai-soft);
   color: var(--economic-ai-text);
-}
-
-.economic-badge--type {
-  background: #eef9f3;
-  color: var(--economic-green);
 }
 
 .economic-badge--status {
