@@ -3974,25 +3974,6 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   width: 100%;
 }
 
-.engineering-action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.engineering-action-bar h2 {
-  margin: 0;
-  color: var(--economic-text);
-  font-size: 1rem;
-}
-
-.engineering-action-bar p {
-  margin: 6px 0 0;
-  color: var(--economic-text-secondary);
-  font-size: 0.82rem;
-}
-
 .economic-header-card__actions .fiori-button--ghost {
   background: #ffffff;
   border-color: var(--economic-border);
@@ -4901,6 +4882,22 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   display: none;
 }
 
+#engineeringView .economic-review-model {
+  order: -24;
+}
+
+#engineeringView .economic-card--confidence {
+  order: -29;
+}
+
+#engineeringView .economic-card--hero {
+  order: -30;
+}
+
+#engineeringView .economic-accordion-stack {
+  order: 20;
+}
+
 .economic-review-table-wrap {
   overflow-x: auto;
   margin-top: 12px;
@@ -5709,11 +5706,6 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   }
 
   .decision-action-bar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .engineering-action-bar {
     flex-direction: column;
     align-items: flex-start;
   }

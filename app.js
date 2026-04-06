@@ -1483,7 +1483,27 @@ const renderEconomicOpportunityDetail = () => {
     window.history.replaceState({}, "", nextUrl);
   };
 
-  const getSystemJudgment = (scenario, savings, exposureDelta) => {
+  const getEngineeringSystemJudgment = (scenario, savings, exposureDelta) => {
+    const riskChange = classifyRiskChange(exposureDelta).toLowerCase();
+    const confidenceScore =
+      detailState.simulatedConfidenceScore ?? systemConfidenceModel.score;
+    const recommendationStrength = getRecommendationStrength(confidenceScore, scenario);
+    if (scenario.label === detail.currentFrequency) {
+      return `The current monthly interval remains the baseline reference for cost and exposure comparison. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
+    }
+
+    if (savings >= 0) {
+      return `Moving to ${scenario.label} retains a ${riskChange} risk change while shifting ${formatCurrency(
+        savings
+      )} of annual inspection cost out of the current program. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
+    }
+
+    return `Moving to ${scenario.label} increases annual inspection cost by ${formatCurrency(
+      Math.abs(savings)
+    )} with a ${riskChange} risk change. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
+  };
+
+  const getExecutiveSystemJudgment = (scenario, savings) => {
     if (scenario.label === detail.currentFrequency) {
       return "Monthly inspections remain the current reference case while the system tests whether the interval is more conservative than the evidence supports.";
     }
@@ -1672,9 +1692,8 @@ const renderEconomicOpportunityDetail = () => {
           : "Exposure rises materially"
     );
     setText("recommendationStrength", getRecommendationStrength(confidenceScore, scenario));
-    ["detailSystemJudgment", "detailSystemJudgmentExecutive"].forEach((id) => {
-      setText(id, getSystemJudgment(scenario, savings, exposureDelta));
-    });
+    setText("detailSystemJudgment", getEngineeringSystemJudgment(scenario, savings, exposureDelta));
+    setText("detailSystemJudgmentExecutive", getExecutiveSystemJudgment(scenario, savings));
     setText("detailCurrentCost", formatCurrency(baseline.cost));
     setText("detailRecommendedCost", formatCurrency(scenario.cost));
     setText("detailEconomicPrimary", formatSignedCurrency(savings));
