@@ -1407,18 +1407,18 @@ const renderEconomicOpportunityDetail = () => {
     if (detail.shutdownDependency === "Yes") {
       return {
         label: "Blocked by constraints",
-        primaryAction: "Request engineering review",
+        primaryAction: "Send for engineering review",
       };
     }
     if (confidence === "high") {
       return {
         label: "Ready for approval",
-        primaryAction: "Approve recommendation",
+        primaryAction: "Approve change",
       };
     }
     return {
       label: "Requires engineering review",
-      primaryAction: "Request engineering review",
+      primaryAction: "Send for engineering review",
     };
   };
 
@@ -1445,6 +1445,26 @@ const renderEconomicOpportunityDetail = () => {
     return "Easy to implement";
   };
 
+  const getImplementationBrief = () => {
+    if (detail.shutdownDependency === "Yes") {
+      return "Operational constraint (shutdown required)";
+    }
+    if (detail.routeRedesignRequired === "Yes" || Number(detail.masterUpdatesNeeded) > 0) {
+      return "Moderate effort (route redesign + PM updates)";
+    }
+    return "Low effort (minor planning updates)";
+  };
+
+  const getExecutiveConfidenceLabel = (score) => {
+    if (score >= 80) {
+      return "High";
+    }
+    if (score >= 55) {
+      return "Moderate";
+    }
+    return "Low";
+  };
+
   const extractEffortHours = (labelPrefix) => {
     const match = (detail.operationalChallenge ?? [])
       .find((item) => item.toLowerCase().includes(labelPrefix))
@@ -1464,23 +1484,17 @@ const renderEconomicOpportunityDetail = () => {
   };
 
   const getSystemJudgment = (scenario, savings, exposureDelta) => {
-    const riskChange = classifyRiskChange(exposureDelta).toLowerCase();
-    const confidenceScore =
-      detailState.simulatedConfidenceScore ?? systemConfidenceModel.score;
-    const recommendationStrength = getRecommendationStrength(confidenceScore, scenario);
     if (scenario.label === detail.currentFrequency) {
-      return `The current monthly interval remains the baseline reference for cost and exposure comparison. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
+      return "Monthly inspections remain the current reference case while the system tests whether the interval is more conservative than the evidence supports.";
     }
 
     if (savings >= 0) {
-      return `Moving to ${scenario.label} retains a ${riskChange} risk change while shifting ${formatCurrency(
+      return `Monthly inspections show low detection value and no evidence of improving risk control. Moving to ${scenario.label} maintains risk coverage while removing ${formatCurrency(
         savings
-      )} of annual inspection cost out of the current program. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
+      )} of low-value maintenance.`;
     }
 
-    return `Moving to ${scenario.label} increases annual inspection cost by ${formatCurrency(
-      Math.abs(savings)
-    )} with a ${riskChange} risk change. Confidence is ${confidenceScore}/100 with ${recommendationStrength.toLowerCase()} recommendation strength.`;
+    return `The current evidence does not support reducing the interval further because the cost increase is not matched by a clear risk-control benefit.`;
   };
 
   const renderSharedHeader = (scenario) => {
@@ -1495,7 +1509,7 @@ const renderEconomicOpportunityDetail = () => {
       detailState.viewMode === "engineering"
         ? `Recommended PM02 interval change from ${detail.currentFrequency} to ${scenario.label} based on low detection yield and stable failure exposure`
         : savings >= 0
-          ? `Save ${formatCurrency(savings)}/year with ${classifyRiskChange(exposureDelta).toLowerCase()} risk impact`
+          ? `Save ${formatCurrency(savings)}/year with no material increase in failure risk`
           : `Current interval remains the reference case under review`;
     const modeSubheadline =
       detailState.viewMode === "engineering"
@@ -1528,6 +1542,7 @@ const renderEconomicOpportunityDetail = () => {
     const savings = baseline.cost - scenario.cost;
     const exposureDelta = Math.max(0, scenario.exposure - baseline.exposure);
     const confidenceModel = getStrategyBasisModel(detailState.reviewedStrategyBasis);
+    const executiveConfidenceLabel = getExecutiveConfidenceLabel(confidenceModel.score);
     const strongest = confidenceModel.strongest.map((factor) => getFactorShortNote(factor));
     const limitations = confidenceModel.limitations.map((factor) => getFactorShortNote(factor));
 
@@ -1540,14 +1555,30 @@ const renderEconomicOpportunityDetail = () => {
     setText("execBusinessImpact", `${formatSignedCurrency(savings)} / year`);
     setText("execHoursReleased", `${detail.hoursReleased} released`);
     setText("execProductionImpact", getProductionImpactStatement(exposureDelta));
-    setText("execRiskSummary", `${classifyRiskChange(exposureDelta)} exposure change`);
+    setText("execRiskSummary", "No material increase in failure risk");
     setText("execWorstCaseConsequence", "Worst-case consequence estimate not yet available");
     setText("execExposureDelta", `Exposure change: ${(scenario.exposure - baseline.exposure).toFixed(2)} events/year`);
     setText("execConfidenceScore", `${confidenceModel.score} / 100`);
-    setText("execConfidenceLabel", confidenceModel.level);
+    setText("execConfidenceLabel", executiveConfidenceLabel);
     setText(
       "execConfidenceSummary",
-      `${confidenceModel.level} due to strong ${strongest.join(" and ").toLowerCase()} but ${limitations.join(" and ").toLowerCase()}.`
+      `${executiveConfidenceLabel} confidence due to strong ${strongest.join(" and ").toLowerCase()} but ${limitations.join(" and ").toLowerCase()}.`
+    );
+    setText("execDecisionAction", `Increase PM02 interval from ${detail.currentFrequency} to ${scenario.label}`);
+    setText("execDecisionOutcomeSavings", `Save ${formatCurrency(savings)}/year`);
+    setText("execDecisionOutcomeRisk", "No material increase in failure risk");
+    setText("execDecisionOutcomeProduction", "No impact to production targets");
+    setText(
+      "execDecisionImplementationSummary",
+      getImplementationBrief()
+    );
+    setText(
+      "execDecisionImplementationShutdown",
+      detail.shutdownDependency === "Yes" ? "Shutdown required" : "No shutdown required"
+    );
+    setText(
+      "execDecisionConfidence",
+      `${executiveConfidenceLabel} (${confidenceModel.score}/100) - strong history, weak detection evidence`
     );
     setText("detailImplementationSummary", getImplementationSummary());
     setText("detailImplementationTime", "Estimated implementation time pending planner logic");
