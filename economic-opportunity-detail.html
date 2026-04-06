@@ -468,59 +468,63 @@
           </dl>
         </article>
 
-        <article class="economic-card economic-span-12 economic-review-model">
-          <div class="economic-card__header economic-card__header--stacked economic-review-model__header">
-            <div>
-              <h2>Strategy basis review</h2>
-              <p>Current evidence strength against original maintenance strategy basis</p>
+        <details class="economic-card economic-span-12 economic-review-model">
+          <summary class="economic-review-model__summary">
+            <span class="economic-review-model__summary-copy">
+              <span class="economic-review-model__title">Strategy basis review</span>
+              <span class="economic-review-model__subtitle">Current evidence strength against original maintenance strategy basis</span>
+              <span class="economic-review-model__preview">7 review factors, confidence-linked scoring, engineer-adjustable outcomes</span>
+            </span>
+            <span class="economic-review-model__trigger" aria-hidden="true">&#9662;</span>
+          </summary>
+          <div class="economic-review-model__body">
+            <div class="economic-review-table-wrap">
+              <table class="economic-review-table">
+                <thead>
+                  <tr>
+                    <th>Factor</th>
+                    <th>System score</th>
+                    <th>Basis summary</th>
+                    <th>Evidence quality</th>
+                    <th>Review outcome</th>
+                    <th>Reviewed score</th>
+                    <th>Notes / rationale</th>
+                    <th>Expand</th>
+                  </tr>
+                </thead>
+                <tbody id="strategyBasisRows"></tbody>
+              </table>
+            </div>
+            <div id="strategyComparePanel" class="economic-compare-panel" hidden>
+              <div class="economic-compare-panel__summary">
+                <div>
+                  <span>Original confidence</span>
+                  <strong id="compareConfidenceBefore">68 / 100</strong>
+                  <em id="compareStrengthBefore">Moderate recommendation strength</em>
+                </div>
+                <div>
+                  <span>Current reviewed confidence</span>
+                  <strong id="compareConfidenceAfter">68 / 100</strong>
+                  <em id="compareStrengthAfter">Moderate recommendation strength</em>
+                </div>
+                <div>
+                  <span>Delta</span>
+                  <strong id="compareConfidenceDelta">0</strong>
+                  <em id="compareDeltaInterpretation">No confidence change after review</em>
+                </div>
+              </div>
+              <div class="economic-compare-panel__changes">
+                <span>Changed factors</span>
+                <ul id="compareChangedFactors" class="economic-compare-panel__list"></ul>
+              </div>
+            </div>
+            <div class="economic-review-actions">
+              <button id="resimulateRecommendation" type="button" class="fiori-button fiori-button--primary">Re-simulate recommendation</button>
+              <button id="resetStrategyBasis" type="button" class="fiori-button fiori-button--ghost">Reset to system scores</button>
+              <button id="toggleBasisCompare" type="button" class="fiori-button fiori-button--ghost">Compare before / after review</button>
             </div>
           </div>
-          <div class="economic-review-table-wrap">
-            <table class="economic-review-table">
-              <thead>
-                <tr>
-                  <th>Factor</th>
-                  <th>System score</th>
-                  <th>Basis summary</th>
-                  <th>Evidence quality</th>
-                  <th>Review outcome</th>
-                  <th>Reviewed score</th>
-                  <th>Notes / rationale</th>
-                  <th>Expand</th>
-                </tr>
-              </thead>
-              <tbody id="strategyBasisRows"></tbody>
-            </table>
-          </div>
-          <div id="strategyComparePanel" class="economic-compare-panel" hidden>
-            <div class="economic-compare-panel__summary">
-              <div>
-                <span>Original confidence</span>
-                <strong id="compareConfidenceBefore">68 / 100</strong>
-                <em id="compareStrengthBefore">Moderate recommendation strength</em>
-              </div>
-              <div>
-                <span>Current reviewed confidence</span>
-                <strong id="compareConfidenceAfter">68 / 100</strong>
-                <em id="compareStrengthAfter">Moderate recommendation strength</em>
-              </div>
-              <div>
-                <span>Delta</span>
-                <strong id="compareConfidenceDelta">0</strong>
-                <em id="compareDeltaInterpretation">No confidence change after review</em>
-              </div>
-            </div>
-            <div class="economic-compare-panel__changes">
-              <span>Changed factors</span>
-              <ul id="compareChangedFactors" class="economic-compare-panel__list"></ul>
-            </div>
-          </div>
-          <div class="economic-review-actions">
-            <button id="resimulateRecommendation" type="button" class="fiori-button fiori-button--primary">Re-simulate recommendation</button>
-            <button id="resetStrategyBasis" type="button" class="fiori-button fiori-button--ghost">Reset to system scores</button>
-            <button id="toggleBasisCompare" type="button" class="fiori-button fiori-button--ghost">Compare before / after review</button>
-          </div>
-        </article>
+        </details>
 
         <section class="economic-accordion-stack economic-span-12" aria-label="Supporting detail">
           <details class="economic-accordion">

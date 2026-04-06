@@ -4750,8 +4750,82 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   margin-top: 12px;
 }
 
+.economic-review-model {
+  overflow: hidden;
+}
+
 .economic-review-model__header {
   align-items: flex-start;
+}
+
+.economic-review-model__summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.economic-review-model__summary::-webkit-details-marker {
+  display: none;
+}
+
+.economic-review-model__summary-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.economic-review-model__title {
+  color: var(--economic-text);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.economic-review-model__subtitle {
+  color: var(--economic-text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.economic-review-model__preview {
+  color: var(--economic-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.economic-review-model__trigger {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--economic-border);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--economic-action);
+  flex: 0 0 auto;
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.economic-review-model__body {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--economic-border);
+}
+
+.economic-review-model > summary:hover,
+.economic-review-model > summary:focus-visible {
+  background: #f8fafd;
+}
+
+.economic-review-model[open] .economic-review-model__trigger {
+  transform: rotate(180deg);
+  background: var(--economic-ai-soft);
+  border-color: var(--economic-ai-border);
+}
+
+.economic-review-model:not([open]) .economic-review-model__body {
+  display: none;
 }
 
 .economic-review-actions {
