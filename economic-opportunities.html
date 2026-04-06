@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Economic Opportunities</title>
+  <title>Opportunities</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="fiori-overview-page" data-theme="light">
@@ -49,64 +49,114 @@
       </div>
     </header>
 
-    <main class="fiori-page">
+    <main id="opportunitiesWorkspace" class="fiori-page">
+      <nav class="fiori-module-nav" aria-label="Reliability Insights pages">
+        <a href="reliability-insights-fiori.html">Overview</a>
+        <a class="is-active" href="economic-opportunities.html">Opportunities</a>
+        <a href="advanced-analysis.html">Advanced Analysis</a>
+      </nav>
+
       <nav class="fiori-breadcrumbs" aria-label="Breadcrumb">
         <a href="reliability-insights-fiori.html">Reliability Insights</a>
         <span>/</span>
-        <span aria-current="page">Economic Opportunities</span>
+        <span aria-current="page">Opportunities</span>
       </nav>
 
       <section class="fiori-page-header">
         <div class="fiori-page-header__title">
-          <span class="fiori-page-header__variant">Economic View</span>
-          <h1>Economic Opportunities</h1>
-          <p>Economic opportunities contributing to where maintenance cost, exposure, and execution logic are misaligned.</p>
+          <span id="opportunitiesPageVariant" class="fiori-page-header__variant">Working View</span>
+          <h1 id="opportunitiesPageTitle">All Opportunities</h1>
+          <p id="opportunitiesPageSubtitle">Surfaced maintenance strategy opportunities across cost, risk, and execution.</p>
         </div>
 
         <div class="fiori-page-header__actions">
           <button class="fiori-button fiori-button--ghost">Export</button>
           <button class="fiori-button fiori-button--ghost">Adapt Filters</button>
-          <a class="fiori-button fiori-button--primary" href="advanced-analysis.html#economic">Open Issue Analysis</a>
+          <a class="fiori-button fiori-button--primary" href="advanced-analysis.html#priority-opportunities">Open Issue Analysis</a>
         </div>
       </section>
 
-      <section class="fiori-list-summary">
+      <section class="fiori-view-tabs" aria-label="Saved views" role="tablist">
+        <button type="button" class="is-active" data-opportunity-view="all" role="tab" aria-selected="true">All</button>
+        <button type="button" data-opportunity-view="economic" role="tab" aria-selected="false">Economic-led</button>
+        <button type="button" data-opportunity-view="risk" role="tab" aria-selected="false">Risk-led</button>
+        <button type="button" data-opportunity-view="operational" role="tab" aria-selected="false">Operational-led</button>
+      </section>
+
+      <section class="fiori-list-summary fiori-list-summary--four">
         <article class="fiori-list-summary__card">
-          <span class="fiori-list-summary__label">Total potential savings</span>
-          <strong id="economicListTotalSavings">$2.4M</strong>
-          <span class="fiori-list-summary__hint">Rolled up from surfaced economic opportunities</span>
+          <span class="fiori-list-summary__label">Total opportunities</span>
+          <strong id="opportunitiesTotalCount">0</strong>
+          <span class="fiori-list-summary__hint">Across surfaced opportunity types</span>
         </article>
         <article class="fiori-list-summary__card">
-          <span class="fiori-list-summary__label">Opportunities</span>
-          <strong id="economicListOpportunityCount">9 opportunities</strong>
-          <span class="fiori-list-summary__hint">Open items available for drill-down</span>
+          <span class="fiori-list-summary__label">Total rolled-up savings</span>
+          <strong id="opportunitiesTotalSavings">$0</strong>
+          <span class="fiori-list-summary__hint">Economic-led and secondary value available</span>
+        </article>
+        <article class="fiori-list-summary__card">
+          <span class="fiori-list-summary__label">High-risk opportunities</span>
+          <strong id="opportunitiesHighRiskCount">0</strong>
+          <span class="fiori-list-summary__hint">High or severe risk impact</span>
+        </article>
+        <article class="fiori-list-summary__card">
+          <span class="fiori-list-summary__label">Operationally constrained</span>
+          <strong id="opportunitiesConstrainedCount">0</strong>
+          <span class="fiori-list-summary__hint">Labour, shutdown, route, or review blockers</span>
         </article>
       </section>
 
-      <section class="fiori-filter-bar fiori-filter-bar--four" aria-label="Context filters">
+      <section class="fiori-filter-bar fiori-filter-bar--opportunities" aria-label="Opportunity filters">
         <div class="fiori-filter-field">
-          <label>Area</label>
-          <button>All Areas</button>
+          <label for="opportunityTypeFilter">Opportunity Type</label>
+          <select id="opportunityTypeFilter"></select>
         </div>
         <div class="fiori-filter-field">
-          <label>Asset class</label>
-          <button>All Asset Classes</button>
+          <label for="primaryAxisFilter">Primary Axis</label>
+          <select id="primaryAxisFilter"></select>
         </div>
         <div class="fiori-filter-field">
-          <label>Criticality</label>
-          <button>High / Critical</button>
+          <label for="secondaryAxisFilter">Secondary Axis</label>
+          <select id="secondaryAxisFilter"></select>
         </div>
         <div class="fiori-filter-field">
-          <label>Confidence</label>
-          <button>All Confidence Levels</button>
+          <label for="assetClassFilter">Asset Class</label>
+          <select id="assetClassFilter"></select>
+        </div>
+        <div class="fiori-filter-field">
+          <label for="criticalityFilter">Criticality</label>
+          <select id="criticalityFilter"></select>
+        </div>
+        <div class="fiori-filter-field">
+          <label for="confidenceFilter">Confidence</label>
+          <select id="confidenceFilter"></select>
+        </div>
+        <div class="fiori-filter-field">
+          <label for="areaFilter">Area</label>
+          <select id="areaFilter"></select>
+        </div>
+        <div class="fiori-filter-field">
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter"></select>
         </div>
       </section>
 
       <section class="fiori-table-card">
         <div class="fiori-card-header">
           <div>
-            <h2>Opportunity list</h2>
-            <p>Each row contributes to the Economic total on the overview dashboard.</p>
+            <h2>All opportunities</h2>
+            <p>Grouped by <span id="opportunitiesGroupLabel">Opportunity Type</span> so engineers can review what kind of issue it is before which axis it belongs to.</p>
+          </div>
+          <div class="fiori-table-toolbar">
+            <div class="fiori-filter-field fiori-filter-field--compact">
+              <label for="groupByFilter">Group by</label>
+              <select id="groupByFilter">
+                <option value="opportunityType">Opportunity Type</option>
+                <option value="primaryAxis">Primary Axis</option>
+                <option value="area">Area</option>
+                <option value="assetClass">Asset Class</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -114,18 +164,28 @@
           <table class="fiori-table fiori-table--interactive">
             <thead>
               <tr>
-                <th>Asset group / equipment</th>
-                <th>Opportunity title</th>
-                <th>Current cost</th>
-                <th>Recommended cost</th>
-                <th>Potential saving</th>
-                <th>Risk impact</th>
+                <th>id</th>
+                <th>Opportunity Type</th>
+                <th>Primary Axis</th>
+                <th>Secondary Axis</th>
+                <th>Recommended Action Type</th>
+                <th>Area</th>
+                <th>Asset Group / Equipment</th>
+                <th>Asset Class</th>
+                <th>Criticality</th>
+                <th>Opportunity Title</th>
+                <th>Current State</th>
+                <th>Recommended Change</th>
+                <th>Current Cost / Exposure</th>
+                <th>Recommended Cost / Exposure</th>
+                <th>Potential Value / Exposure</th>
+                <th>Risk Impact</th>
                 <th>Confidence</th>
-                <th>Operational constraint</th>
+                <th>Key Constraint</th>
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody id="economicOpportunityRows"></tbody>
+            <tbody id="opportunitiesTableRows"></tbody>
           </table>
         </div>
       </section>

@@ -49,10 +49,16 @@
       </div>
     </header>
 
-    <main class="fiori-page">
+    <main id="reliabilityInsightsOverview" class="fiori-page">
+      <nav class="fiori-module-nav" aria-label="Reliability Insights pages">
+        <a class="is-active" href="reliability-insights-fiori.html">Overview</a>
+        <a href="economic-opportunities.html">Opportunities</a>
+        <a href="advanced-analysis.html">Advanced Analysis</a>
+      </nav>
+
       <section class="fiori-page-header">
         <div class="fiori-page-header__title">
-          <span class="fiori-page-header__variant">Standard View</span>
+          <span class="fiori-page-header__variant">Overview</span>
           <h1>Reliability Insights</h1>
           <p>Reliability Insights shows where maintenance cost, exposure, and execution logic are misaligned.</p>
         </div>
@@ -90,28 +96,28 @@
       <section class="fiori-kpi-grid" aria-label="Summary metrics">
         <article class="fiori-kpi-card">
           <span class="fiori-kpi-card__label">Items assessed</span>
-          <strong>1,248</strong>
+          <strong id="overviewItemsAssessed">1,248</strong>
           <span class="fiori-kpi-card__hint">Current scope</span>
         </article>
         <article class="fiori-kpi-card">
           <span class="fiori-kpi-card__label">Areas in scope</span>
-          <strong>12</strong>
+          <strong id="overviewAreasInScope">12</strong>
           <span class="fiori-kpi-card__hint">Operating areas under review</span>
         </article>
         <article class="fiori-kpi-card">
           <span class="fiori-kpi-card__label">High-criticality assets</span>
-          <strong>216</strong>
+          <strong id="overviewHighCriticalityAssets">216</strong>
           <span class="fiori-kpi-card__hint">Within review population</span>
         </article>
         <article class="fiori-kpi-card">
           <span class="fiori-kpi-card__label">Recommendations ready</span>
-          <strong>52</strong>
+          <strong id="overviewRecommendationsReady">52</strong>
           <span class="fiori-kpi-card__hint">High-confidence actions available</span>
         </article>
       </section>
 
       <section class="fiori-analytics-grid" aria-label="Axis summaries">
-        <a class="fiori-analytic-card fiori-analytic-card--economic fiori-analytic-card--link" href="economic-opportunities.html">
+        <a class="fiori-analytic-card fiori-analytic-card--economic fiori-analytic-card--link" href="economic-opportunities.html?view=economic">
           <div class="fiori-analytic-card__header">
             <h2>Economic</h2>
             <span class="fiori-status fiori-status--economic">Value</span>
@@ -120,42 +126,47 @@
           <div class="fiori-analytic-card__metrics">
             <span id="economicOpportunityCount">9 opportunities</span>
             <span id="economicLowValueCost">$2.4M current low-value cost</span>
+            <span id="economicSupportStat">4 frequency mismatches</span>
           </div>
           <div class="fiori-progress">
             <span class="fiori-progress__bar fiori-progress__bar--economic" style="width: 68%;"></span>
           </div>
-          <span class="fiori-analytic-card__link-label">View economic opportunities</span>
+          <span class="fiori-analytic-card__link-label">View economic-led opportunities</span>
         </a>
 
-        <article class="fiori-analytic-card fiori-analytic-card--risk">
+        <a class="fiori-analytic-card fiori-analytic-card--risk fiori-analytic-card--link" href="economic-opportunities.html?view=risk">
           <div class="fiori-analytic-card__header">
             <h2>Risk</h2>
             <span class="fiori-status fiori-status--risk">Exposure</span>
           </div>
-          <strong class="fiori-analytic-card__value">37</strong>
+          <strong id="riskHeadlineValue" class="fiori-analytic-card__value">37</strong>
           <div class="fiori-analytic-card__metrics">
-            <span>11 safety-critical gaps</span>
-            <span>$5.8M production exposure</span>
+            <span id="riskOpportunityCount">5 opportunities</span>
+            <span id="riskSupportStatA">2 safety-critical gaps</span>
+            <span id="riskSupportStatB">$0.7M production exposure</span>
           </div>
           <div class="fiori-progress">
             <span class="fiori-progress__bar fiori-progress__bar--risk" style="width: 72%;"></span>
           </div>
-        </article>
+          <span class="fiori-analytic-card__link-label">View risk-led opportunities</span>
+        </a>
 
-        <article class="fiori-analytic-card fiori-analytic-card--operational">
+        <a class="fiori-analytic-card fiori-analytic-card--operational fiori-analytic-card--link" href="economic-opportunities.html?view=operational">
           <div class="fiori-analytic-card__header">
             <h2>Operational</h2>
             <span class="fiori-status fiori-status--operational">Blocked</span>
           </div>
-          <strong class="fiori-analytic-card__value">54</strong>
+          <strong id="operationalHeadlineValue" class="fiori-analytic-card__value">54</strong>
           <div class="fiori-analytic-card__metrics">
-            <span>19 shutdown-dependent</span>
-            <span>18 labour-constrained</span>
+            <span id="operationalOpportunityCount">4 opportunities</span>
+            <span id="operationalSupportStatA">1 shutdown-dependent</span>
+            <span id="operationalSupportStatB">1 labour-constrained</span>
           </div>
           <div class="fiori-progress">
             <span class="fiori-progress__bar fiori-progress__bar--operational" style="width: 63%;"></span>
           </div>
-        </article>
+          <span class="fiori-analytic-card__link-label">View operational-led opportunities</span>
+        </a>
       </section>
 
       <section class="fiori-support-grid" aria-label="Overview support">
@@ -167,36 +178,7 @@
             </div>
           </div>
 
-          <div class="fiori-bar-chart">
-            <div class="fiori-bar-row">
-              <div class="fiori-bar-row__meta">
-                <span>Processing plant</span>
-                <strong>$1.12M</strong>
-              </div>
-              <div class="fiori-bar-row__track"><span style="width: 100%;"></span></div>
-            </div>
-            <div class="fiori-bar-row">
-              <div class="fiori-bar-row__meta">
-                <span>Mobile fleet</span>
-                <strong>$760k</strong>
-              </div>
-              <div class="fiori-bar-row__track"><span style="width: 68%;"></span></div>
-            </div>
-            <div class="fiori-bar-row">
-              <div class="fiori-bar-row__meta">
-                <span>Water services</span>
-                <strong>$420k</strong>
-              </div>
-              <div class="fiori-bar-row__track"><span style="width: 38%;"></span></div>
-            </div>
-            <div class="fiori-bar-row">
-              <div class="fiori-bar-row__meta">
-                <span>Port utilities</span>
-                <strong>$310k</strong>
-              </div>
-              <div class="fiori-bar-row__track"><span style="width: 28%;"></span></div>
-            </div>
-          </div>
+          <div id="overviewSavingsByArea" class="fiori-bar-chart"></div>
         </article>
 
         <article class="fiori-summary-card">
@@ -206,20 +188,7 @@
               <p>Where to navigate next</p>
             </div>
           </div>
-          <div class="fiori-summary-list">
-            <div class="fiori-summary-list__item">
-              <span class="fiori-summary-list__label">Primary blocker</span>
-              <strong>Shutdown access and labour capacity</strong>
-            </div>
-            <div class="fiori-summary-list__item">
-              <span class="fiori-summary-list__label">Best first area</span>
-              <strong>Processing plant</strong>
-            </div>
-            <div class="fiori-summary-list__item">
-              <span class="fiori-summary-list__label">Confidence mix</span>
-              <strong>52 high, 49 medium</strong>
-            </div>
-          </div>
+          <div id="overviewActionSummary" class="fiori-summary-list"></div>
           <a class="fiori-link fiori-summary-card__link" href="advanced-analysis.html">Open advanced analysis</a>
         </article>
       </section>
@@ -227,50 +196,25 @@
       <section id="priority-issues" class="fiori-table-card">
         <div class="fiori-card-header">
           <div>
-            <h2>Priority issues</h2>
-            <p>Top issues for follow-up and drill-down</p>
+            <h2>Priority opportunities preview</h2>
+            <p>Top surfaced opportunities across opportunity types and axes.</p>
           </div>
-          <a class="fiori-link" href="advanced-analysis.html#priority-opportunities">Open issue analysis</a>
+          <a class="fiori-link" href="economic-opportunities.html">Open opportunities workspace</a>
         </div>
 
         <div class="fiori-table-wrap">
           <table class="fiori-table">
             <thead>
               <tr>
-                <th>Area / asset group</th>
-                <th>Issue</th>
+                <th>Area</th>
+                <th>Opportunity</th>
                 <th>Axis</th>
+                <th>Type</th>
                 <th>Impact</th>
                 <th>Constraint</th>
-                <th>Confidence</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>Crushing and conveying</td>
-                <td><a class="fiori-table__row-link" href="economic-opportunities.html">Low-return weekly inspections on conveyor drives</a></td>
-                <td><span class="fiori-axis-tag fiori-axis-tag--economic">Economic</span></td>
-                <td>$420k savings</td>
-                <td>Route redesign</td>
-                <td>High</td>
-              </tr>
-              <tr>
-                <td>Paste plant</td>
-                <td>Missing monitoring coverage on bund systems</td>
-                <td><span class="fiori-axis-tag fiori-axis-tag--risk">Risk</span></td>
-                <td>High exposure</td>
-                <td>Data quality</td>
-                <td>Medium</td>
-              </tr>
-              <tr>
-                <td>Load and haul</td>
-                <td>Deferred interventions blocked by labour capacity</td>
-                <td><span class="fiori-axis-tag fiori-axis-tag--operational">Operational</span></td>
-                <td>$360k savings</td>
-                <td>Shutdown and labour</td>
-                <td>Medium</td>
-              </tr>
-            </tbody>
+            <tbody id="overviewPriorityRows"></tbody>
           </table>
         </div>
       </section>

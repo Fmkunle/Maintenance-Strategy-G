@@ -41,310 +41,195 @@ const toolDefinitions = {
   },
 };
 
-// Shared drill-down data for the Economic flow. The overview total should always
-// roll up from these opportunity records.
-const economicOpportunities = [
-  {
-    id: "gbx-mfa-321",
-    assetGroup: "Gearboxes MFA-321-GB01 to MFA-321-GB10",
-    area: "Crushing and conveying",
-    equipment: "MFA-321 gearbox group",
-    title: "PM02 inspection frequency may be higher than current risk justifies",
-    currentCost: 96000,
-    recommendedCost: 48000,
-    potentialSaving: 48000,
-    riskImpact: "Low",
-    confidence: "Medium",
-    operationalConstraint: "Route redesign required",
-    status: "Open",
-    safetyImpact: "Low",
-    productionImpact: "Low to moderate",
-    uncontrolledExposure: "Limited",
-    labourDemandReduced: "Yes",
-    routeRedesignRequired: "Yes",
-    shutdownDependency: "No",
-    currentFrequency: "1 month",
-    recommendedFrequency: "2 months",
-    expectedRiskChange: "Low",
-    hoursReleased: "162 hrs/year",
-    savingsDelta: "50%",
-    currentExpectedExposure: "0.18 events/year",
-    proposedExpectedExposure: "0.22 events/year",
-    safetyConsequenceChange: "No material change",
-    masterUpdatesNeeded: "10",
-    implementationEffortScore: "3 / 5",
-    currentLabourHours: 324,
-    recommendedLabourHours: 162,
-    tradeoffModel: [
-      { key: "2-weeks", label: "2 weeks", cost: 168000, exposure: 0.17, riskIndex: 1.0 },
-      { key: "1-month", label: "1 month", cost: 96000, exposure: 0.18, riskIndex: 1.05 },
-      { key: "2-months", label: "2 months", cost: 48000, exposure: 0.22, riskIndex: 1.12 },
-      { key: "3-months", label: "3 months", cost: 36000, exposure: 0.31, riskIndex: 1.3 },
-      { key: "6-months", label: "6 months", cost: 24000, exposure: 0.52, riskIndex: 1.85 },
-    ],
-    inspectionYield: [
-      {
-        key: "completed",
-        label: "Inspections completed",
-        count: 120,
-        note: "PM02 inspections were executed at high volume, but the detected value remained low.",
-      },
-      {
-        key: "findings",
-        label: "Inspections with findings",
-        count: 14,
-        note: "Only a small portion of inspections surfaced any finding, suggesting low defect yield.",
-      },
-      {
-        key: "actionable",
-        label: "Actionable findings",
-        count: 3,
-        note: "Only three inspections led to findings that justified corrective follow-up or a maintenance decision.",
-      },
-      {
-        key: "conversions",
-        label: "Corrective conversions",
-        count: 3,
-        note: "Corrective conversion remained low, reinforcing the view that monthly inspection demand may be too high.",
-      },
-    ],
-    delayHistoryHours: [0, 0.5, 0, 0, 0.3, 0, 0, 0.6, 0, 0, 0, 0.4, 0, 0, 0, 0.2, 0, 1.5],
-    strategyBasis: [
-      {
-        key: "failure-mode-understanding",
-        label: "Failure mode understanding",
-        systemScore: 78,
-        rationale: "Failure behavior is reasonably understood for this gearbox group from work history and engineering context.",
-      },
-      {
-        key: "mitigation-strategy-understanding",
-        label: "Mitigation strategy understanding",
-        systemScore: 74,
-        rationale: "The current PM02 strategy intent is understood, but its present interval logic is only partly supported.",
-      },
-      {
-        key: "detection-evidence",
-        label: "Detection evidence",
-        systemScore: 38,
-        rationale: "Inspection yield remains weak relative to volume, limiting evidence that the current interval materially improves control.",
-      },
-      {
-        key: "cmms-history-coverage",
-        label: "CMMS history coverage",
-        systemScore: 82,
-        rationale: "Work order coverage is strong enough to support a review of current demand, findings, and follow-up patterns.",
-      },
-      {
-        key: "data-quality-traceability",
-        label: "Data quality and traceability",
-        systemScore: 57,
-        rationale: "PM-to-outcome traceability is incomplete, reducing confidence in how findings link to avoided failures.",
-      },
-      {
-        key: "delay-consequence-history",
-        label: "Delay and consequence history",
-        systemScore: 71,
-        rationale: "Delay history is available and consequence has been reviewed, though major event frequency remains limited.",
-      },
-      {
-        key: "operating-context-stability",
-        label: "Operating context stability",
-        systemScore: 76,
-        rationale: "Operating duty and service context appear stable enough for interval review without major scenario drift.",
-      },
-    ],
-    confidenceImprovements: [
-      "Cleaner failure coding",
-      "More structured PM finding capture",
-      "Clearer delay-event linkage",
-    ],
-    assumptionsMatrix: [
-      {
-        key: "detectability",
-        label: "Detectability",
-        rating: "Moderate",
-        score: 0.64,
-        rationale: "Defects are sometimes detected by PM02, but the low actionable yield suggests detection strength is only moderate.",
-      },
-      {
-        key: "pf-interval-fit",
-        label: "P-F interval fit",
-        rating: "Weak",
-        score: 0.36,
-        rationale: "The available history does not strongly support a monthly interval as necessary for this gearbox group.",
-      },
-      {
-        key: "consequence-logic",
-        label: "Consequence logic",
-        rating: "Moderate",
-        score: 0.62,
-        rationale: "Service context and delay history suggest consequence exists, but recent major production effect has remained limited.",
-      },
-      {
-        key: "redundancy-logic",
-        label: "Redundancy logic",
-        rating: "Moderate",
-        score: 0.6,
-        rationale: "Redundancy and recoverability appear adequate in most operating states, reducing the need for a highly conservative interval.",
-      },
-      {
-        key: "demand-frequency",
-        label: "Demand frequency",
-        rating: "Weak",
-        score: 0.34,
-        rationale: "Corrective demand triggered by PM02 has been infrequent relative to the current work volume.",
-      },
-      {
-        key: "cost-benefit-justification",
-        label: "Cost-benefit justification",
-        rating: "Weak",
-        score: 0.38,
-        rationale: "The maintenance cost is clear, but the supported avoided consequence is comparatively small.",
-      },
-    ],
-    summary:
-      "Current monthly PM02 inspections appear to provide limited defect detection value relative to their cost and labour demand. Available CMMS and delay history suggest the current interval may be more conservative than required for this gearbox group.",
-    confidenceNote:
-      "Confidence is reduced by limited direct condition evidence, possible inconsistency in historical failure coding, and incomplete mapping between PM findings and prevented failures.",
-    dataReviewed:
-      "PM02 work orders, PM completion history, PM findings, corrective follow-up, breakdown history, delay log, labour hours, criticality, service context",
-    observedEvidence: [
-      "120 PM02 inspections completed in 12 months",
-      "3 actionable defects identified",
-      "0 major production delay events in 18 months linked to this gearbox group",
-      "Corrective work triggered from PM findings in 2.5% of inspections",
-      "No clear evidence that monthly frequency is materially improving current risk control",
-    ],
-    assumptions: [
-      "Failure mode is progressive and detectable - Partly supported",
-      "P-F interval supports monthly inspection - Weak evidence",
-      "PM02 task has strong probability of detection - Weak evidence",
-      "Consequence justifies conservative interval - Partly supported",
-      "Redundancy is low enough to justify current cost - Not clearly supported",
-    ],
-    operationalChallenge: [
-      "Route redesign required",
-      "10 PM master records to update",
-      "Planner effort 8 hrs",
-      "Engineering review effort 6 hrs",
-      "Shutdown not required",
-    ],
-    recommendedAction:
-      "Change PM02 inspection interval from 1 month to 2 months for the next review cycle and monitor findings rate, corrective conversion, delay events, and repeat defects over 6 months.",
-  },
-  {
-    id: "cv-440-network",
-    assetGroup: "Conveyor drives CV-440 to CV-468",
-    area: "Processing plant",
-    equipment: "Conveyor drive network",
-    title: "Inspection and lubrication route density exceeds current defect yield",
-    currentCost: 1320000,
-    recommendedCost: 760000,
-    potentialSaving: 560000,
-    riskImpact: "Low to moderate",
-    confidence: "High",
-    operationalConstraint: "Route redesign required",
-    status: "Open",
-  },
-  {
-    id: "wm-210-fleet",
-    assetGroup: "Wheel motors WM-210 fleet",
-    area: "Mobile fleet",
-    equipment: "Wheel motor routes",
-    title: "Planned inspection routes duplicate labour across similar duty trucks",
-    currentCost: 980000,
-    recommendedCost: 620000,
-    potentialSaving: 360000,
-    riskImpact: "Low",
-    confidence: "High",
-    operationalConstraint: "Labour rebalance required",
-    status: "Open",
-  },
-  {
-    id: "rf-11-feeders",
-    assetGroup: "Reclaim feeders RF-11 to RF-16",
-    area: "Processing plant",
-    equipment: "Reclaim feeder drives",
-    title: "Vibration collection frequency appears conservative for current duty",
-    currentCost: 620000,
-    recommendedCost: 380000,
-    potentialSaving: 240000,
-    riskImpact: "Low to moderate",
-    confidence: "Medium",
-    operationalConstraint: "Condition route update required",
-    status: "Open",
-  },
-  {
-    id: "dp-401-pumps",
-    assetGroup: "Dewatering pumps DP-401 to DP-412",
-    area: "Water services",
-    equipment: "Pump train packages",
-    title: "Task packaging duplicates shutdown preparation effort",
-    currentCost: 710000,
-    recommendedCost: 470000,
-    potentialSaving: 240000,
-    riskImpact: "Low",
-    confidence: "Medium",
-    operationalConstraint: "Task packaging redesign",
-    status: "Open",
-  },
-  {
-    id: "sr-220-reclaimers",
-    assetGroup: "Stacker reclaimer motors SR-220 series",
-    area: "Port utilities",
-    equipment: "Motor inspection program",
-    title: "Motor inspection frequency is higher than consequence profile suggests",
-    currentCost: 540000,
-    recommendedCost: 360000,
-    potentialSaving: 180000,
-    riskImpact: "Low",
-    confidence: "Medium",
-    operationalConstraint: "Planner update required",
-    status: "Open",
-  },
-  {
-    id: "sw-110-switchrooms",
-    assetGroup: "Switchrooms SW-110 to SW-118",
-    area: "Port utilities",
-    equipment: "Thermal scan program",
-    title: "Thermal scan frequency is conservative for current failure history",
-    currentCost: 290000,
-    recommendedCost: 170000,
-    potentialSaving: 120000,
-    riskImpact: "Low",
-    confidence: "High",
-    operationalConstraint: "Approval to revise standard",
-    status: "Open",
-  },
-  {
-    id: "tbp-700-boosters",
-    assetGroup: "Tailings booster pumps TBP-700 series",
-    area: "Tailings pumping",
-    equipment: "Booster pump maintenance strategy",
-    title: "Routine PM package appears oversized for current service context",
-    currentCost: 840000,
-    recommendedCost: 500000,
-    potentialSaving: 340000,
-    riskImpact: "Low to moderate",
-    confidence: "Medium",
-    operationalConstraint: "Engineering review required",
-    status: "Open",
-  },
-  {
-    id: "wrb-500-blowers",
-    assetGroup: "Water recovery blowers WRB-500 series",
-    area: "Water recovery",
-    equipment: "Blower inspection and cleaning plan",
-    title: "Current inspection and cleaning interval may be more conservative than required",
-    currentCost: 630000,
-    recommendedCost: 318000,
-    potentialSaving: 312000,
-    riskImpact: "Low",
-    confidence: "Medium",
-    operationalConstraint: "Task sequence redesign",
-    status: "Open",
-  },
-];
+// Rich detail seed for the gearbox recommendation used by the final drill-down page.
+const gearboxOpportunityDetailSeed = {
+  id: "gbx-mfa-321",
+  assetGroup: "Gearboxes MFA-321-GB01 to MFA-321-GB10",
+  area: "Crushing and conveying",
+  equipment: "MFA-321 gearbox group",
+  title: "PM02 inspection frequency may be higher than current risk justifies",
+  currentCost: 96000,
+  recommendedCost: 48000,
+  potentialSaving: 48000,
+  riskImpact: "Low",
+  confidence: "Medium",
+  operationalConstraint: "Route redesign required",
+  status: "Open",
+  safetyImpact: "Low",
+  productionImpact: "Low to moderate",
+  uncontrolledExposure: "Limited",
+  labourDemandReduced: "Yes",
+  routeRedesignRequired: "Yes",
+  shutdownDependency: "No",
+  currentFrequency: "1 month",
+  recommendedFrequency: "2 months",
+  expectedRiskChange: "Low",
+  hoursReleased: "162 hrs/year",
+  savingsDelta: "50%",
+  currentExpectedExposure: "0.18 events/year",
+  proposedExpectedExposure: "0.22 events/year",
+  safetyConsequenceChange: "No material change",
+  masterUpdatesNeeded: "10",
+  implementationEffortScore: "3 / 5",
+  currentLabourHours: 324,
+  recommendedLabourHours: 162,
+  tradeoffModel: [
+    { key: "2-weeks", label: "2 weeks", cost: 168000, exposure: 0.17, riskIndex: 1.0 },
+    { key: "1-month", label: "1 month", cost: 96000, exposure: 0.18, riskIndex: 1.05 },
+    { key: "2-months", label: "2 months", cost: 48000, exposure: 0.22, riskIndex: 1.12 },
+    { key: "3-months", label: "3 months", cost: 36000, exposure: 0.31, riskIndex: 1.3 },
+    { key: "6-months", label: "6 months", cost: 24000, exposure: 0.52, riskIndex: 1.85 },
+  ],
+  inspectionYield: [
+    {
+      key: "completed",
+      label: "Inspections completed",
+      count: 120,
+      note: "PM02 inspections were executed at high volume, but the detected value remained low.",
+    },
+    {
+      key: "findings",
+      label: "Inspections with findings",
+      count: 14,
+      note: "Only a small portion of inspections surfaced any finding, suggesting low defect yield.",
+    },
+    {
+      key: "actionable",
+      label: "Actionable findings",
+      count: 3,
+      note: "Only three inspections led to findings that justified corrective follow-up or a maintenance decision.",
+    },
+    {
+      key: "conversions",
+      label: "Corrective conversions",
+      count: 3,
+      note: "Corrective conversion remained low, reinforcing the view that monthly inspection demand may be too high.",
+    },
+  ],
+  delayHistoryHours: [0, 0.5, 0, 0, 0.3, 0, 0, 0.6, 0, 0, 0, 0.4, 0, 0, 0, 0.2, 0, 1.5],
+  strategyBasis: [
+    {
+      key: "failure-mode-understanding",
+      label: "Failure mode understanding",
+      systemScore: 78,
+      rationale: "Failure behavior is reasonably understood for this gearbox group from work history and engineering context.",
+    },
+    {
+      key: "mitigation-strategy-understanding",
+      label: "Mitigation strategy understanding",
+      systemScore: 74,
+      rationale: "The current PM02 strategy intent is understood, but its present interval logic is only partly supported.",
+    },
+    {
+      key: "detection-evidence",
+      label: "Detection evidence",
+      systemScore: 38,
+      rationale: "Inspection yield remains weak relative to volume, limiting evidence that the current interval materially improves control.",
+    },
+    {
+      key: "cmms-history-coverage",
+      label: "CMMS history coverage",
+      systemScore: 82,
+      rationale: "Work order coverage is strong enough to support a review of current demand, findings, and follow-up patterns.",
+    },
+    {
+      key: "data-quality-traceability",
+      label: "Data quality and traceability",
+      systemScore: 57,
+      rationale: "PM-to-outcome traceability is incomplete, reducing confidence in how findings link to avoided failures.",
+    },
+    {
+      key: "delay-consequence-history",
+      label: "Delay and consequence history",
+      systemScore: 71,
+      rationale: "Delay history is available and consequence has been reviewed, though major event frequency remains limited.",
+    },
+    {
+      key: "operating-context-stability",
+      label: "Operating context stability",
+      systemScore: 76,
+      rationale: "Operating duty and service context appear stable enough for interval review without major scenario drift.",
+    },
+  ],
+  confidenceImprovements: [
+    "Cleaner failure coding",
+    "More structured PM finding capture",
+    "Clearer delay-event linkage",
+  ],
+  assumptionsMatrix: [
+    {
+      key: "detectability",
+      label: "Detectability",
+      rating: "Moderate",
+      score: 0.64,
+      rationale: "Defects are sometimes detected by PM02, but the low actionable yield suggests detection strength is only moderate.",
+    },
+    {
+      key: "pf-interval-fit",
+      label: "P-F interval fit",
+      rating: "Weak",
+      score: 0.36,
+      rationale: "The available history does not strongly support a monthly interval as necessary for this gearbox group.",
+    },
+    {
+      key: "consequence-logic",
+      label: "Consequence logic",
+      rating: "Moderate",
+      score: 0.62,
+      rationale: "Service context and delay history suggest consequence exists, but recent major production effect has remained limited.",
+    },
+    {
+      key: "redundancy-logic",
+      label: "Redundancy logic",
+      rating: "Moderate",
+      score: 0.6,
+      rationale: "Redundancy and recoverability appear adequate in most operating states, reducing the need for a highly conservative interval.",
+    },
+    {
+      key: "demand-frequency",
+      label: "Demand frequency",
+      rating: "Weak",
+      score: 0.34,
+      rationale: "Corrective demand triggered by PM02 has been infrequent relative to the current work volume.",
+    },
+    {
+      key: "cost-benefit-justification",
+      label: "Cost-benefit justification",
+      rating: "Weak",
+      score: 0.38,
+      rationale: "The maintenance cost is clear, but the supported avoided consequence is comparatively small.",
+    },
+  ],
+  summary:
+    "Current monthly PM02 inspections appear to provide limited defect detection value relative to their cost and labour demand. Available CMMS and delay history suggest the current interval may be more conservative than required for this gearbox group.",
+  confidenceNote:
+    "Confidence is reduced by limited direct condition evidence, possible inconsistency in historical failure coding, and incomplete mapping between PM findings and prevented failures.",
+  dataReviewed:
+    "PM02 work orders, PM completion history, PM findings, corrective follow-up, breakdown history, delay log, labour hours, criticality, service context",
+  observedEvidence: [
+    "120 PM02 inspections completed in 12 months",
+    "3 actionable defects identified",
+    "0 major production delay events in 18 months linked to this gearbox group",
+    "Corrective work triggered from PM findings in 2.5% of inspections",
+    "No clear evidence that monthly frequency is materially improving current risk control",
+  ],
+  assumptions: [
+    "Failure mode is progressive and detectable - Partly supported",
+    "P-F interval supports monthly inspection - Weak evidence",
+    "PM02 task has strong probability of detection - Weak evidence",
+    "Consequence justifies conservative interval - Partly supported",
+    "Redundancy is low enough to justify current cost - Not clearly supported",
+  ],
+  operationalChallenge: [
+    "Route redesign required",
+    "10 PM master records to update",
+    "Planner effort 8 hrs",
+    "Engineering review effort 6 hrs",
+    "Shutdown not required",
+  ],
+  recommendedAction:
+    "Change PM02 inspection interval from 1 month to 2 months for the next review cycle and monitor findings rate, corrective conversion, delay events, and repeat defects over 6 months.",
+};
 
 const body = document.body;
 const themeToggle = document.getElementById("themeToggle");
@@ -406,89 +291,554 @@ const createSvgNode = (tagName, attributes = {}) => {
   return node;
 };
 
-const totalEconomicSavings = economicOpportunities.reduce(
-  (sum, item) => sum + item.potentialSaving,
-  0
-);
+const seededOpportunityRecordsExactA = [
+  { id: "OPP-001", opportunity_type: "Frequency mismatch", primary_axis: "Economic", secondary_axis: "Risk", recommended_action_type: "Reduce frequency", area: "Processing plant", asset_group_equipment: "Gearboxes MFA-321-GB01 to MFA-321-GB10", asset_class: "Gearboxes", criticality: "High / Critical", opportunity_title: "PM02 inspection frequency may be higher than current risk justifies", current_state: "Monthly PM02 inspection", recommended_change: "Move to 2-month interval", current_cost_or_exposure: "$96,000 annual cost", recommended_cost_or_exposure: "$48,000 annual cost", potential_value_or_exposure: "$48,000 savings", risk_impact: "Low", confidence: "Medium", key_constraint: "Route redesign required", status: "Open" },
+  { id: "OPP-002", opportunity_type: "Low-value PM", primary_axis: "Economic", secondary_axis: "Operational", recommended_action_type: "Reduce frequency", area: "Crushing and conveying", asset_group_equipment: "Conveyor drives CV-440 to CV-468", asset_class: "Conveyor drives", criticality: "High / Critical", opportunity_title: "Inspection and lubrication route density exceeds current defect yield", current_state: "Weekly inspection and lubrication route", recommended_change: "Consolidate to condition-led 2-week route", current_cost_or_exposure: "$1,320,000 annual cost", recommended_cost_or_exposure: "$760,000 annual cost", potential_value_or_exposure: "$560,000 savings", risk_impact: "Low to moderate", confidence: "High", key_constraint: "Route redesign required", status: "Open" },
+  { id: "OPP-003", opportunity_type: "Duplicate / overlapping PM", primary_axis: "Economic", secondary_axis: "Operational", recommended_action_type: "Repackage route", area: "Mobile fleet", asset_group_equipment: "Wheel motors WM-210 fleet", asset_class: "Mobile fleet", criticality: "High / Critical", opportunity_title: "Planned inspection routes duplicate labour across similar duty trucks", current_state: "Separate overlapping inspection routes", recommended_change: "Merge overlapping PM route packages", current_cost_or_exposure: "$980,000 annual cost", recommended_cost_or_exposure: "$620,000 annual cost", potential_value_or_exposure: "$360,000 savings", risk_impact: "Low", confidence: "High", key_constraint: "Labour rebalance required", status: "Open" },
+  { id: "OPP-004", opportunity_type: "Frequency mismatch", primary_axis: "Economic", secondary_axis: "Risk", recommended_action_type: "Reduce frequency", area: "Water services", asset_group_equipment: "Reclaim feeders RF-11 to RF-16", asset_class: "Motors", criticality: "Medium", opportunity_title: "Vibration collection frequency appears conservative for current duty", current_state: "Monthly vibration route", recommended_change: "Move to 2-month vibration route", current_cost_or_exposure: "$620,000 annual cost", recommended_cost_or_exposure: "$380,000 annual cost", potential_value_or_exposure: "$240,000 savings", risk_impact: "Low to moderate", confidence: "Medium", key_constraint: "Condition route update required", status: "Open" },
+  { id: "OPP-005", opportunity_type: "Duplicate / overlapping PM", primary_axis: "Economic", secondary_axis: "Operational", recommended_action_type: "Repackage route", area: "Water recovery", asset_group_equipment: "Dewatering pumps DP-401 to DP-412", asset_class: "Pumps", criticality: "Medium", opportunity_title: "Task packaging duplicates shutdown preparation effort", current_state: "Separate PM and shutdown prep packages", recommended_change: "Combine task bundles into one route", current_cost_or_exposure: "$710,000 annual cost", recommended_cost_or_exposure: "$470,000 annual cost", potential_value_or_exposure: "$240,000 savings", risk_impact: "Low", confidence: "Medium", key_constraint: "Task packaging redesign", status: "Open" },
+  { id: "OPP-006", opportunity_type: "Criticality-effort mismatch", primary_axis: "Economic", secondary_axis: "Operational", recommended_action_type: "Split strategy by duty", area: "Port utilities", asset_group_equipment: "Stacker reclaimer motors SR-220 series", asset_class: "Motors", criticality: "Medium", opportunity_title: "Motor inspection frequency is higher than consequence profile suggests", current_state: "Monthly inspection on all units", recommended_change: "Apply duty-based interval split", current_cost_or_exposure: "$540,000 annual cost", recommended_cost_or_exposure: "$360,000 annual cost", potential_value_or_exposure: "$180,000 savings", risk_impact: "Low", confidence: "Medium", key_constraint: "Planner update required", status: "Reviewed" },
+  { id: "OPP-007", opportunity_type: "Low-value PM", primary_axis: "Economic", secondary_axis: "Operational", recommended_action_type: "Reduce frequency", area: "Switchrooms", asset_group_equipment: "Switchrooms SW-110 to SW-118", asset_class: "Switchrooms", criticality: "Medium", opportunity_title: "Thermal scan frequency is conservative for current failure history", current_state: "Monthly thermal scans", recommended_change: "Move to quarterly scans", current_cost_or_exposure: "$290,000 annual cost", recommended_cost_or_exposure: "$170,000 annual cost", potential_value_or_exposure: "$120,000 savings", risk_impact: "Low", confidence: "High", key_constraint: "Approval to revise standard", status: "Open" },
+  { id: "OPP-008", opportunity_type: "Criticality-effort mismatch", primary_axis: "Economic", secondary_axis: "Operational", recommended_action_type: "Reduce frequency", area: "Tailings pumping", asset_group_equipment: "Tailings booster pumps TBP-700 series", asset_class: "Pumps", criticality: "Medium", opportunity_title: "Routine PM package appears oversized for current service context", current_state: "Dense monthly PM package", recommended_change: "Reduce package depth and frequency", current_cost_or_exposure: "$840,000 annual cost", recommended_cost_or_exposure: "$500,000 annual cost", potential_value_or_exposure: "$340,000 savings", risk_impact: "Low to moderate", confidence: "Medium", key_constraint: "Engineering review required", status: "Open" },
+];
 
-const totalLowValueCost = economicOpportunities.reduce(
-  (sum, item) => sum + (item.currentCost - item.recommendedCost),
-  0
-);
+const seededOpportunityRecordsExactB = [
+  { id: "OPP-009", opportunity_type: "Low-value PM", primary_axis: "Economic", secondary_axis: "Operational", recommended_action_type: "Reduce frequency", area: "Water recovery", asset_group_equipment: "Water recovery blowers WRB-500 series", asset_class: "Fans and blowers", criticality: "Medium", opportunity_title: "Current inspection and cleaning interval may be more conservative than required", current_state: "Monthly inspection and clean", recommended_change: "Move to 2-month interval", current_cost_or_exposure: "$630,000 annual cost", recommended_cost_or_exposure: "$318,000 annual cost", potential_value_or_exposure: "$312,000 savings", risk_impact: "Low", confidence: "Medium", key_constraint: "Task sequence redesign", status: "Open" },
+  { id: "OPP-010", opportunity_type: "Failure mode coverage gap", primary_axis: "Risk", secondary_axis: "Operational", recommended_action_type: "Add task", area: "Paste plant", asset_group_equipment: "Safety bund monitoring loops BND-210 to BND-224", asset_class: "Instrumentation", criticality: "High / Critical", opportunity_title: "Bund monitoring tasks are missing from active maintenance strategy", current_state: "No active preventive task coverage", recommended_change: "Add functional monitoring task and review test interval", current_cost_or_exposure: "High exposure", recommended_cost_or_exposure: "Controlled with task coverage", potential_value_or_exposure: "Coverage gap removed", risk_impact: "High", confidence: "Medium", key_constraint: "Data quality issue", status: "Open" },
+  { id: "OPP-011", opportunity_type: "Weak detectability", primary_axis: "Risk", secondary_axis: "Economic", recommended_action_type: "Redesign task", area: "Tailings pumping", asset_group_equipment: "Pump seal trains TS-610 to TS-622", asset_class: "Pumps", criticality: "High / Critical", opportunity_title: "Existing inspection task shows weak detection of pump seal failure path", current_state: "General visual PM only", recommended_change: "Add targeted detectability checks and revise task content", current_cost_or_exposure: "Moderate exposure", recommended_cost_or_exposure: "Improved detectability", potential_value_or_exposure: "Reduced downtime exposure", risk_impact: "Severe", confidence: "Medium", key_constraint: "Shutdown access", status: "Open" },
+  { id: "OPP-012", opportunity_type: "Failure mode coverage gap", primary_axis: "Risk", secondary_axis: "Operational", recommended_action_type: "Add task", area: "Load and haul", asset_group_equipment: "Brake cooling fans BCF-100 fleet", asset_class: "Mobile fleet", criticality: "High / Critical", opportunity_title: "Recurring cooling-fan failure mode is not explicitly covered in current PM strategy", current_state: "No mode-specific PM coverage", recommended_change: "Add targeted task for recurring failure path", current_cost_or_exposure: "High exposure", recommended_cost_or_exposure: "Reduced recurrence risk", potential_value_or_exposure: "Coverage gap removed", risk_impact: "High", confidence: "High", key_constraint: "Engineering review required", status: "Open" },
+  { id: "OPP-013", opportunity_type: "Compliance / safety obligation", primary_axis: "Risk", secondary_axis: "Operational", recommended_action_type: "Keep and monitor", area: "Processing plant", asset_group_equipment: "Emergency shutdown pull-wire systems ESD-300 series", asset_class: "Instrumentation", criticality: "High / Critical", opportunity_title: "Safety standard task has low defect yield but remains requirement-driven", current_state: "Monthly proof-test task", recommended_change: "Keep task and separate from economic optimization logic", current_cost_or_exposure: "Requirement-driven task cost", recommended_cost_or_exposure: "Maintain current compliance position", potential_value_or_exposure: "Safety obligation preserved", risk_impact: "High", confidence: "High", key_constraint: "Standard requirement", status: "Monitoring" },
+  { id: "OPP-014", opportunity_type: "Wrong mitigation type", primary_axis: "Risk", secondary_axis: "Economic", recommended_action_type: "Replace mitigation type", area: "Crushing and conveying", asset_group_equipment: "Head pulley bearing sets HPB-410 to HPB-419", asset_class: "Conveyor drives", criticality: "High / Critical", opportunity_title: "Routine visual checks are a weak control for progressive bearing degradation", current_state: "Visual route inspection only", recommended_change: "Replace with vibration-based monitoring strategy", current_cost_or_exposure: "Moderate exposure", recommended_cost_or_exposure: "Better targeted detection", potential_value_or_exposure: "Reduced undetected failure risk", risk_impact: "High", confidence: "Medium", key_constraint: "Condition monitoring setup required", status: "Reviewed" },
+  { id: "OPP-015", opportunity_type: "Operating-model constraint", primary_axis: "Operational", secondary_axis: "Economic", recommended_action_type: "Repackage route", area: "Load and haul", asset_group_equipment: "Shutdown intervention bundles SHD-900 fleet", asset_class: "Mobile fleet", criticality: "High / Critical", opportunity_title: "High-value maintenance changes are delayed by fitter and shutdown capacity", current_state: "Actions deferred into limited shutdown windows", recommended_change: "Repackage work and rebalance labour windows", current_cost_or_exposure: "320 labour hrs/year trapped", recommended_cost_or_exposure: "Improved execution flow", potential_value_or_exposure: "180 hrs/year released", risk_impact: "Moderate", confidence: "Medium", key_constraint: "Labour rebalance required", status: "Open" },
+  { id: "OPP-016", opportunity_type: "Evidence insufficient", primary_axis: "Risk", secondary_axis: "Economic", recommended_action_type: "Improve data quality", area: "Water services", asset_group_equipment: "Chlorination dosing skids CDS-120 series", asset_class: "Instrumentation", criticality: "High / Critical", opportunity_title: "Current inspection position cannot be confidently changed due to weak failure traceability", current_state: "Existing monthly PM retained", recommended_change: "Improve coding and monitor before interval change", current_cost_or_exposure: "Uncertain exposure", recommended_cost_or_exposure: "Better evidence before change", potential_value_or_exposure: "Confidence improvement", risk_impact: "Moderate", confidence: "Low", key_constraint: "Data quality issue", status: "Monitoring" },
+];
 
-const economicOpportunityCount = economicOpportunities.length;
-
-const renderEconomicOverviewRollup = () => {
-  const economicTotal = document.getElementById("economicTotalSavings");
-  const economicOpportunityCountNode = document.getElementById("economicOpportunityCount");
-  const economicLowValueCost = document.getElementById("economicLowValueCost");
-
-  if (economicTotal) {
-    economicTotal.textContent = formatCompactCurrency(totalEconomicSavings);
-  }
-  if (economicOpportunityCountNode) {
-    economicOpportunityCountNode.textContent = `${economicOpportunityCount} opportunities`;
-  }
-  if (economicLowValueCost) {
-    economicLowValueCost.textContent = `${formatCompactCurrency(totalLowValueCost)} current low-value cost`;
-  }
+const parseCurrencyValue = (value) => {
+  const match = String(value ?? "").replaceAll(",", "").match(/\$([0-9]+(?:\.[0-9]+)?)/);
+  return match ? Number(match[1]) : null;
 };
 
-// Build the Economic list page from the same source data used by the overview rollup.
-const renderEconomicOpportunityList = () => {
-  const tableBody = document.getElementById("economicOpportunityRows");
-  if (!tableBody) {
+const parseHoursValue = (value) => {
+  const match = String(value ?? "").replaceAll(",", "").match(/([0-9]+(?:\.[0-9]+)?)\s*labour hrs\/year|([0-9]+(?:\.[0-9]+)?)\s*hrs\/year/i);
+  return match ? Number(match[1] || match[2]) : null;
+};
+
+const normalizeSeededOpportunityRecord = (record) => {
+  const currentCost = parseCurrencyValue(record.current_cost_or_exposure);
+  const recommendedCost = parseCurrencyValue(record.recommended_cost_or_exposure);
+  return {
+    ...record,
+    opportunityType: record.opportunity_type,
+    primaryAxis: record.primary_axis,
+    secondaryAxis: record.secondary_axis,
+    recommendedActionType: record.recommended_action_type,
+    assetGroup: record.asset_group_equipment,
+    equipment: record.asset_class,
+    assetClass: record.asset_class,
+    title: record.opportunity_title,
+    currentState: record.current_state,
+    recommendedChange: record.recommended_change,
+    currentCostOrExposure: record.current_cost_or_exposure,
+    recommendedCostOrExposure: record.recommended_cost_or_exposure,
+    potentialValueExposureLabel: record.potential_value_or_exposure,
+    riskImpact: record.risk_impact,
+    confidenceLabel: record.confidence,
+    keyConstraint: record.key_constraint,
+    currentCost: currentCost ?? 0,
+    recommendedCost: recommendedCost ?? currentCost ?? 0,
+    potentialSaving: parseCurrencyValue(record.potential_value_or_exposure) ?? 0,
+    currentHours: parseHoursValue(record.current_cost_or_exposure) ?? 0,
+    recommendedHours: parseHoursValue(record.recommended_cost_or_exposure) ?? 0,
+    releasedHours: parseHoursValue(record.potential_value_or_exposure) ?? 0,
+  };
+};
+
+const seededReliabilityOpportunities = [...seededOpportunityRecordsExactA, ...seededOpportunityRecordsExactB].map(
+  normalizeSeededOpportunityRecord
+);
+const seededEconomicOpportunities = seededReliabilityOpportunities.filter(
+  (item) => item.primaryAxis === "Economic"
+);
+const isHighCriticality = (item) => item.criticality === "High / Critical";
+const isHighRiskImpact = (item) => ["High", "Severe"].includes(item.riskImpact);
+const isOperationallyConstrained = (item) =>
+  ["labour", "shutdown", "route", "engineering review", "planner update", "task packaging", "data quality"].some(
+    (term) => item.keyConstraint.toLowerCase().includes(term)
+  );
+
+const opportunityAxisViews = {
+  all: { label: "All", pageTitle: "All Opportunities", primaryAxis: "" },
+  economic: { label: "Economic-led", pageTitle: "Economic-led Opportunities", primaryAxis: "Economic" },
+  risk: { label: "Risk-led", pageTitle: "Risk-led Opportunities", primaryAxis: "Risk" },
+  operational: {
+    label: "Operational-led",
+    pageTitle: "Operational-led Opportunities",
+    primaryAxis: "Operational",
+  },
+};
+
+const getAxisSummary = (axis) => {
+  const items = seededReliabilityOpportunities.filter((item) => item.primaryAxis === axis);
+  if (axis === "Economic") {
+    return {
+      headline: formatCompactCurrency(items.reduce((sum, item) => sum + item.potentialSaving, 0)),
+      count: `${items.length} opportunities`,
+      supportA: `${formatCompactCurrency(items.reduce((sum, item) => sum + item.currentCost, 0))} current low-value cost`,
+      supportB: `${items.filter((item) => item.opportunityType === "Frequency mismatch").length} frequency mismatches`,
+      cta: "View economic-led opportunities",
+    };
+  }
+
+  if (axis === "Risk") {
+    const safetyCritical = items.filter(isHighCriticality).length;
+    const highExposure = items.filter(isHighRiskImpact).length;
+    return {
+      headline: `${items.length}`,
+      count: `${items.length} opportunities`,
+      supportA: `${safetyCritical} high-criticality assets`,
+      supportB: `${highExposure} high / severe exposures`,
+      cta: "View risk-led opportunities",
+    };
+  }
+
+  const releasedHours = items.reduce((sum, item) => sum + item.releasedHours, 0);
+  const shutdownDependent = items.filter((item) =>
+    item.keyConstraint.toLowerCase().includes("shutdown")
+  ).length;
+  const labourConstrained = items.filter((item) =>
+    item.keyConstraint.toLowerCase().includes("labour")
+  ).length;
+  return {
+    headline: releasedHours ? `${releasedHours} hrs/year` : `${items.length}`,
+    count: `${items.length} opportunities`,
+    supportA: `${shutdownDependent} shutdown-dependent`,
+    supportB: `${labourConstrained} labour-constrained`,
+    cta: "View operational-led opportunities",
+  };
+};
+
+const renderReliabilityOverview = () => {
+  const overviewRoot = document.getElementById("reliabilityInsightsOverview");
+  if (!overviewRoot) {
     return;
   }
 
-  const totalPotentialSavingsNode = document.getElementById("economicListTotalSavings");
-  const opportunityCountNode = document.getElementById("economicListOpportunityCount");
+  const areaValues = [...seededReliabilityOpportunities].reduce((map, item) => {
+    map.set(item.area, (map.get(item.area) || 0) + item.potentialSaving);
+    return map;
+  }, new Map());
+  const topAreas = [...areaValues.entries()].sort((left, right) => right[1] - left[1]).slice(0, 4);
+  const priorityRows = [...seededReliabilityOpportunities]
+    .sort((left, right) => {
+      const leftWeight = left.primaryAxis === "Risk" ? 2 : left.primaryAxis === "Operational" ? 1 : 0;
+      const rightWeight = right.primaryAxis === "Risk" ? 2 : right.primaryAxis === "Operational" ? 1 : 0;
+      if (rightWeight !== leftWeight) {
+        return rightWeight - leftWeight;
+      }
+      return right.potentialSaving - left.potentialSaving;
+    })
+    .slice(0, 4);
 
-  if (totalPotentialSavingsNode) {
-    totalPotentialSavingsNode.textContent = formatCompactCurrency(totalEconomicSavings);
+  const recommendationsReady = seededReliabilityOpportunities.filter(
+    (item) => item.confidenceLabel !== "Low" && item.status !== "Closed"
+  ).length;
+
+  const overviewMetrics = {
+    assessed: String(seededReliabilityOpportunities.length),
+    areas: new Set(seededReliabilityOpportunities.map((item) => item.area)).size,
+    critical: seededReliabilityOpportunities.filter(isHighCriticality).length,
+    ready: recommendationsReady,
+  };
+
+  const economicSummary = getAxisSummary("Economic");
+  const riskSummary = getAxisSummary("Risk");
+  const operationalSummary = getAxisSummary("Operational");
+
+  const setIfPresent = (id, value) => {
+    const node = document.getElementById(id);
+    if (node) {
+      node.textContent = value;
+    }
+  };
+
+  setIfPresent("overviewItemsAssessed", overviewMetrics.assessed);
+  setIfPresent("overviewAreasInScope", String(overviewMetrics.areas));
+  setIfPresent("overviewHighCriticalityAssets", String(overviewMetrics.critical));
+  setIfPresent("overviewRecommendationsReady", String(overviewMetrics.ready));
+
+  [
+    ["economicTotalSavings", economicSummary.headline],
+    ["economicOpportunityCount", economicSummary.count],
+    ["economicLowValueCost", economicSummary.supportA],
+    ["economicSupportStat", economicSummary.supportB],
+    ["riskHeadlineValue", riskSummary.headline],
+    ["riskOpportunityCount", riskSummary.count],
+    ["riskSupportStatA", riskSummary.supportA],
+    ["riskSupportStatB", riskSummary.supportB],
+    ["operationalHeadlineValue", operationalSummary.headline],
+    ["operationalOpportunityCount", operationalSummary.count],
+    ["operationalSupportStatA", operationalSummary.supportA],
+    ["operationalSupportStatB", operationalSummary.supportB],
+  ].forEach(([id, value]) => setIfPresent(id, value));
+
+  const actionSummaryList = document.getElementById("overviewActionSummary");
+  if (actionSummaryList) {
+    const blockers = seededReliabilityOpportunities.reduce((map, item) => {
+      map.set(item.keyConstraint, (map.get(item.keyConstraint) || 0) + 1);
+      return map;
+    }, new Map());
+    const topBlockers = [...blockers.entries()].sort((left, right) => right[1] - left[1]).slice(0, 3);
+    actionSummaryList.innerHTML = `
+      <div class="fiori-summary-list__item">
+        <span class="fiori-summary-list__label">Primary blocker</span>
+        <strong>${topBlockers[0]?.[0] ?? "Engineering review required"}</strong>
+      </div>
+      <div class="fiori-summary-list__item">
+        <span class="fiori-summary-list__label">Best first area</span>
+        <strong>${topAreas[0]?.[0] ?? "Processing plant"}</strong>
+      </div>
+      <div class="fiori-summary-list__item">
+        <span class="fiori-summary-list__label">Action mix</span>
+        <strong>${seededReliabilityOpportunities.filter((item) => item.recommendedActionType === "Reduce frequency").length} reduce frequency, ${seededReliabilityOpportunities.filter((item) => item.recommendedActionType === "Repackage route").length} repackage route</strong>
+      </div>
+    `;
   }
-  if (opportunityCountNode) {
-    opportunityCountNode.textContent = `${economicOpportunityCount} opportunities`;
+
+  const areaChart = document.getElementById("overviewSavingsByArea");
+  if (areaChart) {
+    const maxValue = Math.max(...topAreas.map(([, value]) => value), 1);
+    areaChart.innerHTML = topAreas
+      .map(
+        ([area, value]) => `
+          <div class="fiori-bar-row">
+            <div class="fiori-bar-row__meta">
+              <span>${area}</span>
+              <strong>${formatCompactCurrency(value)}</strong>
+            </div>
+            <div class="fiori-bar-row__track"><span style="width: ${(value / maxValue) * 100}%;"></span></div>
+          </div>
+        `
+      )
+      .join("");
   }
 
-  tableBody.innerHTML = economicOpportunities
-    .map(
-      (opportunity) => `
-        <tr data-href="economic-opportunity-detail.html?id=${opportunity.id}" tabindex="0">
-          <td>${opportunity.assetGroup}</td>
-          <td>${opportunity.title}</td>
-          <td>${formatCurrency(opportunity.currentCost)}</td>
-          <td>${formatCurrency(opportunity.recommendedCost)}</td>
-          <td>${formatCurrency(opportunity.potentialSaving)}</td>
-          <td>${opportunity.riskImpact}</td>
-          <td>${opportunity.confidence}</td>
-          <td>${opportunity.operationalConstraint}</td>
-          <td>${opportunity.status}</td>
-        </tr>
-      `
-    )
-    .join("");
+  const previewBody = document.getElementById("overviewPriorityRows");
+  if (previewBody) {
+    previewBody.innerHTML = priorityRows
+      .map(
+        (item) => `
+          <tr>
+            <td>${item.area}</td>
+            <td><a class="fiori-table__row-link" href="economic-opportunity-detail.html?id=${item.id}">${item.title}</a></td>
+            <td><span class="fiori-axis-tag fiori-axis-tag--${item.primaryAxis.toLowerCase()}">${item.primaryAxis}</span></td>
+            <td>${item.opportunityType}</td>
+            <td>${item.potentialValueExposureLabel}</td>
+            <td>${item.keyConstraint}</td>
+          </tr>
+        `
+      )
+      .join("");
+  }
+};
 
-  tableBody.querySelectorAll("tr[data-href]").forEach((row) => {
-    row.addEventListener("click", () => {
-      window.location.href = row.dataset.href;
-    });
-    row.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        window.location.href = row.dataset.href;
+const renderOpportunitiesWorkspace = () => {
+  const workspace = document.getElementById("opportunitiesWorkspace");
+  if (!workspace) {
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const state = {
+    view: params.get("view") || "all",
+    filters: {
+      opportunityType: params.get("opportunityType") || "",
+      primaryAxis: params.get("primaryAxis") || "",
+      secondaryAxis: params.get("secondaryAxis") || "",
+      assetClass: params.get("assetClass") || "",
+      criticality: params.get("criticality") || "",
+      confidence: params.get("confidence") || "",
+      area: params.get("area") || "",
+      status: params.get("status") || "",
+    },
+    groupBy: params.get("groupBy") || "opportunityType",
+  };
+
+  const axisFromView = opportunityAxisViews[state.view]?.primaryAxis || "";
+  if (!state.filters.primaryAxis && axisFromView) {
+    state.filters.primaryAxis = axisFromView;
+  }
+
+  const syncUrl = () => {
+    const next = new URLSearchParams();
+    if (state.view !== "all") {
+      next.set("view", state.view);
+    }
+    Object.entries(state.filters).forEach(([key, value]) => {
+      if (value) {
+        next.set(key, value);
       }
     });
+    if (state.groupBy !== "opportunityType") {
+      next.set("groupBy", state.groupBy);
+    }
+    const suffix = next.toString();
+    window.history.replaceState({}, "", `${window.location.pathname}${suffix ? `?${suffix}` : ""}`);
+  };
+
+  const getFilteredOpportunities = () =>
+    seededReliabilityOpportunities.filter((item) =>
+      (!state.filters.opportunityType || item.opportunityType === state.filters.opportunityType) &&
+      (!state.filters.primaryAxis || item.primaryAxis === state.filters.primaryAxis) &&
+      (!state.filters.secondaryAxis || item.secondaryAxis === state.filters.secondaryAxis) &&
+      (!state.filters.assetClass || item.assetClass === state.filters.assetClass) &&
+      (!state.filters.criticality || item.criticality === state.filters.criticality) &&
+      (!state.filters.confidence || item.confidenceLabel === state.filters.confidence) &&
+      (!state.filters.area || item.area === state.filters.area) &&
+      (!state.filters.status || item.status === state.filters.status)
+    );
+
+  const uniqueValues = (key) =>
+    [...new Set(seededReliabilityOpportunities.map((item) => item[key]).filter(Boolean))].sort();
+
+  const populateSelect = (id, values, selectedValue, placeholder) => {
+    const select = document.getElementById(id);
+    if (!select) {
+      return;
+    }
+    select.innerHTML = [`<option value="">${placeholder}</option>`]
+      .concat(values.map((value) => `<option value="${value}">${value}</option>`))
+      .join("");
+    select.value = selectedValue;
+  };
+
+  const renderPage = () => {
+    const filtered = getFilteredOpportunities();
+    const pageTitle = document.getElementById("opportunitiesPageTitle");
+    const pageVariant = document.getElementById("opportunitiesPageVariant");
+    const pageSubtitle = document.getElementById("opportunitiesPageSubtitle");
+    const summaryNodes = {
+      total: document.getElementById("opportunitiesTotalCount"),
+      savings: document.getElementById("opportunitiesTotalSavings"),
+      risk: document.getElementById("opportunitiesHighRiskCount"),
+      constrained: document.getElementById("opportunitiesConstrainedCount"),
+    };
+    const groupLabel = {
+      opportunityType: "Opportunity Type",
+      primaryAxis: "Primary Axis",
+      area: "Area",
+      assetClass: "Asset Class",
+    }[state.groupBy];
+
+    if (pageTitle) {
+      pageTitle.textContent = opportunityAxisViews[state.view]?.pageTitle || "Opportunities";
+    }
+    if (pageVariant) {
+      pageVariant.textContent = state.view === "all" ? "Working View" : opportunityAxisViews[state.view].label;
+    }
+    if (pageSubtitle) {
+      pageSubtitle.textContent =
+        "Surfaced maintenance strategy opportunities across cost, risk, and execution.";
+    }
+
+    if (summaryNodes.total) {
+      summaryNodes.total.textContent = String(filtered.length);
+    }
+    if (summaryNodes.savings) {
+      summaryNodes.savings.textContent = formatCompactCurrency(
+        filtered.reduce((sum, item) => sum + item.potentialSaving, 0)
+      );
+    }
+    if (summaryNodes.risk) {
+      summaryNodes.risk.textContent = String(
+        filtered.filter(isHighRiskImpact).length
+      );
+    }
+    if (summaryNodes.constrained) {
+      summaryNodes.constrained.textContent = String(
+        filtered.filter(isOperationallyConstrained).length
+      );
+    }
+
+    document.querySelectorAll("[data-opportunity-view]").forEach((button) => {
+      const isActive = button.getAttribute("data-opportunity-view") === state.view;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+
+    const groupLabelNode = document.getElementById("opportunitiesGroupLabel");
+    if (groupLabelNode) {
+      groupLabelNode.textContent = groupLabel;
+    }
+
+    const tableBody = document.getElementById("opportunitiesTableRows");
+    if (!tableBody) {
+      return;
+    }
+
+    const grouped = filtered.reduce((map, item) => {
+      const key = item[state.groupBy] || "Ungrouped";
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key).push(item);
+      return map;
+    }, new Map());
+
+    const searchSuffix = window.location.search ? `&from=${encodeURIComponent(window.location.search)}` : "";
+    tableBody.innerHTML = filtered.length
+      ? [...grouped.entries()]
+          .map(
+            ([group, items]) => `
+              <tr class="fiori-table__group-row">
+                <td colspan="19">
+                  <strong>${group}</strong>
+                  <span>${items.length} opportunities</span>
+                </td>
+              </tr>
+              ${items
+                .map(
+                  (item) => `
+                    <tr data-href="economic-opportunity-detail.html?id=${item.id}${searchSuffix}" tabindex="0">
+                      <td>${item.id}</td>
+                      <td>${item.opportunityType}</td>
+                      <td><span class="fiori-axis-tag fiori-axis-tag--${item.primaryAxis.toLowerCase()}">${item.primaryAxis}</span></td>
+                      <td>${item.secondaryAxis ? `<span class="fiori-axis-tag fiori-axis-tag--${item.secondaryAxis.toLowerCase()}">${item.secondaryAxis}</span>` : "<span class=\"fiori-table__muted\">-</span>"}</td>
+                      <td>${item.recommendedActionType}</td>
+                      <td>${item.area}</td>
+                      <td>${item.assetGroup}</td>
+                      <td>${item.assetClass}</td>
+                      <td>${item.criticality}</td>
+                      <td>${item.title}</td>
+                      <td>${item.currentState}</td>
+                      <td>${item.recommendedChange}</td>
+                      <td>${item.currentCostOrExposure}</td>
+                      <td>${item.recommendedCostOrExposure}</td>
+                      <td>${item.potentialValueExposureLabel}</td>
+                      <td>${item.riskImpact}</td>
+                      <td>${item.confidenceLabel}</td>
+                      <td>${item.keyConstraint}</td>
+                      <td>${item.status}</td>
+                    </tr>
+                  `
+                )
+                .join("")}
+            `
+          )
+          .join("")
+      : `
+          <tr>
+            <td colspan="19" class="fiori-table__empty">No opportunities match the current filters.</td>
+          </tr>
+        `;
+
+    tableBody.querySelectorAll("tr[data-href]").forEach((row) => {
+      row.addEventListener("click", () => {
+        window.location.href = row.dataset.href;
+      });
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          window.location.href = row.dataset.href;
+        }
+      });
+    });
+
+    syncUrl();
+  };
+
+  populateSelect("opportunityTypeFilter", uniqueValues("opportunityType"), state.filters.opportunityType, "All opportunity types");
+  populateSelect("primaryAxisFilter", uniqueValues("primaryAxis"), state.filters.primaryAxis, "All primary axes");
+  populateSelect("secondaryAxisFilter", uniqueValues("secondaryAxis"), state.filters.secondaryAxis, "All secondary axes");
+  populateSelect("assetClassFilter", uniqueValues("assetClass"), state.filters.assetClass, "All asset classes");
+  populateSelect("criticalityFilter", uniqueValues("criticality"), state.filters.criticality, "All criticalities");
+  populateSelect("confidenceFilter", uniqueValues("confidenceLabel"), state.filters.confidence, "All confidence levels");
+  populateSelect("areaFilter", uniqueValues("area"), state.filters.area, "All areas");
+  populateSelect("statusFilter", uniqueValues("status"), state.filters.status, "All statuses");
+  const groupByFilter = document.getElementById("groupByFilter");
+  if (groupByFilter) {
+    groupByFilter.value = state.groupBy;
+  }
+
+  [
+    ["opportunityTypeFilter", "opportunityType"],
+    ["primaryAxisFilter", "primaryAxis"],
+    ["secondaryAxisFilter", "secondaryAxis"],
+    ["assetClassFilter", "assetClass"],
+    ["criticalityFilter", "criticality"],
+    ["confidenceFilter", "confidence"],
+    ["areaFilter", "area"],
+    ["statusFilter", "status"],
+  ].forEach(([id, key]) => {
+    document.getElementById(id)?.addEventListener("change", (event) => {
+      state.filters[key] = event.target.value;
+      if (key === "primaryAxis") {
+        state.view =
+          Object.entries(opportunityAxisViews).find(
+            ([viewKey, config]) => viewKey !== "all" && config.primaryAxis === state.filters.primaryAxis
+          )?.[0] ?? "all";
+      }
+      renderPage();
+    });
   });
+
+  document.getElementById("groupByFilter")?.addEventListener("change", (event) => {
+    state.groupBy = event.target.value || "opportunityType";
+    renderPage();
+  });
+
+  document.querySelectorAll("[data-opportunity-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.view = button.getAttribute("data-opportunity-view") || "all";
+      state.filters.primaryAxis = opportunityAxisViews[state.view]?.primaryAxis || "";
+      const primarySelect = document.getElementById("primaryAxisFilter");
+      if (primarySelect) {
+        primarySelect.value = state.filters.primaryAxis;
+      }
+      renderPage();
+    });
+  });
+
+  renderPage();
 };
 
 const getOpportunityDetail = (opportunity) => {
-  if (opportunity.id === "gbx-mfa-321") {
-    return opportunity;
+  if (opportunity.id === "OPP-001") {
+    return {
+      ...opportunity,
+      ...gearboxOpportunityDetailSeed,
+      id: opportunity.id,
+      opportunityType: opportunity.opportunityType,
+      primaryAxis: opportunity.primaryAxis,
+      secondaryAxis: opportunity.secondaryAxis,
+      recommendedActionType: opportunity.recommendedActionType,
+      area: opportunity.area,
+      assetGroup: opportunity.assetGroup,
+      equipment: gearboxOpportunityDetailSeed?.equipment || opportunity.assetClass,
+      assetClass: opportunity.assetClass,
+      title: opportunity.title,
+      currentState: opportunity.currentState,
+      recommendedChange: opportunity.recommendedChange,
+      currentCostOrExposure: opportunity.currentCostOrExposure,
+      recommendedCostOrExposure: opportunity.recommendedCostOrExposure,
+      potentialValueExposureLabel: opportunity.potentialValueExposureLabel,
+      riskImpact: opportunity.riskImpact,
+      confidence: opportunity.confidenceLabel,
+      confidenceLabel: opportunity.confidenceLabel,
+      keyConstraint: opportunity.keyConstraint,
+      status: opportunity.status,
+      currentCost: opportunity.currentCost,
+      recommendedCost: opportunity.recommendedCost,
+      potentialSaving: opportunity.potentialSaving,
+    };
   }
+
+  const constraint = opportunity.keyConstraint || opportunity.operationalConstraint || "";
+  const currentCost = opportunity.currentCost || 120000;
+  const recommendedCost = opportunity.recommendedCost || Math.round(currentCost * 0.7);
 
   return {
     ...opportunity,
+    confidence: opportunity.confidenceLabel || opportunity.confidence || "Medium",
     summary: `Current planned maintenance activity on ${opportunity.assetGroup} appears more conservative than the present duty, defect yield, and consequence profile justify. Review data suggests there may be room to lower annual maintenance cost while maintaining current risk control.`,
     confidenceNote:
       "Confidence is moderated by mixed failure coding quality, limited direct condition evidence, and incomplete linkage between planned work and avoided consequence.",
@@ -530,9 +880,9 @@ const getOpportunityDetail = (opportunity) => {
     currentLabourHours: 240,
     recommendedLabourHours: 120,
     tradeoffModel: [
-      { key: "current", label: "Current", cost: opportunity.currentCost * 1.4, exposure: 0.16, riskIndex: 1.0 },
-      { key: "baseline", label: "Baseline", cost: opportunity.currentCost, exposure: 0.18, riskIndex: 1.08 },
-      { key: "recommended", label: "Recommended", cost: opportunity.recommendedCost, exposure: 0.24, riskIndex: 1.2 },
+      { key: "current", label: "Current", cost: Math.round(currentCost * 1.4), exposure: 0.16, riskIndex: 1.0 },
+      { key: "baseline", label: "Baseline", cost: currentCost, exposure: 0.18, riskIndex: 1.08 },
+      { key: "recommended", label: "Recommended", cost: recommendedCost, exposure: 0.24, riskIndex: 1.2 },
     ],
     inspectionYield: [
       {
@@ -654,11 +1004,10 @@ const getOpportunityDetail = (opportunity) => {
         rationale: "The cost-benefit case remains directional rather than definitive.",
       },
     ],
-    routeRedesignRequired: opportunity.operationalConstraint.toLowerCase().includes("route")
+    routeRedesignRequired: constraint.toLowerCase().includes("route")
       ? "Yes"
       : "Partly",
-    shutdownDependency:
-      opportunity.operationalConstraint.toLowerCase().includes("shutdown") ? "Yes" : "No",
+    shutdownDependency: constraint.toLowerCase().includes("shutdown") ? "Yes" : "No",
   };
 };
 
@@ -670,9 +1019,10 @@ const renderEconomicOpportunityDetail = () => {
   }
 
   const params = new URLSearchParams(window.location.search);
-  const selectedId = params.get("id") || economicOpportunities[0].id;
+  const selectedId = params.get("id") || seededReliabilityOpportunities[0].id;
+  const returnToListQuery = params.get("from") || "";
   const selectedOpportunity =
-    economicOpportunities.find((item) => item.id === selectedId) || economicOpportunities[0];
+    seededReliabilityOpportunities.find((item) => item.id === selectedId) || seededReliabilityOpportunities[0];
   const detail = getOpportunityDetail(selectedOpportunity);
   const detailState = {
     viewMode: params.get("mode") === "engineering" ? "engineering" : "executive",
@@ -709,6 +1059,11 @@ const renderEconomicOpportunityDetail = () => {
       node.innerHTML = items.map((item) => `<li>${item}</li>`).join("");
     }
   };
+
+  const detailBackToOpportunities = document.getElementById("detailBackToOpportunities");
+  if (detailBackToOpportunities && returnToListQuery) {
+    detailBackToOpportunities.href = `economic-opportunities.html${returnToListQuery}`;
+  }
 
   const getTooltip = () => {
     let tooltip = document.getElementById("analyticTooltip");
@@ -1088,6 +1443,9 @@ const renderEconomicOpportunityDetail = () => {
     const nextParams = new URLSearchParams(window.location.search);
     nextParams.set("id", selectedOpportunity.id);
     nextParams.set("mode", detailState.viewMode);
+    if (returnToListQuery) {
+      nextParams.set("from", returnToListQuery);
+    }
     const nextUrl = `${window.location.pathname}?${nextParams.toString()}`;
     window.history.replaceState({}, "", nextUrl);
   };
@@ -1134,7 +1492,7 @@ const renderEconomicOpportunityDetail = () => {
     setText("detailContextMeta", `${detail.area} - ${detail.equipment}`);
     setText("detailModeHeadline", modeHeadline);
     setText("detailModeSubheadline", modeSubheadline);
-    setText("detailOpportunityType", "Cost Reduction");
+    setText("detailOpportunityType", detail.opportunityType || "Opportunity");
     setText("detailReadinessStatus", readiness.label);
     setText("detailConfidence", getConfidenceLevel(confidenceScore));
     const confidenceBadge = document.getElementById("detailConfidence");
@@ -2348,6 +2706,6 @@ primaryAction?.addEventListener("click", () => {
   }
 });
 
-renderEconomicOverviewRollup();
-renderEconomicOpportunityList();
+renderReliabilityOverview();
+renderOpportunitiesWorkspace();
 renderEconomicOpportunityDetail();
