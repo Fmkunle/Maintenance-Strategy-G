@@ -171,9 +171,39 @@
               <p>Start a new analysis or open a recent project</p>
             </div>
 
+            <section class="hero-card">
+              <div class="hero-card__header">
+                <div id="selectedToolMark" class="product-mark">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+                  </svg>
+                </div>
+                <div class="hero-copy">
+                  <div class="hero-copy__topline">
+                    <h2 id="selectedToolTitle">AI-Assisted FMEA Builder</h2>
+                    <span id="selectedToolBadge" class="badge badge-ai">AI-ready</span>
+                  </div>
+                  <p id="selectedToolDescription">
+                    Generate structured failure modes, effects, and actions with guardrails.
+                  </p>
+                  <div id="selectedToolMeta" class="hero-meta">
+                    <span>SAE J1739 compatible</span>
+                    <span>RPN heatmap</span>
+                    <span>Export ready</span>
+                  </div>
+                  <p id="selectedToolStatus" class="hero-status" hidden></p>
+                </div>
+              </div>
+
+              <div class="hero-actions">
+                <button id="primaryAction" class="primary-button">Create new FMEA</button>
+                <button id="secondaryAction" class="secondary-button">Open existing</button>
+              </div>
+            </section>
+
             <section class="tools-section">
               <div class="section-heading section-heading--compact">
-                <h3>Analysis type</h3>
+                <h3>Tools</h3>
               </div>
 
               <div class="tool-selector" role="tablist" aria-label="Available tools">
@@ -225,101 +255,77 @@
                 </button>
               </div>
             </section>
-
-            <section class="hero-card">
-              <div class="hero-card__header">
-                <div id="selectedToolMark" class="product-mark">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
-                  </svg>
-                </div>
-                <div class="hero-copy">
-                  <div class="hero-copy__topline">
-                    <h2 id="selectedToolTitle">AI-Assisted FMEA Builder</h2>
-                    <span id="selectedToolBadge" class="badge badge-ai">AI-ready</span>
-                  </div>
-                  <p id="selectedToolDescription">
-                    Generate structured failure modes, effects, and actions with guardrails.
-                  </p>
-                  <div id="selectedToolMeta" class="hero-meta">
-                    <span>SAE J1739 compatible</span>
-                    <span>RPN heatmap</span>
-                    <span>Export ready</span>
-                  </div>
-                  <p id="selectedToolStatus" class="hero-status" hidden></p>
-                </div>
-              </div>
-
-              <div class="hero-actions">
-                <button id="primaryAction" class="primary-button">Create new FMEA</button>
-                <button id="secondaryAction" class="secondary-button">Open existing</button>
-              </div>
-            </section>
           </div>
 
           <aside class="welcome-side">
-            <section class="side-card">
-              <div class="side-card__header">
-                <div>
+            <details class="welcome-accordion side-card" open>
+              <summary class="welcome-accordion__summary">
+                <div class="welcome-accordion__copy">
                   <h3>Quick actions</h3>
                   <p>Designed to reduce clicks.</p>
                 </div>
                 <span class="badge">Pinned</span>
-              </div>
+              </summary>
 
-              <div class="action-list">
-                <button class="action-card">
-                  <strong>Import Excel/CSV</strong>
-                  <span>Bring an existing FMEA and upgrade it.</span>
-                </button>
-                <button class="action-card">
-                  <strong>Start from a template</strong>
-                  <span>Common equipment and process libraries.</span>
-                </button>
-                <button class="action-card">
-                  <strong>Ask Copilot</strong>
-                  <span>Suggest causes and controls for this failure mode.</span>
-                </button>
+              <div class="welcome-accordion__content">
+                <div class="action-list">
+                  <button class="action-card">
+                    <strong>Import Excel/CSV</strong>
+                    <span>Bring an existing FMEA and upgrade it.</span>
+                  </button>
+                  <button class="action-card">
+                    <strong>Start from a template</strong>
+                    <span>Common equipment and process libraries.</span>
+                  </button>
+                  <button class="action-card">
+                    <strong>Ask Copilot</strong>
+                    <span>Suggest causes and controls for this failure mode.</span>
+                  </button>
+                </div>
               </div>
-            </section>
+            </details>
 
-            <section class="recent-block side-card">
-              <div class="section-heading section-heading--compact">
-                <h3>Recent analyses</h3>
-                <p>Jump back in where you left off.</p>
-              </div>
+            <details class="welcome-accordion recent-block side-card" open>
+              <summary class="welcome-accordion__summary">
+                <div class="welcome-accordion__copy">
+                  <h3>Recent analyses</h3>
+                  <p>Jump back in where you left off.</p>
+                </div>
+              </summary>
 
-              <div class="recent-list">
-                <button class="recent-item">
-                  <div class="recent-item__title-row">
-                    <strong>FMEA-CocoaCola-Sept2025</strong>
-                    <span class="risk-chip risk-chip--high">High</span>
-                  </div>
-                  <span>FTSA &bull; Compressor &bull; 140 failure modes</span>
-                </button>
-                <button class="recent-item">
-                  <div class="recent-item__title-row">
-                    <strong>Magnetite Tramp Iron Removal</strong>
-                    <span class="risk-chip risk-chip--medium">Medium</span>
-                  </div>
-                  <span>Magnetic Separator &bull; Other</span>
-                </button>
-                <button class="recent-item">
-                  <div class="recent-item__title-row">
-                    <strong>Gas Turbine FMEA</strong>
-                    <span class="risk-chip risk-chip--high">High</span>
-                  </div>
-                  <span>Power Island &bull; 48 failure modes</span>
-                </button>
-                <button class="recent-item">
-                  <div class="recent-item__title-row">
-                    <strong>FlexSAF - Maint</strong>
-                    <span class="risk-chip risk-chip--critical">Critical</span>
-                  </div>
-                  <span>Supersonic Jet &bull; Other</span>
-                </button>
+              <div class="welcome-accordion__content">
+                <div class="recent-list">
+                  <button class="recent-item">
+                    <div class="recent-item__title-row">
+                      <strong>FMEA-CocoaCola-Sept2025</strong>
+                      <span class="risk-chip risk-chip--high">High</span>
+                    </div>
+                    <span>FTSA &bull; Compressor &bull; 140 failure modes</span>
+                  </button>
+                  <button class="recent-item">
+                    <div class="recent-item__title-row">
+                      <strong>Magnetite Tramp Iron Removal</strong>
+                      <span class="risk-chip risk-chip--medium">Medium</span>
+                    </div>
+                    <span>Magnetic Separator &bull; Other</span>
+                  </button>
+                  <button class="recent-item">
+                    <div class="recent-item__title-row">
+                      <strong>Gas Turbine FMEA</strong>
+                      <span class="risk-chip risk-chip--high">High</span>
+                    </div>
+                    <span>Power Island &bull; 48 failure modes</span>
+                  </button>
+                  <button class="recent-item">
+                    <div class="recent-item__title-row">
+                      <strong>FlexSAF - Maint</strong>
+                      <span class="risk-chip risk-chip--critical">Critical</span>
+                    </div>
+                    <span>Supersonic Jet &bull; Other</span>
+                  </button>
+                </div>
               </div>
-            </section>
+            </details>
           </aside>
         </section>
 

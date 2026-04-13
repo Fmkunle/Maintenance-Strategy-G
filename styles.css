@@ -924,7 +924,7 @@ body[data-theme="dark"] .shortcut {
 }
 
 .workspace--welcome .tools-section {
-  margin: 0 0 22px;
+  margin: 22px 0 0;
 }
 
 .workspace--welcome .tool-selector {
@@ -1128,6 +1128,68 @@ body[data-theme="dark"] .shortcut {
 .workspace--welcome .welcome-side {
   gap: 18px;
   padding-top: 52px;
+}
+
+.workspace--welcome .welcome-accordion {
+  overflow: hidden;
+}
+
+.workspace--welcome .welcome-accordion__summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.workspace--welcome .welcome-accordion__summary::-webkit-details-marker {
+  display: none;
+}
+
+.workspace--welcome .welcome-accordion__copy {
+  min-width: 0;
+}
+
+.workspace--welcome .welcome-accordion__copy h3,
+.workspace--welcome .welcome-accordion__copy p {
+  margin: 0;
+}
+
+.workspace--welcome .welcome-accordion__copy h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.workspace--welcome .welcome-accordion__copy p {
+  margin-top: 4px;
+  font-size: 0.77rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.workspace--welcome .welcome-accordion__summary::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-right: 1.8px solid var(--text-soft);
+  border-bottom: 1.8px solid var(--text-soft);
+  transform: rotate(45deg);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.workspace--welcome .welcome-accordion[open] .welcome-accordion__summary::after {
+  transform: rotate(225deg);
+}
+
+.workspace--welcome .welcome-accordion__summary:hover::after {
+  border-color: var(--accent);
+}
+
+.workspace--welcome .welcome-accordion__content {
+  margin-top: 14px;
 }
 
 .workspace--welcome .side-card,
