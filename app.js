@@ -2766,12 +2766,6 @@ const applyToolSelection = (toolKey, selectedOption) => {
     toolOption.classList.toggle("is-selected", isSelected);
     toolOption.setAttribute("aria-pressed", String(isSelected));
     toolOption.setAttribute("aria-selected", String(isSelected));
-
-    const badge = toolOption.querySelector(".badge");
-    if (badge) {
-      badge.textContent = isSelected ? "Selected" : (toolOption.dataset.tool === "pareto" ? "Soon" : "Ready");
-      badge.classList.toggle("badge-live", isSelected);
-    }
   });
 
   if (selectedToolMark) {

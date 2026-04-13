@@ -885,6 +885,295 @@ body[data-theme="dark"] .shortcut {
   color: var(--text);
 }
 
+/* Welcome page refinements to keep the launch experience visually cohesive. */
+.workspace--welcome {
+  max-width: 1200px;
+}
+
+.workspace--welcome .welcome-grid {
+  grid-template-columns: minmax(0, 1fr) 336px;
+  gap: 32px;
+  align-items: start;
+}
+
+.workspace--welcome .welcome-main {
+  max-width: 780px;
+}
+
+.workspace--welcome .section-heading {
+  margin-bottom: 24px;
+}
+
+.workspace--welcome .section-heading h1 {
+  font-size: 1.56rem;
+  line-height: 1.15;
+}
+
+.workspace--welcome .section-heading p {
+  font-size: 0.94rem;
+}
+
+.workspace--welcome .section-heading--compact {
+  margin-bottom: 12px;
+}
+
+.workspace--welcome .section-heading--compact h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.workspace--welcome .tools-section {
+  margin: 0 0 18px;
+}
+
+.workspace--welcome .tool-selector {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.12)),
+    var(--bg-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.workspace--welcome .tool-selector__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.workspace--welcome .tool-selector__option:hover {
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--text);
+}
+
+.workspace--welcome .tool-selector__option.is-selected {
+  background: var(--bg-panel);
+  color: var(--accent);
+  box-shadow: 0 10px 24px rgba(148, 163, 184, 0.18);
+}
+
+.workspace--welcome .tool-selector__option:focus-visible,
+.workspace--welcome .primary-button:focus-visible,
+.workspace--welcome .secondary-button:focus-visible,
+.workspace--welcome .action-card:focus-visible,
+.workspace--welcome .recent-item:focus-visible {
+  outline: 2px solid rgba(88, 102, 255, 0.3);
+  outline-offset: 2px;
+}
+
+.workspace--welcome .tool-selector__label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.workspace--welcome .tool-selector__state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(99, 119, 155, 0.1);
+  color: var(--text-muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+}
+
+.workspace--welcome .tool-selector__option--coming-soon {
+  color: var(--text-soft);
+}
+
+.workspace--welcome .tool-selector__option--coming-soon:hover {
+  color: var(--text-muted);
+}
+
+.workspace--welcome .hero-card {
+  padding: 26px 26px 24px;
+  border-color: rgba(88, 102, 255, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(88, 102, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.96)),
+    var(--bg-panel);
+  box-shadow: 0 18px 42px rgba(148, 163, 184, 0.16);
+}
+
+.workspace--welcome .hero-card__header {
+  gap: 16px;
+}
+
+.workspace--welcome .product-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(88, 102, 255, 0.08);
+  border-color: rgba(88, 102, 255, 0.12);
+  color: var(--accent);
+}
+
+.workspace--welcome .hero-copy__topline h2 {
+  font-size: 1.08rem;
+  line-height: 1.25;
+}
+
+.workspace--welcome .hero-copy p {
+  max-width: 50ch;
+  margin-top: 8px;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.workspace--welcome .hero-meta {
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.workspace--welcome .hero-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(99, 119, 155, 0.08);
+  color: var(--text-muted);
+}
+
+.workspace--welcome .hero-meta span::after {
+  content: "";
+  margin: 0;
+}
+
+.workspace--welcome #selectedToolBadge {
+  border-color: rgba(88, 102, 255, 0.14);
+  background: rgba(88, 102, 255, 0.08);
+  color: var(--accent);
+}
+
+.workspace--welcome .hero-status {
+  margin-top: 12px;
+  font-size: 0.8rem;
+}
+
+.workspace--welcome .hero-actions {
+  grid-template-columns: minmax(0, 1.08fr) minmax(210px, 0.92fr);
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.workspace--welcome .primary-button,
+.workspace--welcome .secondary-button {
+  min-height: 46px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+}
+
+.workspace--welcome .secondary-button {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.workspace--welcome .welcome-side {
+  gap: 18px;
+  padding-top: 52px;
+}
+
+.workspace--welcome .side-card,
+.workspace--welcome .recent-block {
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.workspace--welcome .side-card__header,
+.workspace--welcome .recent-block .section-heading--compact {
+  margin-bottom: 14px;
+}
+
+.workspace--welcome .action-card,
+.workspace--welcome .recent-item {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: var(--bg-soft);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.workspace--welcome .action-card:hover,
+.workspace--welcome .recent-item:hover {
+  border-color: rgba(88, 102, 255, 0.16);
+  background: var(--bg-panel);
+  transform: translateY(-1px);
+}
+
+.workspace--welcome .action-card strong,
+.workspace--welcome .recent-item strong {
+  font-size: 0.83rem;
+}
+
+.workspace--welcome .action-card span,
+.workspace--welcome .recent-item span,
+.workspace--welcome .side-card__header p,
+.workspace--welcome .recent-block .section-heading--compact p {
+  font-size: 0.77rem;
+  line-height: 1.45;
+}
+
+.workspace--welcome .workspace-footer {
+  margin-top: 28px;
+}
+
+@media (max-width: 1080px) {
+  .workspace--welcome .welcome-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace--welcome .welcome-main {
+    max-width: none;
+  }
+
+  .workspace--welcome .welcome-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace--welcome .tool-selector {
+    width: 100%;
+  }
+
+  .workspace--welcome .tool-selector__option {
+    flex: 1 1 calc(50% - 6px);
+  }
+
+  .workspace--welcome .welcome-side {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace--welcome .hero-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Reliability Insights shared page header and dashboard chrome. */
 .section-label {
   display: inline-flex;

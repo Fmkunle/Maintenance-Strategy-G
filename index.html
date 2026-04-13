@@ -177,44 +177,21 @@
               </div>
 
               <div class="tool-selector" role="tablist" aria-label="Available tools">
-                <button class="tool-selector__option" data-tool="maintenance" aria-pressed="false" role="tab" aria-selected="false">
-                  <span class="tool-selector__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M14.5 5.5a3 3 0 0 1 4 4l-2 2-4-4zM4 20l4.5-1 8-8-3.5-3.5-8 8z"></path>
-                    </svg>
-                  </span>
+                <button type="button" class="tool-selector__option" data-tool="maintenance" aria-pressed="false" role="tab" aria-selected="false">
                   <span class="tool-selector__label">Maintenance Strategy</span>
-                  <span class="badge">Ready</span>
                 </button>
 
-                <button class="tool-selector__option" data-tool="cba" aria-pressed="false" role="tab" aria-selected="false">
-                  <span class="tool-selector__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M12 3v18M17 7.5c0-1.9-1.8-3.5-5-3.5s-5 1.6-5 3.5 1.4 2.9 5 3.5 5 1.6 5 3.5-1.8 3.5-5 3.5-5-1.6-5-3.5"></path>
-                    </svg>
-                  </span>
+                <button type="button" class="tool-selector__option" data-tool="cba" aria-pressed="false" role="tab" aria-selected="false">
                   <span class="tool-selector__label">Reliability Insights</span>
-                  <span class="badge">Ready</span>
                 </button>
 
-                <button class="tool-selector__option" data-tool="pareto" aria-pressed="false" role="tab" aria-selected="false">
-                  <span class="tool-selector__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>
-                    </svg>
-                  </span>
+                <button type="button" class="tool-selector__option tool-selector__option--coming-soon" data-tool="pareto" aria-pressed="false" role="tab" aria-selected="false">
                   <span class="tool-selector__label">Pareto + Weibull</span>
-                  <span class="badge">Soon</span>
+                  <span class="tool-selector__state">Soon</span>
                 </button>
 
-                <button class="tool-selector__option is-selected" data-tool="fmea" aria-pressed="true" role="tab" aria-selected="true">
-                  <span class="tool-selector__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
-                    </svg>
-                  </span>
+                <button type="button" class="tool-selector__option is-selected" data-tool="fmea" aria-pressed="true" role="tab" aria-selected="true">
                   <span class="tool-selector__label">FMEA</span>
-                  <span class="badge badge-live">Selected</span>
                 </button>
               </div>
             </section>
@@ -276,7 +253,7 @@
               </div>
             </section>
 
-            <section class="recent-block">
+            <section class="recent-block side-card">
               <div class="section-heading section-heading--compact">
                 <h3>Recent analyses</h3>
                 <p>Jump back in where you left off.</p>
