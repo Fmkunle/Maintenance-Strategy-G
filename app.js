@@ -2765,6 +2765,7 @@ const applyToolSelection = (toolKey, selectedOption) => {
     const isSelected = toolOption === selectedOption;
     toolOption.classList.toggle("is-selected", isSelected);
     toolOption.setAttribute("aria-pressed", String(isSelected));
+    toolOption.setAttribute("aria-selected", String(isSelected));
 
     const badge = toolOption.querySelector(".badge");
     if (badge) {
