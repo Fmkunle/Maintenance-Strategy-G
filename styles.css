@@ -97,6 +97,11 @@ svg {
   display: grid;
   grid-template-columns: 264px minmax(0, 1fr);
   min-height: 100vh;
+  transition: grid-template-columns var(--transition-fast);
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 84px minmax(0, 1fr);
 }
 
 .sidebar {
@@ -105,6 +110,9 @@ svg {
   gap: 10px;
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
+  min-width: 0;
+  overflow: hidden;
+  transition: padding var(--transition-fast), gap var(--transition-fast);
 }
 
 .sidebar__brand {
@@ -113,6 +121,11 @@ svg {
   gap: 12px;
   padding: 14px 14px 10px;
   border-bottom: 1px solid var(--border);
+}
+
+.app-shell.sidebar-collapsed .sidebar__brand {
+  justify-content: center;
+  padding-inline: 8px;
 }
 
 .sidebar-logo,
@@ -140,6 +153,15 @@ svg {
 
 .sidebar__brand-copy {
   min-width: 0;
+}
+
+.app-shell.sidebar-collapsed .sidebar__brand-copy,
+.app-shell.sidebar-collapsed .org-switcher,
+.app-shell.sidebar-collapsed .sidebar__section-label,
+.app-shell.sidebar-collapsed .nav-pill > :not(.nav-pill__icon),
+.app-shell.sidebar-collapsed .nav-row > :not(.nav-row__icon),
+.app-shell.sidebar-collapsed .upgrade-card {
+  display: none;
 }
 
 .sidebar__brand-copy strong,
@@ -177,6 +199,10 @@ svg {
   padding: 0 12px;
 }
 
+.app-shell.sidebar-collapsed .sidebar-nav {
+  padding-inline: 8px;
+}
+
 .sidebar-nav--stacked {
   gap: 6px;
 }
@@ -204,6 +230,13 @@ svg {
   text-align: left;
   color: var(--text);
   text-decoration: none;
+}
+
+.app-shell.sidebar-collapsed .nav-pill,
+.app-shell.sidebar-collapsed .nav-row,
+.app-shell.sidebar-collapsed .nav-row--footer {
+  justify-content: center;
+  padding-inline: 0;
 }
 
 .nav-pill {
@@ -250,6 +283,10 @@ svg {
   margin-top: auto;
   padding: 8px 12px 14px;
   border-top: 1px solid var(--border);
+}
+
+.app-shell.sidebar-collapsed .sidebar-footer {
+  padding-inline: 8px;
 }
 
 .nav-row--footer {
@@ -1234,7 +1271,8 @@ body[data-theme="dark"] .shortcut {
 }
 
 .workspace--welcome .workspace-footer {
-  margin-top: 28px;
+  margin-top: auto;
+  padding-top: 24px;
 }
 
 @media (max-width: 1080px) {

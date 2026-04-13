@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator Demo</title>
-  <link rel="stylesheet" href="styles.css?v=welcome-circles-2">
+  <link rel="stylesheet" href="styles.css?v=welcome-layout-3">
 </head>
 <body data-theme="light">
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar__brand">
-        <button class="sidebar-logo" aria-label="AgenticAI home">
+        <button id="sidebarToggle" class="sidebar-logo" aria-label="Toggle sidebar" aria-expanded="false" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="4" y="4" width="16" height="16" rx="4"></rect>
             <path d="M9 8v8M15 8l-4 4 4 4"></path>
@@ -258,7 +258,7 @@
           </div>
 
           <aside class="welcome-side">
-            <details class="welcome-accordion side-card" open>
+            <details class="welcome-accordion side-card">
               <summary class="welcome-accordion__summary">
                 <div class="welcome-accordion__copy">
                   <h3>Quick actions</h3>
@@ -337,6 +337,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=welcome-circles-2"></script>
+  <script src="app.js?v=welcome-layout-3"></script>
 </body>
 </html>

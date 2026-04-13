@@ -262,6 +262,8 @@ const gearboxOpportunityDetailSeed = {
 };
 
 const body = document.body;
+const appShell = document.querySelector(".app-shell");
+const sidebarToggle = document.getElementById("sidebarToggle");
 const themeToggle = document.getElementById("themeToggle");
 const selectedToolMark = document.getElementById("selectedToolMark");
 const selectedToolTitle = document.getElementById("selectedToolTitle");
@@ -273,6 +275,7 @@ const primaryAction = document.getElementById("primaryAction");
 const secondaryAction = document.getElementById("secondaryAction");
 const toolOptions = document.querySelectorAll(".tool-selector__option");
 const themeStorageKey = "agenticai-theme";
+const sidebarStorageKey = "agenticai-sidebar-collapsed";
 let activeToolKey =
   document.querySelector(".tool-selector__option.is-selected")?.dataset.tool ?? "fmea";
 
@@ -289,6 +292,18 @@ const storedTheme = window.localStorage.getItem(themeStorageKey);
 if (storedTheme === "dark" || storedTheme === "light") {
   applyTheme(storedTheme);
 }
+
+const applySidebarState = (isCollapsed) => {
+  if (!appShell) {
+    return;
+  }
+
+  appShell.classList.toggle("sidebar-collapsed", isCollapsed);
+  sidebarToggle?.setAttribute("aria-expanded", String(!isCollapsed));
+};
+
+const storedSidebarState = window.localStorage.getItem(sidebarStorageKey);
+applySidebarState(storedSidebarState === null ? true : storedSidebarState === "true");
 
 const formatCompactCurrency = (value) => {
   if (!Number.isFinite(value)) {
@@ -2750,6 +2765,12 @@ themeToggle?.addEventListener("click", () => {
   const nextTheme = body.dataset.theme === "dark" ? "light" : "dark";
   applyTheme(nextTheme);
   window.localStorage.setItem(themeStorageKey, nextTheme);
+});
+
+sidebarToggle?.addEventListener("click", () => {
+  const nextCollapsed = !appShell?.classList.contains("sidebar-collapsed");
+  applySidebarState(nextCollapsed);
+  window.localStorage.setItem(sidebarStorageKey, String(nextCollapsed));
 });
 
 // Sync the selected tool tile with the hero card content and CTA behavior.
