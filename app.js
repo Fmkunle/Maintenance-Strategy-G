@@ -1,6 +1,8 @@
 // Central copy and navigation config for the home-page tool selector.
 const toolDefinitions = {
   maintenance: {
+    icon:
+      '<path d="M14.5 5.5a3 3 0 0 1 4 4l-2 2-4-4zM4 20l4.5-1 8-8-3.5-3.5-8 8z"></path>',
     title: "Maintenance Strategy Generator",
     description:
       "Generate structured maintenance strategies, tasks, and intervals with guardrails.",
@@ -9,11 +11,15 @@ const toolDefinitions = {
       "Task library",
       "Export ready",
     ],
+    badgeLabel: "Ready",
     action: "Create new strategy",
     secondaryAction: "Open existing",
     actionHref: null,
+    available: true,
   },
   cba: {
+    icon:
+      '<path d="M12 3v18M17 7.5c0-1.9-1.8-3.5-5-3.5s-5 1.6-5 3.5 1.4 2.9 5 3.5 5 1.6 5 3.5-1.8 3.5-5 3.5-5-1.6-5-3.5"></path>',
     title: "Reliability Insights",
     description:
       "Reliability Insights shows where maintenance cost, exposure, and execution logic are misaligned.",
@@ -22,11 +28,15 @@ const toolDefinitions = {
       "Risk gaps",
       "Labour allocation",
     ],
+    badgeLabel: "Ready",
     action: "Open insights",
     secondaryAction: "Open existing",
     actionHref: "reliability-insights-fiori.html",
+    available: true,
   },
   fmea: {
+    icon:
+      '<path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>',
     title: "AI-Assisted FMEA Builder",
     description:
       "Generate structured failure modes, effects, and actions with guardrails.",
@@ -35,9 +45,29 @@ const toolDefinitions = {
       "RPN heatmap",
       "Export ready",
     ],
+    badgeLabel: "AI-ready",
     action: "Create new FMEA",
     secondaryAction: "Open existing",
     actionHref: null,
+    available: true,
+  },
+  pareto: {
+    icon:
+      '<path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>',
+    title: "Quick Pareto + Weibull Analysis",
+    description:
+      "Reliability pattern detection from failure history and operating age.",
+    meta: [
+      "Failure history",
+      "Age distribution",
+      "Coming soon",
+    ],
+    badgeLabel: "Coming soon",
+    action: "Available soon",
+    secondaryAction: "Open existing",
+    actionHref: null,
+    available: false,
+    statusMessage: "This tool is planned but not available yet.",
   },
 };
 
@@ -233,15 +263,18 @@ const gearboxOpportunityDetailSeed = {
 
 const body = document.body;
 const themeToggle = document.getElementById("themeToggle");
+const selectedToolMark = document.getElementById("selectedToolMark");
 const selectedToolTitle = document.getElementById("selectedToolTitle");
 const selectedToolDescription = document.getElementById("selectedToolDescription");
 const selectedToolMeta = document.getElementById("selectedToolMeta");
+const selectedToolBadge = document.getElementById("selectedToolBadge");
+const selectedToolStatus = document.getElementById("selectedToolStatus");
 const primaryAction = document.getElementById("primaryAction");
 const secondaryAction = document.getElementById("secondaryAction");
-const toolCards = document.querySelectorAll(".tool-card--selectable");
+const toolOptions = document.querySelectorAll(".tool-selector__option");
 const themeStorageKey = "agenticai-theme";
 let activeToolKey =
-  document.querySelector(".tool-card--selectable.is-selected")?.dataset.tool ?? "fmea";
+  document.querySelector(".tool-selector__option.is-selected")?.dataset.tool ?? "fmea";
 
 // Keep theme preference consistent as users move between the overview pages.
 const applyTheme = (theme) => {
@@ -2720,7 +2753,7 @@ themeToggle?.addEventListener("click", () => {
 });
 
 // Sync the selected tool tile with the hero card content and CTA behavior.
-const applyToolSelection = (toolKey, selectedCard) => {
+const applyToolSelection = (toolKey, selectedOption) => {
   const tool = toolDefinitions[toolKey];
   if (!tool) {
     return;
@@ -2728,16 +2761,21 @@ const applyToolSelection = (toolKey, selectedCard) => {
 
   activeToolKey = toolKey;
 
-  toolCards.forEach((toolCard) => {
-    toolCard.classList.toggle("is-selected", toolCard === selectedCard);
+  toolOptions.forEach((toolOption) => {
+    const isSelected = toolOption === selectedOption;
+    toolOption.classList.toggle("is-selected", isSelected);
+    toolOption.setAttribute("aria-pressed", String(isSelected));
 
-    const badge = toolCard.querySelector(".badge");
+    const badge = toolOption.querySelector(".badge");
     if (badge) {
-      badge.textContent = toolCard === selectedCard ? "Selected" : "Ready";
-      badge.classList.toggle("badge-live", toolCard === selectedCard);
+      badge.textContent = isSelected ? "Selected" : (toolOption.dataset.tool === "pareto" ? "Soon" : "Ready");
+      badge.classList.toggle("badge-live", isSelected);
     }
   });
 
+  if (selectedToolMark) {
+    selectedToolMark.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${tool.icon}</svg>`;
+  }
   if (selectedToolTitle) {
     selectedToolTitle.textContent = tool.title;
   }
@@ -2749,28 +2787,43 @@ const applyToolSelection = (toolKey, selectedCard) => {
       .map((item) => `<span>${item}</span>`)
       .join("");
   }
+  if (selectedToolBadge) {
+    selectedToolBadge.textContent = tool.badgeLabel;
+    selectedToolBadge.classList.toggle("badge-ai", tool.badgeLabel === "AI-ready");
+    selectedToolBadge.classList.toggle("badge-soon", !tool.available);
+  }
+  if (selectedToolStatus) {
+    selectedToolStatus.hidden = !tool.statusMessage;
+    selectedToolStatus.textContent = tool.statusMessage ?? "";
+  }
   if (primaryAction) {
     primaryAction.textContent = tool.action;
     primaryAction.dataset.href = tool.actionHref ?? "";
+    primaryAction.disabled = !tool.available;
   }
   if (secondaryAction) {
     secondaryAction.textContent = tool.secondaryAction;
+    secondaryAction.disabled = !tool.available;
   }
 };
 
-toolCards.forEach((card) => {
-  card.addEventListener("click", () => {
-    applyToolSelection(card.dataset.tool, card);
+toolOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    applyToolSelection(option.dataset.tool, option);
   });
 });
 
-const selectedCard = document.querySelector(`.tool-card--selectable[data-tool="${activeToolKey}"]`);
-if (selectedCard) {
-  applyToolSelection(activeToolKey, selectedCard);
+const selectedOption = document.querySelector(`.tool-selector__option[data-tool="${activeToolKey}"]`);
+if (selectedOption) {
+  applyToolSelection(activeToolKey, selectedOption);
 }
 
 // Some tools stay on the landing page; others launch a dedicated workflow page.
 primaryAction?.addEventListener("click", () => {
+  if (primaryAction.disabled) {
+    return;
+  }
+
   const targetHref = toolDefinitions[activeToolKey]?.actionHref || primaryAction.dataset.href;
   if (targetHref) {
     window.location.href = targetHref;

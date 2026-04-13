@@ -173,7 +173,7 @@
 
             <section class="hero-card">
               <div class="hero-card__header">
-                <div class="product-mark">
+                <div id="selectedToolMark" class="product-mark">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
                   </svg>
@@ -181,7 +181,7 @@
                 <div class="hero-copy">
                   <div class="hero-copy__topline">
                     <h2 id="selectedToolTitle">AI-Assisted FMEA Builder</h2>
-                    <span class="badge badge-ai">AI-ready</span>
+                    <span id="selectedToolBadge" class="badge badge-ai">AI-ready</span>
                   </div>
                   <p id="selectedToolDescription">
                     Generate structured failure modes, effects, and actions with guardrails.
@@ -191,6 +191,7 @@
                     <span>RPN heatmap</span>
                     <span>Export ready</span>
                   </div>
+                  <p id="selectedToolStatus" class="hero-status" hidden></p>
                 </div>
               </div>
 
@@ -202,60 +203,48 @@
 
             <section class="tools-section">
               <div class="section-heading section-heading--compact">
-                <h3>Tools</h3>
-                <p>Start with FMEA or strategy generation; more tools coming soon.</p>
+                <h3>Analysis type</h3>
+                <p>Select a tool to update the launch card.</p>
               </div>
 
-              <div class="tool-grid" role="list" aria-label="Available tools">
-                <button class="tool-card tool-card--selectable" data-tool="maintenance" role="listitem">
-                  <div class="tool-card__icon">
+              <div class="tool-selector" role="group" aria-label="Available tools">
+                <button class="tool-selector__option" data-tool="maintenance" aria-pressed="false">
+                  <span class="tool-selector__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M14.5 5.5a3 3 0 0 1 4 4l-2 2-4-4zM4 20l4.5-1 8-8-3.5-3.5-8 8z"></path>
                     </svg>
-                  </div>
-                  <div class="tool-card__copy">
-                    <h4>Maintenance Strategy Generator</h4>
-                    <p>Generate structured maintenance strategies, tasks, and intervals with guardrails.</p>
-                  </div>
+                  </span>
+                  <span class="tool-selector__label">Maintenance Strategy</span>
                   <span class="badge">Ready</span>
                 </button>
 
-                <button class="tool-card tool-card--selectable" data-tool="cba" role="listitem">
-                  <div class="tool-card__icon">
+                <button class="tool-selector__option" data-tool="cba" aria-pressed="false">
+                  <span class="tool-selector__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M12 3v18M17 7.5c0-1.9-1.8-3.5-5-3.5s-5 1.6-5 3.5 1.4 2.9 5 3.5 5 1.6 5 3.5-1.8 3.5-5 3.5-5-1.6-5-3.5"></path>
                     </svg>
-                  </div>
-                  <div class="tool-card__copy">
-                    <h4>Reliability Insights</h4>
-                    <p>Reliability Insights shows where maintenance cost, exposure, and execution logic are misaligned.</p>
-                  </div>
+                  </span>
+                  <span class="tool-selector__label">Reliability Insights</span>
                   <span class="badge">Ready</span>
                 </button>
 
-                <button class="tool-card is-disabled" data-tool="pareto" role="listitem">
-                  <div class="tool-card__icon">
+                <button class="tool-selector__option" data-tool="pareto" aria-pressed="false">
+                  <span class="tool-selector__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>
                     </svg>
-                  </div>
-                  <div class="tool-card__copy">
-                    <h4>Quick Pareto + Weibull Analysis</h4>
-                    <p>Reliability pattern detection from failure history and operating age.</p>
-                  </div>
+                  </span>
+                  <span class="tool-selector__label">Pareto + Weibull</span>
                   <span class="badge">Soon</span>
                 </button>
 
-                <button class="tool-card tool-card--selectable is-selected" data-tool="fmea" role="listitem">
-                  <div class="tool-card__icon">
+                <button class="tool-selector__option is-selected" data-tool="fmea" aria-pressed="true">
+                  <span class="tool-selector__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
                     </svg>
-                  </div>
-                  <div class="tool-card__copy">
-                    <h4>AI-Assisted FMEA Builder</h4>
-                    <p>Generate structured failure modes, effects, and actions with guardrails.</p>
-                  </div>
+                  </span>
+                  <span class="tool-selector__label">FMEA</span>
                   <span class="badge badge-live">Selected</span>
                 </button>
               </div>
