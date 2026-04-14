@@ -14,7 +14,7 @@ const toolDefinitions = {
     badgeLabel: "Ready",
     action: "Create new strategy",
     secondaryAction: "Open existing",
-    actionHref: null,
+    actionHref: "maintenance-strategy.html",
     available: true,
   },
   cba: {

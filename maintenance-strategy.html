@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maintenance Strategy Generator | Asset &amp; Context Definition</title>
+  <link rel="stylesheet" href="styles.css?v=maintenance-step-1">
+</head>
+<body class="maintenance-strategy-page" data-theme="light">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <button id="sidebarToggle" class="sidebar-logo" aria-label="Toggle sidebar" aria-expanded="false" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+            <path d="M9 8v8M15 8l-4 4 4 4"></path>
+          </svg>
+        </button>
+        <div class="sidebar__brand-copy">
+          <strong>AgenticAI</strong>
+          <span>Reliability workspace</span>
+        </div>
+      </div>
+
+      <button class="org-switcher" aria-label="Current workspace" type="button">
+        <span>Namin</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6"></path>
+        </svg>
+      </button>
+
+      <nav class="sidebar-nav" aria-label="Primary">
+        <a class="nav-pill" href="index.html">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+            </svg>
+          </span>
+          <span>Home</span>
+        </a>
+        <button class="nav-pill is-active" type="button">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14.5 5.5a3 3 0 0 1 4 4l-2 2-4-4zM4 20l4.5-1 8-8-3.5-3.5-8 8z"></path>
+            </svg>
+          </span>
+          <span>Maintenance Strategy</span>
+        </button>
+      </nav>
+
+      <div class="sidebar__section-label">Workflow</div>
+      <nav class="sidebar-nav sidebar-nav--stacked" aria-label="Workflow steps">
+        <button class="nav-row nav-row--active" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </span>
+          <span>1. Asset &amp; Context</span>
+        </button>
+        <button class="nav-row" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 6h10M7 12h10M7 18h10"></path>
+              <path d="M4 6h.01M4 12h.01M4 18h.01"></path>
+            </svg>
+          </span>
+          <span>2. Failure Definition</span>
+        </button>
+        <button class="nav-row" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M5 12h14"></path>
+            </svg>
+          </span>
+          <span>3. Task Logic</span>
+        </button>
+        <button class="nav-row" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 18h16"></path>
+              <path d="M6 18V9l6-4 6 4v9"></path>
+            </svg>
+          </span>
+          <span>4. Interval Review</span>
+        </button>
+        <button class="nav-row" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 4h12v16H6z"></path>
+              <path d="M9 8h6M9 12h6M9 16h4"></path>
+            </svg>
+          </span>
+          <span>5. Review &amp; Export</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a class="nav-row nav-row--footer" href="index.html">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+          </span>
+          <span>Back to home</span>
+        </a>
+        <section class="upgrade-card">
+          <div class="upgrade-card__title">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13 2L4 14h6l-1 8 9-12h-6z"></path>
+            </svg>
+            <strong>Step 1 goal</strong>
+          </div>
+          <p>Define scope clearly enough for strategy logic to start from the right asset context.</p>
+        </section>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="search-shell search-shell--page">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 12h16"></path>
+            <path d="M4 6h9"></path>
+            <path d="M4 18h12"></path>
+          </svg>
+          <div class="search-shell__copy">
+            <strong>Maintenance Strategy Generator</strong>
+            <span>Step 1 of 5: Asset &amp; Context Definition</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="themeToggle" class="icon-button" aria-label="Toggle theme" type="button">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+          </button>
+          <a class="icon-button icon-button--link" href="index.html" aria-label="Return home">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+          </a>
+        </div>
+      </header>
+
+      <main class="workspace workspace--wide workspace--maintenance">
+        <section class="maintenance-hero">
+          <div class="maintenance-hero__copy">
+            <span class="badge badge-live">MVP step</span>
+            <h1>Define the asset scope before strategy logic starts.</h1>
+            <p>Build the hierarchy path, choose whether you are analyzing the system, equipment, or component, and capture the operating context that frames later recommendations.</p>
+          </div>
+          <div class="maintenance-hero__stats">
+            <article class="maintenance-stat">
+              <span class="maintenance-stat__label">Current scope</span>
+              <strong id="scopeSummaryLabel">Equipment</strong>
+              <p id="scopeSummaryPath">Select the target level for this strategy.</p>
+            </article>
+            <article class="maintenance-stat">
+              <span class="maintenance-stat__label">Draft status</span>
+              <strong id="draftStatusLabel">Not saved</strong>
+              <p id="draftStatusMeta">Changes are stored locally in this browser.</p>
+            </article>
+          </div>
+        </section>
+
+        <div id="workflowNotice" class="maintenance-notice" hidden></div>
+
+        <section class="maintenance-grid">
+          <section class="maintenance-panel">
+            <div class="maintenance-panel__header">
+              <div>
+                <h2>Hierarchy builder</h2>
+                <p>Create the path from site down to equipment, then add components only if needed.</p>
+              </div>
+              <div class="maintenance-panel__actions">
+                <button id="addLevelButton" class="secondary-button" type="button">Add level</button>
+                <button id="addComponentButton" class="secondary-button" type="button">Add component</button>
+              </div>
+            </div>
+
+            <div class="maintenance-path" id="selectedPathPills"></div>
+            <div class="hierarchy-tree" id="hierarchyTree" aria-live="polite"></div>
+          </section>
+
+          <section class="maintenance-panel">
+            <div class="maintenance-panel__header">
+              <div>
+                <h2 id="selectedNodeTitle">Selected node</h2>
+                <p id="selectedNodeDescription">Choose a hierarchy item to edit its details.</p>
+              </div>
+              <button id="removeSelectedNodeButton" class="secondary-button maintenance-remove-button" type="button">Remove</button>
+            </div>
+
+            <div id="selectedNodeMeta" class="maintenance-node-meta"></div>
+            <form id="selectedNodeFields" class="maintenance-form maintenance-form--node"></form>
+          </section>
+
+          <aside class="maintenance-rail">
+            <section class="maintenance-panel maintenance-panel--tight">
+              <div class="maintenance-panel__header maintenance-panel__header--stacked">
+                <div>
+                  <h2>Strategy setup</h2>
+                  <p>Name the draft and choose the level you want the strategy built for.</p>
+                </div>
+              </div>
+
+              <form class="maintenance-form">
+                <label class="field">
+                  <span>Strategy name</span>
+                  <input id="strategyNameInput" type="text" placeholder="Example: CV-101 Conveyor Drive Strategy">
+                </label>
+              </form>
+
+              <div id="scopeSelector" class="scope-selector" role="radiogroup" aria-label="Analysis scope">
+                <button class="scope-card" type="button" data-scope="system" aria-pressed="false">
+                  <strong>System</strong>
+                  <span>Use the deepest site or functional-location level as the strategy target.</span>
+                </button>
+                <button class="scope-card" type="button" data-scope="equipment" aria-pressed="true">
+                  <strong>Equipment</strong>
+                  <span>Start at the asset or equipment level without forcing component decomposition.</span>
+                </button>
+                <button class="scope-card" type="button" data-scope="component" aria-pressed="false">
+                  <strong>Component</strong>
+                  <span>Drill into a critical component or assembly when the strategy needs finer control.</span>
+                </button>
+              </div>
+            </section>
+
+            <section class="maintenance-panel maintenance-panel--tight">
+              <div class="maintenance-panel__header maintenance-panel__header--stacked">
+                <div>
+                  <h2>Operating context</h2>
+                  <p>Capture the minimum business and operating context needed by the next steps.</p>
+                </div>
+              </div>
+
+              <form class="maintenance-form maintenance-form--context">
+                <label class="field">
+                  <span>Operating duty</span>
+                  <select id="operatingDutyInput">
+                    <option value="">Select duty</option>
+                    <option value="Continuous / 24x7">Continuous / 24x7</option>
+                    <option value="Intermittent / campaign">Intermittent / campaign</option>
+                    <option value="Standby / protective">Standby / protective</option>
+                    <option value="Seasonal / variable">Seasonal / variable</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Environment</span>
+                  <input id="environmentInput" type="text" placeholder="Dust, vibration, washdown, corrosive process">
+                </label>
+                <label class="field">
+                  <span>Criticality</span>
+                  <select id="criticalityInput">
+                    <option value="">Select criticality</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Redundancy</span>
+                  <select id="redundancyInput">
+                    <option value="">Select redundancy</option>
+                    <option value="None / single point">None / single point</option>
+                    <option value="Partial standby">Partial standby</option>
+                    <option value="Full redundancy">Full redundancy</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Access constraints</span>
+                  <input id="accessConstraintsInput" type="text" placeholder="Shutdown required, permit access, hot work limits">
+                </label>
+                <label class="field field--full">
+                  <span>Notes</span>
+                  <textarea id="notesInput" rows="4" placeholder="Any context the strategy logic should keep in view"></textarea>
+                </label>
+              </form>
+            </section>
+
+            <section class="maintenance-panel maintenance-panel--tight">
+              <div class="maintenance-panel__header maintenance-panel__header--stacked">
+                <div>
+                  <h2>Readiness</h2>
+                  <p>See what is complete and what still blocks the next step.</p>
+                </div>
+              </div>
+
+              <div class="readiness-score">
+                <div class="readiness-score__value">
+                  <strong id="completenessValue">0%</strong>
+                  <span>Complete</span>
+                </div>
+                <div class="readiness-score__bar">
+                  <span id="completenessBar"></span>
+                </div>
+              </div>
+
+              <ul id="readinessChecklist" class="readiness-list"></ul>
+            </section>
+          </aside>
+        </section>
+
+        <section class="maintenance-panel maintenance-panel--components">
+          <div class="maintenance-panel__header">
+            <div>
+              <h2>Optional component breakdown</h2>
+              <p>Use this when the maintenance strategy needs to work below equipment level.</p>
+            </div>
+            <button id="addComponentButtonSecondary" class="secondary-button" type="button">Add component</button>
+          </div>
+
+          <div id="componentList" class="component-list"></div>
+        </section>
+
+        <footer class="maintenance-footer">
+          <a class="secondary-button maintenance-footer__back" href="index.html">Back</a>
+          <div class="maintenance-footer__actions">
+            <button id="saveDraftButton" class="secondary-button" type="button">Save draft</button>
+            <button id="continueButton" class="primary-button" type="button" disabled>Continue</button>
+          </div>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script src="maintenance-strategy.js?v=maintenance-step-1"></script>
+</body>
+</html>
