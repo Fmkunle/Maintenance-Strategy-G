@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset &amp; Context Definition</title>
-  <link rel="stylesheet" href="styles.css?v=maintenance-step-1">
+  <link rel="stylesheet" href="styles.css?v=maintenance-step-2">
 </head>
 <body class="maintenance-strategy-page" data-theme="light">
   <div class="app-shell">
@@ -111,7 +111,7 @@
             </svg>
             <strong>Step 1 goal</strong>
           </div>
-          <p>Define scope clearly enough for strategy logic to start from the right asset context.</p>
+          <p>Place the strategy on the right site, system, and asset before the rest of the workflow begins.</p>
         </section>
       </div>
     </aside>
@@ -145,190 +145,153 @@
         </div>
       </header>
 
-      <main class="workspace workspace--wide workspace--maintenance">
-        <section class="maintenance-hero">
-          <div class="maintenance-hero__copy">
-            <span class="badge badge-live">MVP step</span>
-            <h1>Define the asset scope before strategy logic starts.</h1>
-            <p>Build the hierarchy path, choose whether you are analyzing the system, equipment, or component, and capture the operating context that frames later recommendations.</p>
-          </div>
-          <div class="maintenance-hero__stats">
-            <article class="maintenance-stat">
-              <span class="maintenance-stat__label">Current scope</span>
-              <strong id="scopeSummaryLabel">Equipment</strong>
-              <p id="scopeSummaryPath">Select the target level for this strategy.</p>
-            </article>
-            <article class="maintenance-stat">
-              <span class="maintenance-stat__label">Draft status</span>
-              <strong id="draftStatusLabel">Not saved</strong>
-              <p id="draftStatusMeta">Changes are stored locally in this browser.</p>
-            </article>
-          </div>
-        </section>
-
-        <div id="workflowNotice" class="maintenance-notice" hidden></div>
-
-        <section class="maintenance-grid">
-          <section class="maintenance-panel">
-            <div class="maintenance-panel__header">
-              <div>
-                <h2>Hierarchy builder</h2>
-                <p>Create the path from site down to equipment, then add components only if needed.</p>
+      <main class="workspace workspace--wide workspace--maintenance workspace--maintenance-modal">
+        <section class="strategy-backdrop" aria-hidden="true">
+          <aside class="strategy-backdrop__filters">
+            <div class="strategy-surface">
+              <div class="strategy-surface__header">
+                <strong>Strategy worklist</strong>
+                <span>Filters</span>
               </div>
-              <div class="maintenance-panel__actions">
-                <button id="addLevelButton" class="secondary-button" type="button">Add level</button>
-                <button id="addComponentButton" class="secondary-button" type="button">Add component</button>
+
+              <div class="strategy-filter-stack">
+                <div class="strategy-filter-block">
+                  <span class="strategy-filter-block__label">Status</span>
+                  <div class="strategy-chip-row">
+                    <span class="strategy-chip is-active">Draft</span>
+                    <span class="strategy-chip">Ready</span>
+                    <span class="strategy-chip">In review</span>
+                  </div>
+                </div>
+
+                <div class="strategy-filter-block">
+                  <span class="strategy-filter-block__label">Site</span>
+                  <div class="strategy-filter-field">All sites</div>
+                </div>
+
+                <div class="strategy-filter-block">
+                  <span class="strategy-filter-block__label">Discipline</span>
+                  <div class="strategy-filter-field">Mechanical</div>
+                </div>
               </div>
             </div>
-
-            <div class="maintenance-path" id="selectedPathPills"></div>
-            <div class="hierarchy-tree" id="hierarchyTree" aria-live="polite"></div>
-          </section>
-
-          <section class="maintenance-panel">
-            <div class="maintenance-panel__header">
-              <div>
-                <h2 id="selectedNodeTitle">Selected node</h2>
-                <p id="selectedNodeDescription">Choose a hierarchy item to edit its details.</p>
-              </div>
-              <button id="removeSelectedNodeButton" class="secondary-button maintenance-remove-button" type="button">Remove</button>
-            </div>
-
-            <div id="selectedNodeMeta" class="maintenance-node-meta"></div>
-            <form id="selectedNodeFields" class="maintenance-form maintenance-form--node"></form>
-          </section>
-
-          <aside class="maintenance-rail">
-            <section class="maintenance-panel maintenance-panel--tight">
-              <div class="maintenance-panel__header maintenance-panel__header--stacked">
-                <div>
-                  <h2>Strategy setup</h2>
-                  <p>Name the draft and choose the level you want the strategy built for.</p>
-                </div>
-              </div>
-
-              <form class="maintenance-form">
-                <label class="field">
-                  <span>Strategy name</span>
-                  <input id="strategyNameInput" type="text" placeholder="Example: CV-101 Conveyor Drive Strategy">
-                </label>
-              </form>
-
-              <div id="scopeSelector" class="scope-selector" role="radiogroup" aria-label="Analysis scope">
-                <button class="scope-card" type="button" data-scope="system" aria-pressed="false">
-                  <strong>System</strong>
-                  <span>Use the deepest site or functional-location level as the strategy target.</span>
-                </button>
-                <button class="scope-card" type="button" data-scope="equipment" aria-pressed="true">
-                  <strong>Equipment</strong>
-                  <span>Start at the asset or equipment level without forcing component decomposition.</span>
-                </button>
-                <button class="scope-card" type="button" data-scope="component" aria-pressed="false">
-                  <strong>Component</strong>
-                  <span>Drill into a critical component or assembly when the strategy needs finer control.</span>
-                </button>
-              </div>
-            </section>
-
-            <section class="maintenance-panel maintenance-panel--tight">
-              <div class="maintenance-panel__header maintenance-panel__header--stacked">
-                <div>
-                  <h2>Operating context</h2>
-                  <p>Capture the minimum business and operating context needed by the next steps.</p>
-                </div>
-              </div>
-
-              <form class="maintenance-form maintenance-form--context">
-                <label class="field">
-                  <span>Operating duty</span>
-                  <select id="operatingDutyInput">
-                    <option value="">Select duty</option>
-                    <option value="Continuous / 24x7">Continuous / 24x7</option>
-                    <option value="Intermittent / campaign">Intermittent / campaign</option>
-                    <option value="Standby / protective">Standby / protective</option>
-                    <option value="Seasonal / variable">Seasonal / variable</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Environment</span>
-                  <input id="environmentInput" type="text" placeholder="Dust, vibration, washdown, corrosive process">
-                </label>
-                <label class="field">
-                  <span>Criticality</span>
-                  <select id="criticalityInput">
-                    <option value="">Select criticality</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Redundancy</span>
-                  <select id="redundancyInput">
-                    <option value="">Select redundancy</option>
-                    <option value="None / single point">None / single point</option>
-                    <option value="Partial standby">Partial standby</option>
-                    <option value="Full redundancy">Full redundancy</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Access constraints</span>
-                  <input id="accessConstraintsInput" type="text" placeholder="Shutdown required, permit access, hot work limits">
-                </label>
-                <label class="field field--full">
-                  <span>Notes</span>
-                  <textarea id="notesInput" rows="4" placeholder="Any context the strategy logic should keep in view"></textarea>
-                </label>
-              </form>
-            </section>
-
-            <section class="maintenance-panel maintenance-panel--tight">
-              <div class="maintenance-panel__header maintenance-panel__header--stacked">
-                <div>
-                  <h2>Readiness</h2>
-                  <p>See what is complete and what still blocks the next step.</p>
-                </div>
-              </div>
-
-              <div class="readiness-score">
-                <div class="readiness-score__value">
-                  <strong id="completenessValue">0%</strong>
-                  <span>Complete</span>
-                </div>
-                <div class="readiness-score__bar">
-                  <span id="completenessBar"></span>
-                </div>
-              </div>
-
-              <ul id="readinessChecklist" class="readiness-list"></ul>
-            </section>
           </aside>
+
+          <section class="strategy-backdrop__content">
+            <section class="strategy-surface strategy-surface--table">
+              <div class="strategy-surface__header strategy-surface__header--spread">
+                <div>
+                  <strong>Strategies</strong>
+                  <span>Worklist</span>
+                </div>
+                <div class="strategy-toolbar-search">Search strategies</div>
+              </div>
+
+              <div class="strategy-table" role="presentation">
+                <div class="strategy-table__head">
+                  <span>Name</span>
+                  <span>Asset path</span>
+                  <span>Status</span>
+                </div>
+
+                <div class="strategy-row strategy-row--active">
+                  <span id="backgroundDraftTitle">New strategy draft</span>
+                  <span id="backgroundDraftPath">Complete the asset context to place this draft.</span>
+                  <span>Draft</span>
+                </div>
+                <div class="strategy-row">
+                  <span>Pump train PM review</span>
+                  <span>Cloudbreak &gt; Dewatering &gt; P-201</span>
+                  <span>Ready</span>
+                </div>
+                <div class="strategy-row">
+                  <span>Crusher feed lubrication</span>
+                  <span>Christmas Creek &gt; Crushing &gt; CV-101 Drive</span>
+                  <span>In review</span>
+                </div>
+                <div class="strategy-row">
+                  <span>Stacker slew inspection</span>
+                  <span>Eliwana &gt; Stockyard &gt; ST-04</span>
+                  <span>Draft</span>
+                </div>
+              </div>
+            </section>
+
+            <aside class="strategy-surface strategy-surface--detail">
+              <div class="strategy-surface__header">
+                <strong>Selected strategy</strong>
+                <span>Detail</span>
+              </div>
+
+              <div class="strategy-detail">
+                <span class="strategy-detail__eyebrow">Current draft</span>
+                <h2 id="backgroundDetailHeading">Asset context pending</h2>
+                <p id="backgroundDetailSummary">The strategy will appear here once the site, system, and asset are defined.</p>
+              </div>
+
+              <dl class="strategy-detail-grid">
+                <div>
+                  <dt>Site</dt>
+                  <dd id="backgroundSiteValue">Not set</dd>
+                </div>
+                <div>
+                  <dt>System</dt>
+                  <dd id="backgroundSystemValue">Not set</dd>
+                </div>
+                <div>
+                  <dt>Asset</dt>
+                  <dd id="backgroundAssetValue">Not set</dd>
+                </div>
+              </dl>
+            </aside>
+          </section>
         </section>
 
-        <section class="maintenance-panel maintenance-panel--components">
-          <div class="maintenance-panel__header">
-            <div>
-              <h2>Optional component breakdown</h2>
-              <p>Use this when the maintenance strategy needs to work below equipment level.</p>
+        <section class="asset-context-overlay">
+          <div class="asset-context-modal" role="dialog" aria-modal="true" aria-labelledby="assetContextTitle">
+            <div class="asset-context-modal__header">
+              <span class="asset-context-modal__eyebrow">Step 1 of 5</span>
+              <h1 id="assetContextTitle">Asset &amp; Context Definition</h1>
+              <p>Select the site, system, and asset for this strategy.</p>
             </div>
-            <button id="addComponentButtonSecondary" class="secondary-button" type="button">Add component</button>
-          </div>
 
-          <div id="componentList" class="component-list"></div>
+            <div id="workflowNotice" class="maintenance-notice" hidden></div>
+
+            <form id="assetContextForm" class="asset-context-form">
+              <label class="field field--full">
+                <span>Site</span>
+                <input id="siteNameInput" type="text" placeholder="Enter site">
+              </label>
+
+              <label class="field field--full">
+                <span>System</span>
+                <input id="systemNameInput" type="text" placeholder="Enter system" disabled>
+              </label>
+
+              <label class="field field--full">
+                <span>Asset</span>
+                <input id="assetNameInput" type="text" placeholder="Enter asset" disabled>
+              </label>
+            </form>
+
+            <div class="asset-context-path">
+              <span class="asset-context-path__label">Path</span>
+              <strong id="assetPathPreview">Site &gt; System &gt; Asset</strong>
+            </div>
+
+            <footer class="asset-context-modal__footer">
+              <a class="secondary-button maintenance-footer__back" href="index.html">Cancel</a>
+              <div class="maintenance-footer__actions">
+                <button id="saveDraftButton" class="secondary-button" type="button">Save draft</button>
+                <button id="continueButton" class="primary-button" type="button" disabled>Continue</button>
+              </div>
+            </footer>
+          </div>
         </section>
-
-        <footer class="maintenance-footer">
-          <a class="secondary-button maintenance-footer__back" href="index.html">Back</a>
-          <div class="maintenance-footer__actions">
-            <button id="saveDraftButton" class="secondary-button" type="button">Save draft</button>
-            <button id="continueButton" class="primary-button" type="button" disabled>Continue</button>
-          </div>
-        </footer>
       </main>
     </div>
   </div>
 
-  <script src="maintenance-strategy.js?v=maintenance-step-1"></script>
+  <script src="maintenance-strategy.js?v=maintenance-step-2"></script>
 </body>
 </html>

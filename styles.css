@@ -4615,6 +4615,299 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   text-decoration: none;
 }
 
+.workspace--maintenance-modal {
+  position: relative;
+  max-width: none;
+  min-height: calc(100vh - 112px);
+  padding: 24px;
+}
+
+.strategy-backdrop {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px;
+  min-height: calc(100vh - 160px);
+  filter: saturate(0.85);
+}
+
+.strategy-backdrop__filters,
+.strategy-backdrop__content {
+  min-width: 0;
+}
+
+.strategy-backdrop__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.8fr);
+  gap: 18px;
+}
+
+.strategy-surface {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow);
+}
+
+.strategy-surface__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px 0;
+}
+
+.strategy-surface__header--spread {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.strategy-surface__header strong,
+.strategy-detail h2 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.strategy-surface__header span,
+.strategy-detail p,
+.strategy-filter-block__label,
+.strategy-table__head,
+.strategy-row,
+.strategy-detail-grid dt,
+.strategy-detail-grid dd {
+  color: var(--text-muted);
+}
+
+.strategy-surface__header span,
+.strategy-detail__eyebrow,
+.strategy-filter-block__label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.strategy-filter-stack {
+  display: grid;
+  gap: 18px;
+  padding: 18px 20px 20px;
+}
+
+.strategy-filter-block {
+  display: grid;
+  gap: 10px;
+}
+
+.strategy-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.strategy-chip,
+.strategy-filter-field,
+.strategy-toolbar-search {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(247, 249, 253, 0.96);
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.strategy-chip.is-active {
+  border-color: rgba(88, 102, 255, 0.28);
+  color: var(--text);
+  background: rgba(88, 102, 255, 0.09);
+}
+
+.strategy-toolbar-search {
+  min-width: 180px;
+  justify-content: center;
+}
+
+.strategy-table {
+  padding: 18px 20px 20px;
+}
+
+.strategy-table__head,
+.strategy-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.3fr) 100px;
+  gap: 16px;
+  align-items: center;
+}
+
+.strategy-table__head {
+  padding: 0 14px 12px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.strategy-row {
+  padding: 14px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+}
+
+.strategy-row + .strategy-row {
+  margin-top: 8px;
+}
+
+.strategy-row--active {
+  border: 1px solid rgba(88, 102, 255, 0.24);
+  background: rgba(88, 102, 255, 0.08);
+  color: var(--text);
+}
+
+.strategy-row--active span:first-child,
+.strategy-detail-grid dd {
+  color: var(--text);
+}
+
+.strategy-surface--detail {
+  padding-bottom: 20px;
+}
+
+.strategy-detail {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+}
+
+.strategy-detail__eyebrow {
+  color: var(--text-soft);
+}
+
+.strategy-detail p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.strategy-detail-grid {
+  margin: 0;
+  padding: 0 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.strategy-detail-grid div {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(247, 249, 253, 0.92);
+  border: 1px solid var(--border);
+}
+
+.strategy-detail-grid dt,
+.strategy-detail-grid dd {
+  margin: 0;
+}
+
+.strategy-detail-grid dt {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.strategy-detail-grid dd {
+  font-size: 0.96rem;
+  letter-spacing: -0.01em;
+}
+
+.asset-context-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background: rgba(239, 244, 252, 0.58);
+  backdrop-filter: blur(10px);
+}
+
+.asset-context-modal {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  border: 1px solid rgba(201, 212, 224, 0.92);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 32px 64px rgba(15, 23, 40, 0.12);
+}
+
+.asset-context-modal__header,
+.asset-context-form,
+.asset-context-path {
+  display: grid;
+  gap: 10px;
+}
+
+.asset-context-modal__header h1,
+.asset-context-modal__header p,
+.asset-context-path strong {
+  margin: 0;
+}
+
+.asset-context-modal__eyebrow,
+.asset-context-path__label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.asset-context-modal__header h1 {
+  font-size: clamp(1.7rem, 3vw, 2.15rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.asset-context-modal__header p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.asset-context-form {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.asset-context-path {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(247, 249, 253, 0.96);
+  border: 1px solid var(--border);
+}
+
+.asset-context-path strong {
+  font-size: 0.96rem;
+  letter-spacing: -0.01em;
+}
+
+.asset-context-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.asset-context-modal .maintenance-notice {
+  border-radius: 18px;
+  padding: 12px 14px;
+  background: rgba(88, 102, 255, 0.08);
+  border-color: rgba(88, 102, 255, 0.16);
+}
+
 /* Responsive guardrails for the landing page and Reliability Insights views. */
 @media (max-width: 1280px) {
   .app-shell {
@@ -4646,13 +4939,9 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
     grid-template-columns: 1fr;
   }
 
-  .maintenance-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .maintenance-rail {
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .strategy-backdrop,
+  .strategy-backdrop__content {
+    grid-template-columns: 1fr;
   }
 
   .fiori-decision-grid {
@@ -4693,13 +4982,8 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
     grid-template-columns: 1fr;
   }
 
-  .maintenance-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .maintenance-grid,
-  .maintenance-rail {
-    grid-template-columns: 1fr;
+  .asset-context-modal {
+    width: min(560px, 100%);
   }
 
   .fiori-page-header,
@@ -4745,6 +5029,38 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
   .workspace {
     padding: 16px;
+  }
+
+  .workspace--maintenance-modal {
+    padding: 16px;
+  }
+
+  .asset-context-overlay {
+    position: static;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    margin-top: 16px;
+  }
+
+  .asset-context-modal {
+    width: 100%;
+    padding: 22px;
+  }
+
+  .asset-context-modal__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .asset-context-modal__footer .maintenance-footer__actions {
+    width: 100%;
+  }
+
+  .asset-context-modal__footer .maintenance-footer__actions .secondary-button,
+  .asset-context-modal__footer .maintenance-footer__actions .primary-button,
+  .asset-context-modal__footer .maintenance-footer__back {
+    width: 100%;
   }
 
   .workspace--welcome {
