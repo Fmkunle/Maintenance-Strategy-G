@@ -4421,7 +4421,13 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .scope-card:focus-visible,
 .hierarchy-node:focus-visible,
 .component-card__main:focus-visible,
-.component-card__remove:focus-visible {
+.component-card__remove:focus-visible,
+.asset-context-inline-action:focus-visible,
+.asset-context-remove:focus-visible,
+.asset-hierarchy-node__main:focus-visible,
+.asset-hierarchy-node__add:focus-visible,
+.asset-hierarchy-node__menu-button:focus-visible,
+.asset-node-actions__button:focus-visible {
   border-color: rgba(88, 102, 255, 0.44);
   box-shadow: 0 0 0 3px rgba(88, 102, 255, 0.12);
 }
@@ -4823,6 +4829,213 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   letter-spacing: -0.01em;
 }
 
+.asset-workspace {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 18px;
+  min-height: calc(100vh - 160px);
+  transition: filter var(--transition-fast), opacity var(--transition-fast);
+}
+
+.asset-workspace.is-muted {
+  filter: blur(1px) saturate(0.82);
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.asset-workspace__hierarchy,
+.asset-workspace__main,
+.asset-workspace__panel {
+  min-width: 0;
+}
+
+.asset-workspace__hierarchy {
+  display: grid;
+  align-content: start;
+  padding-bottom: 20px;
+}
+
+.asset-workspace__main {
+  display: grid;
+  gap: 18px;
+}
+
+.asset-workspace__main-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.asset-hierarchy-summary {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.asset-hierarchy-summary span,
+.asset-hierarchy-summary small {
+  display: block;
+}
+
+.asset-hierarchy-summary span {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.asset-hierarchy-summary small {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.asset-hierarchy-tree {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px 20px;
+}
+
+.asset-hierarchy-branch {
+  display: grid;
+  gap: 8px;
+}
+
+.asset-hierarchy-node {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  gap: 10px;
+  align-items: center;
+  padding-left: calc(var(--depth) * 18px);
+}
+
+.asset-hierarchy-node__main,
+.asset-hierarchy-node__add,
+.asset-hierarchy-node__menu-button,
+.asset-node-actions__button {
+  border: 1px solid var(--border);
+  background: rgba(247, 249, 253, 0.94);
+  color: var(--text);
+}
+
+.asset-hierarchy-node__main {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  text-align: left;
+}
+
+.asset-hierarchy-node__type,
+.strategy-draft-card__eyebrow {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.asset-hierarchy-node__main strong,
+.strategy-draft-card strong {
+  font-size: 0.92rem;
+  letter-spacing: -0.01em;
+}
+
+.asset-hierarchy-node.is-selected .asset-hierarchy-node__main {
+  border-color: rgba(88, 102, 255, 0.38);
+  background: rgba(88, 102, 255, 0.1);
+}
+
+.asset-hierarchy-node__add {
+  width: 40px;
+  min-height: 40px;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.asset-hierarchy-node__add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.asset-hierarchy-node__menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: calc(var(--depth) * 18px);
+}
+
+.asset-hierarchy-node__menu-button,
+.asset-node-actions__button {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.asset-node-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 20px 20px;
+}
+
+.asset-node-form {
+  padding: 0 20px 20px;
+}
+
+.asset-workspace__hint {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.asset-workspace-empty {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+  background: rgba(247, 249, 253, 0.78);
+}
+
+.asset-workspace-empty strong,
+.strategy-draft-card strong {
+  display: block;
+}
+
+.asset-workspace-empty p,
+.strategy-draft-card p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.asset-workspace-empty--soft {
+  margin-top: 18px;
+}
+
+.maintainable-item-list,
+.strategy-draft-list {
+  display: grid;
+  gap: 12px;
+  padding: 0 20px 20px;
+}
+
+.maintainable-item-card,
+.strategy-draft-card {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(247, 249, 253, 0.92);
+  padding: 16px;
+}
+
+.asset-workspace__panel > .asset-workspace__hint {
+  padding: 0 20px;
+}
+
 .asset-context-overlay {
   position: absolute;
   inset: 0;
@@ -4834,7 +5047,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .asset-context-modal {
-  width: min(560px, 100%);
+  width: min(640px, 100%);
   display: grid;
   gap: 20px;
   padding: 28px;
@@ -4880,6 +5093,55 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .asset-context-form {
   grid-template-columns: 1fr;
   gap: 14px;
+}
+
+.asset-context-dynamic-list {
+  display: grid;
+  gap: 10px;
+}
+
+.asset-context-inline-action,
+.asset-context-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  width: fit-content;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(247, 249, 253, 0.96);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.asset-context-inline-action--secondary {
+  color: var(--text-muted);
+}
+
+.asset-context-inline-action:disabled,
+.asset-context-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.asset-context-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.asset-context-row__field {
+  flex: 1 1 auto;
+}
+
+.asset-context-row--optional .field span {
+  color: var(--text-soft);
+}
+
+.asset-context-remove {
+  color: var(--text-muted);
 }
 
 .asset-context-path {
@@ -4939,8 +5201,8 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
     grid-template-columns: 1fr;
   }
 
-  .strategy-backdrop,
-  .strategy-backdrop__content {
+  .asset-workspace,
+  .asset-workspace__main-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4983,7 +5245,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   }
 
   .asset-context-modal {
-    width: min(560px, 100%);
+    width: min(640px, 100%);
   }
 
   .fiori-page-header,
@@ -5046,6 +5308,22 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   .asset-context-modal {
     width: 100%;
     padding: 22px;
+  }
+
+  .asset-context-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .asset-hierarchy-summary {
+    text-align: left;
+  }
+
+  .asset-context-inline-action,
+  .asset-context-remove,
+  .asset-node-actions__button,
+  .asset-hierarchy-node__menu-button {
+    width: 100%;
   }
 
   .asset-context-modal__footer {

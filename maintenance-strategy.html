@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maintenance Strategy Generator | Asset &amp; Context Definition</title>
-  <link rel="stylesheet" href="styles.css?v=maintenance-step-2">
+  <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
+  <link rel="stylesheet" href="styles.css?v=maintenance-step-3">
 </head>
 <body class="maintenance-strategy-page" data-theme="light">
   <div class="app-shell">
@@ -111,7 +111,7 @@
             </svg>
             <strong>Step 1 goal</strong>
           </div>
-          <p>Place the strategy on the right site, system, and asset before the rest of the workflow begins.</p>
+          <p>Place the strategy on the right asset hierarchy before the rest of the workflow begins.</p>
         </section>
       </div>
     </aside>
@@ -126,7 +126,7 @@
           </svg>
           <div class="search-shell__copy">
             <strong>Maintenance Strategy Generator</strong>
-            <span>Step 1 of 5: Asset &amp; Context Definition</span>
+            <span>Asset taxonomy workspace</span>
           </div>
         </div>
 
@@ -145,138 +145,119 @@
         </div>
       </header>
 
-      <main class="workspace workspace--wide workspace--maintenance workspace--maintenance-modal">
-        <section class="strategy-backdrop" aria-hidden="true">
-          <aside class="strategy-backdrop__filters">
-            <div class="strategy-surface">
-              <div class="strategy-surface__header">
-                <strong>Strategy worklist</strong>
-                <span>Filters</span>
+      <main id="maintenanceWorkspace" class="workspace workspace--wide workspace--maintenance workspace--maintenance-modal">
+        <section id="assetWorkspace" class="asset-workspace">
+          <aside class="strategy-surface asset-workspace__hierarchy">
+            <div class="strategy-surface__header strategy-surface__header--spread">
+              <div>
+                <strong>Asset Hierarchy</strong>
+                <span>Structure</span>
               </div>
-
-              <div class="strategy-filter-stack">
-                <div class="strategy-filter-block">
-                  <span class="strategy-filter-block__label">Status</span>
-                  <div class="strategy-chip-row">
-                    <span class="strategy-chip is-active">Draft</span>
-                    <span class="strategy-chip">Ready</span>
-                    <span class="strategy-chip">In review</span>
-                  </div>
-                </div>
-
-                <div class="strategy-filter-block">
-                  <span class="strategy-filter-block__label">Site</span>
-                  <div class="strategy-filter-field">All sites</div>
-                </div>
-
-                <div class="strategy-filter-block">
-                  <span class="strategy-filter-block__label">Discipline</span>
-                  <div class="strategy-filter-field">Mechanical</div>
-                </div>
+              <div class="asset-hierarchy-summary">
+                <span id="backgroundDraftTitle">New strategy draft</span>
+                <small id="backgroundDraftPath">Complete the asset hierarchy to place this draft.</small>
               </div>
             </div>
+            <div id="assetHierarchyTree" class="asset-hierarchy-tree"></div>
           </aside>
 
-          <section class="strategy-backdrop__content">
-            <section class="strategy-surface strategy-surface--table">
+          <section class="asset-workspace__main">
+            <section class="strategy-surface asset-workspace__panel">
               <div class="strategy-surface__header strategy-surface__header--spread">
                 <div>
-                  <strong>Strategies</strong>
-                  <span>Worklist</span>
+                  <strong>Selected Node</strong>
+                  <span id="selectedNodeTypeLabel">Asset node</span>
                 </div>
-                <div class="strategy-toolbar-search">Search strategies</div>
-              </div>
-
-              <div class="strategy-table" role="presentation">
-                <div class="strategy-table__head">
-                  <span>Name</span>
-                  <span>Asset path</span>
-                  <span>Status</span>
-                </div>
-
-                <div class="strategy-row strategy-row--active">
-                  <span id="backgroundDraftTitle">New strategy draft</span>
-                  <span id="backgroundDraftPath">Complete the asset context to place this draft.</span>
-                  <span>Draft</span>
-                </div>
-                <div class="strategy-row">
-                  <span>Pump train PM review</span>
-                  <span>Cloudbreak &gt; Dewatering &gt; P-201</span>
-                  <span>Ready</span>
-                </div>
-                <div class="strategy-row">
-                  <span>Crusher feed lubrication</span>
-                  <span>Christmas Creek &gt; Crushing &gt; CV-101 Drive</span>
-                  <span>In review</span>
-                </div>
-                <div class="strategy-row">
-                  <span>Stacker slew inspection</span>
-                  <span>Eliwana &gt; Stockyard &gt; ST-04</span>
-                  <span>Draft</span>
-                </div>
-              </div>
-            </section>
-
-            <aside class="strategy-surface strategy-surface--detail">
-              <div class="strategy-surface__header">
-                <strong>Selected strategy</strong>
-                <span>Detail</span>
+                <button id="addSelectedChildButton" class="secondary-button" type="button">Add child</button>
               </div>
 
               <div class="strategy-detail">
-                <span class="strategy-detail__eyebrow">Current draft</span>
                 <h2 id="backgroundDetailHeading">Asset context pending</h2>
-                <p id="backgroundDetailSummary">The strategy will appear here once the site, system, and asset are defined.</p>
+                <p id="backgroundDetailSummary">The strategy workspace will open once the asset hierarchy is defined.</p>
               </div>
 
-              <dl class="strategy-detail-grid">
-                <div>
-                  <dt>Site</dt>
-                  <dd id="backgroundSiteValue">Not set</dd>
+              <div id="selectedNodeQuickActions" class="asset-node-actions"></div>
+
+              <form id="selectedNodeForm" class="asset-node-form">
+                <label class="field field--full">
+                  <span>Node name</span>
+                  <input id="selectedNodeNameInput" type="text" placeholder="Enter node name" disabled>
+                </label>
+              </form>
+
+              <div class="asset-context-path">
+                <span class="asset-context-path__label">Path</span>
+                <strong id="selectedNodePathPreview">Select a node from the hierarchy.</strong>
+              </div>
+            </section>
+
+            <div class="asset-workspace__main-grid">
+              <section class="strategy-surface asset-workspace__panel">
+                <div class="strategy-surface__header strategy-surface__header--spread">
+                  <div>
+                    <strong>Maintainable Items</strong>
+                    <span>Selected asset</span>
+                  </div>
+                  <button id="addMaintainableItemButton" class="secondary-button" type="button" disabled>+ Add maintainable item</button>
                 </div>
-                <div>
-                  <dt>System</dt>
-                  <dd id="backgroundSystemValue">Not set</dd>
+
+                <p id="maintainableItemHint" class="asset-workspace__hint">Select an equipment unit or subunit to define maintainable items.</p>
+                <div id="maintainableItemList" class="maintainable-item-list"></div>
+              </section>
+
+              <section class="strategy-surface asset-workspace__panel">
+                <div class="strategy-surface__header">
+                  <strong>Strategies</strong>
+                  <span>Selected asset</span>
                 </div>
-                <div>
-                  <dt>Asset</dt>
-                  <dd id="backgroundAssetValue">Not set</dd>
-                </div>
-              </dl>
-            </aside>
+
+                <div id="strategyList" class="strategy-draft-list"></div>
+              </section>
+            </div>
           </section>
         </section>
 
-        <section class="asset-context-overlay">
+        <section id="assetContextOverlay" class="asset-context-overlay">
           <div class="asset-context-modal" role="dialog" aria-modal="true" aria-labelledby="assetContextTitle">
             <div class="asset-context-modal__header">
-              <span class="asset-context-modal__eyebrow">Step 1 of 5</span>
-              <h1 id="assetContextTitle">Asset &amp; Context Definition</h1>
-              <p>Select the site, system, and asset for this strategy.</p>
+              <h1 id="assetContextTitle">Asset Taxonomy</h1>
+              <p>Define the starting asset hierarchy for this strategy.</p>
             </div>
 
             <div id="workflowNotice" class="maintenance-notice" hidden></div>
 
             <form id="assetContextForm" class="asset-context-form">
               <label class="field field--full">
-                <span>Site</span>
-                <input id="siteNameInput" type="text" placeholder="Enter site">
+                <span>Plant / Unit</span>
+                <input id="plantUnitInput" type="text" placeholder="Enter plant or unit">
               </label>
 
               <label class="field field--full">
-                <span>System</span>
-                <input id="systemNameInput" type="text" placeholder="Enter system" disabled>
+                <span>Section / System</span>
+                <input id="sectionSystemInput" type="text" placeholder="Enter section or system" disabled>
               </label>
 
+              <div class="asset-context-dynamic-list">
+                <button id="addSubsystemButton" class="asset-context-inline-action" type="button">+ Add sub-system</button>
+              </div>
+
+              <div id="subsystemList" class="asset-context-dynamic-list"></div>
+
               <label class="field field--full">
-                <span>Asset</span>
-                <input id="assetNameInput" type="text" placeholder="Enter asset" disabled>
+                <span>Equipment Unit</span>
+                <input id="equipmentUnitInput" type="text" placeholder="Enter equipment unit" disabled>
               </label>
+
+              <div class="asset-context-dynamic-list">
+                <button id="addSubunitButton" class="asset-context-inline-action asset-context-inline-action--secondary" type="button">+ Add subunit</button>
+              </div>
+
+              <div id="subunitContainer" class="asset-context-dynamic-list"></div>
             </form>
 
             <div class="asset-context-path">
               <span class="asset-context-path__label">Path</span>
-              <strong id="assetPathPreview">Site &gt; System &gt; Asset</strong>
+              <strong id="assetPathPreview">Plant / Unit &gt; Section / System &gt; Equipment Unit</strong>
             </div>
 
             <footer class="asset-context-modal__footer">
@@ -292,6 +273,6 @@
     </div>
   </div>
 
-  <script src="maintenance-strategy.js?v=maintenance-step-2"></script>
+  <script src="maintenance-strategy.js?v=maintenance-step-3"></script>
 </body>
 </html>
