@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
-  <link rel="stylesheet" href="styles.css?v=maintenance-step-3">
+  <link rel="stylesheet" href="styles.css?v=maintenance-step-4">
 </head>
 <body class="maintenance-strategy-page" data-theme="light">
   <div class="app-shell">
@@ -179,14 +179,20 @@
               <div id="selectedNodeQuickActions" class="asset-node-actions"></div>
 
               <form id="selectedNodeForm" class="asset-node-form">
-                <label class="field field--full">
-                  <span>Node name</span>
-                  <input id="selectedNodeNameInput" type="text" placeholder="Enter node name" disabled>
-                </label>
+                <div class="asset-context-entry-grid">
+                  <label class="field">
+                    <span>Code segment</span>
+                    <input id="selectedNodeCodeInput" type="text" placeholder="Enter code segment" disabled>
+                  </label>
+                  <label class="field">
+                    <span>Name</span>
+                    <input id="selectedNodeNameInput" type="text" placeholder="Enter name" disabled>
+                  </label>
+                </div>
               </form>
 
               <div class="asset-context-path">
-                <span class="asset-context-path__label">Path</span>
+                <span class="asset-context-path__label">Functional location preview</span>
                 <strong id="selectedNodePathPreview">Select a node from the hierarchy.</strong>
               </div>
             </section>
@@ -227,15 +233,33 @@
             <div id="workflowNotice" class="maintenance-notice" hidden></div>
 
             <form id="assetContextForm" class="asset-context-form">
-              <label class="field field--full">
-                <span>Plant / Unit</span>
-                <input id="plantUnitInput" type="text" placeholder="Enter plant or unit">
-              </label>
+              <div class="asset-context-entry-block">
+                <span class="asset-context-entry-block__label">Plant / Unit</span>
+                <div class="asset-context-entry-grid">
+                  <label class="field">
+                    <span>Code segment</span>
+                    <input id="plantUnitCodeInput" type="text" placeholder="Enter code segment">
+                  </label>
+                  <label class="field">
+                    <span>Name</span>
+                    <input id="plantUnitNameInput" type="text" placeholder="Enter name">
+                  </label>
+                </div>
+              </div>
 
-              <label class="field field--full">
-                <span>Section / System</span>
-                <input id="sectionSystemInput" type="text" placeholder="Enter section or system" disabled>
-              </label>
+              <div class="asset-context-entry-block">
+                <span class="asset-context-entry-block__label">Section / System</span>
+                <div class="asset-context-entry-grid">
+                  <label class="field">
+                    <span>Code segment</span>
+                    <input id="sectionSystemCodeInput" type="text" placeholder="Enter code segment" disabled>
+                  </label>
+                  <label class="field">
+                    <span>Name</span>
+                    <input id="sectionSystemNameInput" type="text" placeholder="Enter name" disabled>
+                  </label>
+                </div>
+              </div>
 
               <div class="asset-context-dynamic-list">
                 <button id="addSubsystemButton" class="asset-context-inline-action" type="button">+ Add sub-system</button>
@@ -243,10 +267,19 @@
 
               <div id="subsystemList" class="asset-context-dynamic-list"></div>
 
-              <label class="field field--full">
-                <span>Equipment Unit</span>
-                <input id="equipmentUnitInput" type="text" placeholder="Enter equipment unit" disabled>
-              </label>
+              <div class="asset-context-entry-block">
+                <span class="asset-context-entry-block__label">Equipment Unit</span>
+                <div class="asset-context-entry-grid">
+                  <label class="field">
+                    <span>Code segment</span>
+                    <input id="equipmentUnitCodeInput" type="text" placeholder="Enter code segment" disabled>
+                  </label>
+                  <label class="field">
+                    <span>Name</span>
+                    <input id="equipmentUnitNameInput" type="text" placeholder="Enter name" disabled>
+                  </label>
+                </div>
+              </div>
 
               <div class="asset-context-dynamic-list">
                 <button id="addSubunitButton" class="asset-context-inline-action asset-context-inline-action--secondary" type="button">+ Add subunit</button>
@@ -256,8 +289,8 @@
             </form>
 
             <div class="asset-context-path">
-              <span class="asset-context-path__label">Path</span>
-              <strong id="assetPathPreview">Plant / Unit &gt; Section / System &gt; Equipment Unit</strong>
+              <span class="asset-context-path__label">Functional location preview</span>
+              <strong id="assetPathPreview">Functional location preview updates as you define the hierarchy.</strong>
             </div>
 
             <footer class="asset-context-modal__footer">
@@ -273,6 +306,6 @@
     </div>
   </div>
 
-  <script src="maintenance-strategy.js?v=maintenance-step-3"></script>
+  <script src="maintenance-strategy.js?v=maintenance-step-4"></script>
 </body>
 </html>

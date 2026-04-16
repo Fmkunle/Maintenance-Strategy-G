@@ -9,6 +9,7 @@ const assetHierarchyTree = document.getElementById("assetHierarchyTree");
 const selectedNodeTypeLabel = document.getElementById("selectedNodeTypeLabel");
 const addSelectedChildButton = document.getElementById("addSelectedChildButton");
 const selectedNodeQuickActions = document.getElementById("selectedNodeQuickActions");
+const selectedNodeCodeInput = document.getElementById("selectedNodeCodeInput");
 const selectedNodeNameInput = document.getElementById("selectedNodeNameInput");
 const selectedNodePathPreview = document.getElementById("selectedNodePathPreview");
 const maintainableItemHint = document.getElementById("maintainableItemHint");
@@ -19,11 +20,14 @@ const strategyList = document.getElementById("strategyList");
 const assetContextOverlay = document.getElementById("assetContextOverlay");
 const workflowNotice = document.getElementById("workflowNotice");
 const assetContextForm = document.getElementById("assetContextForm");
-const plantUnitInput = document.getElementById("plantUnitInput");
-const sectionSystemInput = document.getElementById("sectionSystemInput");
+const plantUnitCodeInput = document.getElementById("plantUnitCodeInput");
+const plantUnitNameInput = document.getElementById("plantUnitNameInput");
+const sectionSystemCodeInput = document.getElementById("sectionSystemCodeInput");
+const sectionSystemNameInput = document.getElementById("sectionSystemNameInput");
 const subsystemList = document.getElementById("subsystemList");
 const addSubsystemButton = document.getElementById("addSubsystemButton");
-const equipmentUnitInput = document.getElementById("equipmentUnitInput");
+const equipmentUnitCodeInput = document.getElementById("equipmentUnitCodeInput");
+const equipmentUnitNameInput = document.getElementById("equipmentUnitNameInput");
 const addSubunitButton = document.getElementById("addSubunitButton");
 const subunitContainer = document.getElementById("subunitContainer");
 const assetPathPreview = document.getElementById("assetPathPreview");
@@ -76,20 +80,21 @@ const nodeTypeMeta = {
 const createId = (prefix) =>
   `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
 
-const createNode = (type, name = "") => ({
+const createNode = (type, code = "", name = "") => ({
   id: createId(type),
   type,
+  code,
   name,
   children: [],
 });
 
 const defaultEntryState = () => ({
-  plantUnit: "",
-  sectionSystem: "",
+  plantUnit: { code: "", name: "" },
+  sectionSystem: { code: "", name: "" },
   subsystems: [],
-  equipmentUnit: "",
+  equipmentUnit: { code: "", name: "" },
   hasSubunit: false,
-  subunit: "",
+  subunit: { code: "", name: "" },
 });
 
 const defaultState = () => ({
@@ -110,6 +115,23 @@ const escapeHtml = (value) =>
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+const normalizeEntryNode = (value, fallbackCode = "", fallbackName = "") => ({
+  code:
+    typeof value?.code === "string"
+      ? value.code
+      : typeof fallbackCode === "string"
+      ? fallbackCode
+      : "",
+  name:
+    typeof value?.name === "string"
+      ? value.name
+      : typeof value === "string"
+      ? value
+      : typeof fallbackName === "string"
+      ? fallbackName
+      : "",
+});
+
 const normalizeEntry = (draft) => {
   const base = defaultEntryState();
   const deepestLevelName = Array.isArray(draft?.levels)
@@ -121,57 +143,62 @@ const normalizeEntry = (draft) => {
 
   return {
     ...base,
-    plantUnit:
-      typeof draft?.entry?.plantUnit === "string"
-        ? draft.entry.plantUnit
-        : typeof draft?.plantUnit === "string"
+    plantUnit: normalizeEntryNode(
+      draft?.entry?.plantUnit,
+      "",
+      typeof draft?.plantUnit === "string"
         ? draft.plantUnit
         : typeof draft?.site === "string"
         ? draft.site
         : typeof draft?.site?.name === "string"
         ? draft.site.name
-        : "",
-    sectionSystem:
-      typeof draft?.entry?.sectionSystem === "string"
-        ? draft.entry.sectionSystem
-        : typeof draft?.sectionSystem === "string"
+        : ""
+    ),
+    sectionSystem: normalizeEntryNode(
+      draft?.entry?.sectionSystem,
+      "",
+      typeof draft?.sectionSystem === "string"
         ? draft.sectionSystem
         : typeof draft?.system === "string"
         ? draft.system
-        : deepestLevelName,
+        : deepestLevelName
+    ),
     subsystems: Array.isArray(draft?.entry?.subsystems)
       ? draft.entry.subsystems.map((item, index) => ({
           id: item?.id || createId(`entry-subsystem-${index}`),
+          code: typeof item?.code === "string" ? item.code : "",
           name: typeof item?.name === "string" ? item.name : typeof item === "string" ? item : "",
         }))
       : Array.isArray(draft?.subsystems)
       ? draft.subsystems.map((item, index) => ({
           id: item?.id || createId(`entry-subsystem-${index}`),
+          code: typeof item?.code === "string" ? item.code : "",
           name: typeof item?.name === "string" ? item.name : typeof item === "string" ? item : "",
         }))
       : [],
-    equipmentUnit:
-      typeof draft?.entry?.equipmentUnit === "string"
-        ? draft.entry.equipmentUnit
-        : typeof draft?.equipmentUnit === "string"
+    equipmentUnit: normalizeEntryNode(
+      draft?.entry?.equipmentUnit,
+      "",
+      typeof draft?.equipmentUnit === "string"
         ? draft.equipmentUnit
         : typeof draft?.asset === "string"
         ? draft.asset
         : typeof draft?.equipment?.name === "string"
         ? draft.equipment.name
-        : "",
+        : ""
+    ),
     hasSubunit:
       typeof draft?.entry?.hasSubunit === "boolean"
         ? draft.entry.hasSubunit
         : typeof draft?.hasSubunit === "boolean"
         ? draft.hasSubunit
-        : Boolean(draft?.entry?.subunit || draft?.subunit),
-    subunit:
-      typeof draft?.entry?.subunit === "string"
-        ? draft.entry.subunit
-        : typeof draft?.subunit === "string"
-        ? draft.subunit
-        : "",
+        : Boolean(
+            draft?.entry?.subunit?.name ||
+              draft?.entry?.subunit?.code ||
+              draft?.entry?.subunit ||
+              draft?.subunit
+          ),
+    subunit: normalizeEntryNode(draft?.entry?.subunit, "", typeof draft?.subunit === "string" ? draft.subunit : ""),
   };
 };
 
@@ -180,6 +207,7 @@ const normalizeNode = (node, fallbackType = "subsystem") => {
   return {
     id: node?.id || createId(type),
     type,
+    code: typeof node?.code === "string" ? node.code : "",
     name: typeof node?.name === "string" ? node.name : "",
     children: Array.isArray(node?.children)
       ? node.children.map((child) => normalizeNode(child, "subsystem"))
@@ -297,40 +325,95 @@ const applySidebarState = (isCollapsed) => {
   sidebarToggle?.setAttribute("aria-expanded", String(!isCollapsed));
 };
 
-const getDisplayValue = (value, fallback) => value.trim() || fallback;
-const hasValue = (value) => Boolean(value.trim());
+const getDisplayValue = (value, fallback) => (typeof value === "string" ? value.trim() : "") || fallback;
+const hasValue = (value) => Boolean(typeof value === "string" && value.trim());
+const hasNodeValue = (node) => hasValue(node.code || "") && hasValue(node.name || "");
+const isNodeBlank = (node) => !hasValue(node.code || "") && !hasValue(node.name || "");
+const isNodeCompleteOrBlank = (node) => hasNodeValue(node) || isNodeBlank(node);
+const getNodeCodeValue = (node, fallback = "") => getDisplayValue(node.code || "", fallback);
+const getNodeNameValue = (node, fallback = "") => getDisplayValue(node.name || "", fallback);
 const getChildActions = (type) => nodeTypeMeta[type]?.childActions || [];
+
+const getFullCodeFromPath = (path) =>
+  path
+    .map((node) => node.code.trim())
+    .filter(Boolean)
+    .join("-");
+
+const getFullNameFromPath = (path) =>
+  path
+    .map((node) => node.name.trim())
+    .filter(Boolean)
+    .join(" > ");
+
+const formatFunctionalLocationPreview = (path) => {
+  if (!path.length) {
+    return "Select a node from the hierarchy.";
+  }
+
+  const fullCode = getFullCodeFromPath(path) || "Code pending";
+  const fullName = getFullNameFromPath(path) || "Name pending";
+  return `${fullCode} | ${fullName}`;
+};
 
 const getEntryPathSegments = (useFallbacks = true) => {
   const entry = state.entry;
-  const segments = [getDisplayValue(entry.plantUnit, useFallbacks ? nodeTypeMeta.plant.label : "")];
+  const segments = [
+    {
+      type: "plant",
+      code: getNodeCodeValue(entry.plantUnit, useFallbacks ? "PLANT" : ""),
+      name: getNodeNameValue(entry.plantUnit, useFallbacks ? nodeTypeMeta.plant.label : ""),
+    },
+  ];
 
-  if (hasValue(entry.sectionSystem)) {
-    segments.push(getDisplayValue(entry.sectionSystem, useFallbacks ? nodeTypeMeta.section.label : ""));
+  if (useFallbacks || hasNodeValue(entry.sectionSystem)) {
+    segments.push({
+      type: "section",
+      code: getNodeCodeValue(entry.sectionSystem, useFallbacks ? "SYSTEM" : ""),
+      name: getNodeNameValue(entry.sectionSystem, useFallbacks ? nodeTypeMeta.section.label : ""),
+    });
   }
 
   entry.subsystems.forEach((subsystem, index) => {
-    if (useFallbacks || hasValue(subsystem.name)) {
-      segments.push(getDisplayValue(subsystem.name, useFallbacks ? `Sub-system ${index + 1}` : ""));
+    if (useFallbacks || hasNodeValue(subsystem)) {
+      segments.push({
+        type: "subsystem",
+        code: getNodeCodeValue(subsystem, useFallbacks ? `SUB${index + 1}` : ""),
+        name: getNodeNameValue(subsystem, useFallbacks ? `Sub-system ${index + 1}` : ""),
+      });
     }
   });
 
-  if (hasValue(entry.equipmentUnit)) {
-    segments.push(getDisplayValue(entry.equipmentUnit, useFallbacks ? nodeTypeMeta.equipment.label : ""));
+  if (useFallbacks || hasNodeValue(entry.equipmentUnit)) {
+    segments.push({
+      type: "equipment",
+      code: getNodeCodeValue(entry.equipmentUnit, useFallbacks ? "EQUIP" : ""),
+      name: getNodeNameValue(entry.equipmentUnit, useFallbacks ? nodeTypeMeta.equipment.label : ""),
+    });
   }
 
-  if (entry.hasSubunit && (useFallbacks || hasValue(entry.subunit))) {
-    segments.push(getDisplayValue(entry.subunit, useFallbacks ? nodeTypeMeta.subunit.label : ""));
+  if (entry.hasSubunit && (useFallbacks || hasNodeValue(entry.subunit))) {
+    segments.push({
+      type: "subunit",
+      code: getNodeCodeValue(entry.subunit, useFallbacks ? "SUBUNIT" : ""),
+      name: getNodeNameValue(entry.subunit, useFallbacks ? nodeTypeMeta.subunit.label : ""),
+    });
   }
 
-  return segments.filter(Boolean);
+  return segments.filter((segment) => segment.code || segment.name);
 };
 
 const isEntryReady = () => {
   const entry = state.entry;
-  const subsystemsComplete = entry.subsystems.every((item) => hasValue(item.name));
+  const subsystemsComplete = entry.subsystems.every((item) => hasNodeValue(item));
 
-  return hasValue(entry.plantUnit) && subsystemsComplete && (!entry.hasSubunit || hasValue(entry.subunit));
+  return (
+    hasNodeValue(entry.plantUnit) &&
+    isNodeCompleteOrBlank(entry.sectionSystem) &&
+    subsystemsComplete &&
+    isNodeCompleteOrBlank(entry.equipmentUnit) &&
+    (!entry.hasSubunit || hasNodeValue(entry.subunit))
+  );
 };
 
 const showNotice = (message) => {
@@ -372,37 +455,37 @@ const persistDraftSilently = () => {
 
 const buildInitialHierarchyFromEntry = () => {
   const entry = state.entry;
-  const root = createNode("plant", entry.plantUnit.trim());
+  const root = createNode("plant", entry.plantUnit.code.trim(), entry.plantUnit.name.trim());
   let current = root;
   let deepestId = root.id;
 
-  if (hasValue(entry.sectionSystem)) {
-    const sectionNode = createNode("section", entry.sectionSystem.trim());
+  if (hasNodeValue(entry.sectionSystem)) {
+    const sectionNode = createNode("section", entry.sectionSystem.code.trim(), entry.sectionSystem.name.trim());
     current.children.push(sectionNode);
     current = sectionNode;
     deepestId = sectionNode.id;
   }
 
   entry.subsystems.forEach((subsystem) => {
-    if (!hasValue(subsystem.name)) {
+    if (!hasNodeValue(subsystem)) {
       return;
     }
 
-    const subsystemNode = createNode("subsystem", subsystem.name.trim());
+    const subsystemNode = createNode("subsystem", subsystem.code.trim(), subsystem.name.trim());
     current.children.push(subsystemNode);
     current = subsystemNode;
     deepestId = subsystemNode.id;
   });
 
-  if (hasValue(entry.equipmentUnit)) {
-    const equipmentNode = createNode("equipment", entry.equipmentUnit.trim());
+  if (hasNodeValue(entry.equipmentUnit)) {
+    const equipmentNode = createNode("equipment", entry.equipmentUnit.code.trim(), entry.equipmentUnit.name.trim());
     current.children.push(equipmentNode);
     current = equipmentNode;
     deepestId = equipmentNode.id;
   }
 
-  if (entry.hasSubunit && hasValue(entry.subunit)) {
-    const subunitNode = createNode("subunit", entry.subunit.trim());
+  if (entry.hasSubunit && hasNodeValue(entry.subunit)) {
+    const subunitNode = createNode("subunit", entry.subunit.code.trim(), entry.subunit.name.trim());
     current.children.push(subunitNode);
     deepestId = subunitNode.id;
   }
@@ -421,7 +504,7 @@ const getSelectedNodeInfo = () => {
 };
 
 const getNodeLabel = (node) => nodeTypeMeta[node.type]?.label || "Asset node";
-const getNodeTitle = (node) => getDisplayValue(node.name, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
+const getNodeTitle = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const isMaintainableTarget = (node) => node.type === "equipment" || node.type === "subunit";
 
 const renderEntrySubsystemRows = () => {
@@ -429,12 +512,23 @@ const renderEntrySubsystemRows = () => {
     .map(
       (subsystem, index) => `
         <div class="asset-context-row asset-context-row--optional">
-          <label class="field field--full asset-context-row__field">
-            <span>Sub-system ${index + 1}</span>
-            <input data-entry-subsystem-id="${subsystem.id}" type="text" value="${escapeHtml(
-              subsystem.name
-            )}" placeholder="Enter sub-system">
-          </label>
+          <div class="asset-context-row__field asset-context-entry-block">
+            <span class="asset-context-entry-block__label">Sub-system ${index + 1}</span>
+            <div class="asset-context-entry-grid">
+              <label class="field">
+                <span>Code segment</span>
+                <input data-entry-subsystem-id="${subsystem.id}" data-entry-subsystem-field="code" type="text" value="${escapeHtml(
+                  subsystem.code
+                )}" placeholder="Enter code segment">
+              </label>
+              <label class="field">
+                <span>Name</span>
+                <input data-entry-subsystem-id="${subsystem.id}" data-entry-subsystem-field="name" type="text" value="${escapeHtml(
+                  subsystem.name
+                )}" placeholder="Enter name">
+              </label>
+            </div>
+          </div>
           <button class="asset-context-remove" type="button" data-remove-entry-subsystem="${subsystem.id}">Remove</button>
         </div>
       `
@@ -450,10 +544,19 @@ const renderEntrySubunitRow = () => {
 
   subunitContainer.innerHTML = `
     <div class="asset-context-row asset-context-row--optional">
-      <label class="field field--full asset-context-row__field">
-        <span>Subunit</span>
-        <input id="entrySubunitInput" type="text" value="${escapeHtml(state.entry.subunit)}" placeholder="Enter subunit">
-      </label>
+      <div class="asset-context-row__field asset-context-entry-block">
+        <span class="asset-context-entry-block__label">Subunit</span>
+        <div class="asset-context-entry-grid">
+          <label class="field">
+            <span>Code segment</span>
+            <input id="entrySubunitCodeInput" type="text" value="${escapeHtml(state.entry.subunit.code)}" placeholder="Enter code segment">
+          </label>
+          <label class="field">
+            <span>Name</span>
+            <input id="entrySubunitNameInput" type="text" value="${escapeHtml(state.entry.subunit.name)}" placeholder="Enter name">
+          </label>
+        </div>
+      </div>
       <button id="removeEntrySubunitButton" class="asset-context-remove" type="button">Remove</button>
     </div>
   `;
@@ -466,34 +569,48 @@ const renderEntryForm = (options = {}) => {
   }
 
   const entry = state.entry;
-  const canEditSection = hasValue(entry.plantUnit);
-  const canEditEquipment = canEditSection && hasValue(entry.sectionSystem) && entry.subsystems.every((item) => hasValue(item.name));
+  const canEditSection = hasNodeValue(entry.plantUnit);
+  const canEditEquipment =
+    canEditSection && hasNodeValue(entry.sectionSystem) && entry.subsystems.every((item) => hasNodeValue(item));
 
-  plantUnitInput.value = entry.plantUnit;
-  sectionSystemInput.value = entry.sectionSystem;
-  equipmentUnitInput.value = entry.equipmentUnit;
+  plantUnitCodeInput.value = entry.plantUnit.code;
+  plantUnitNameInput.value = entry.plantUnit.name;
+  sectionSystemCodeInput.value = entry.sectionSystem.code;
+  sectionSystemNameInput.value = entry.sectionSystem.name;
+  equipmentUnitCodeInput.value = entry.equipmentUnit.code;
+  equipmentUnitNameInput.value = entry.equipmentUnit.name;
 
-  sectionSystemInput.disabled = !canEditSection;
-  addSubsystemButton.disabled = !canEditSection || !hasValue(entry.sectionSystem) || !entry.subsystems.every((item) => hasValue(item.name));
-  equipmentUnitInput.disabled = !canEditEquipment;
-  addSubunitButton.disabled = !hasValue(entry.equipmentUnit) || entry.hasSubunit;
+  sectionSystemCodeInput.disabled = !canEditSection;
+  sectionSystemNameInput.disabled = !canEditSection;
+  addSubsystemButton.disabled = !hasNodeValue(entry.sectionSystem) || !entry.subsystems.every((item) => hasNodeValue(item));
+  equipmentUnitCodeInput.disabled = !canEditEquipment;
+  equipmentUnitNameInput.disabled = !canEditEquipment;
+  addSubunitButton.disabled = !hasNodeValue(entry.equipmentUnit) || entry.hasSubunit;
 
-  const entrySubunitInput = document.getElementById("entrySubunitInput");
-  if (entrySubunitInput) {
-    entrySubunitInput.value = entry.subunit;
-    entrySubunitInput.disabled = !hasValue(entry.equipmentUnit);
+  const entrySubunitCodeInput = document.getElementById("entrySubunitCodeInput");
+  const entrySubunitNameInput = document.getElementById("entrySubunitNameInput");
+  if (entrySubunitCodeInput && entrySubunitNameInput) {
+    entrySubunitCodeInput.value = entry.subunit.code;
+    entrySubunitNameInput.value = entry.subunit.name;
+    entrySubunitCodeInput.disabled = !hasNodeValue(entry.equipmentUnit);
+    entrySubunitNameInput.disabled = !hasNodeValue(entry.equipmentUnit);
   }
 
-  assetPathPreview.textContent = getEntryPathSegments(true).join(" > ");
+  const entryPath = getEntryPathSegments(false).map((segment) => ({ code: segment.code, name: segment.name }));
+  assetPathPreview.textContent = entryPath.length
+    ? formatFunctionalLocationPreview(entryPath)
+    : "Functional location preview updates as you define the hierarchy.";
   continueButton.disabled = !isEntryReady();
 };
 
-const renderHierarchyNodes = (nodes, depth = 0) =>
+const renderHierarchyNodes = (nodes, depth = 0, parentPath = []) =>
   nodes
     .map((node) => {
+      const nodePath = [...parentPath, node];
       const selectedClass = state.selectedNodeId === node.id ? "is-selected" : "";
       const menuOpen = state.addMenuNodeId === node.id;
       const childActions = getChildActions(node.type);
+      const fullCode = getFullCodeFromPath(nodePath) || getNodeCodeValue(node, "Code pending");
       const childMenu =
         menuOpen && childActions.length
           ? `
@@ -516,7 +633,8 @@ const renderHierarchyNodes = (nodes, depth = 0) =>
           <div class="asset-hierarchy-node ${selectedClass}" style="--depth:${depth}">
             <button class="asset-hierarchy-node__main" type="button" data-select-node="${node.id}">
               <span class="asset-hierarchy-node__type">${escapeHtml(getNodeLabel(node))}</span>
-              <strong>${escapeHtml(getNodeTitle(node))}</strong>
+              <strong>${escapeHtml(fullCode)}</strong>
+              <span class="asset-hierarchy-node__name">${escapeHtml(getNodeTitle(node))}</span>
             </button>
             <button
               class="asset-hierarchy-node__add"
@@ -529,7 +647,7 @@ const renderHierarchyNodes = (nodes, depth = 0) =>
             </button>
           </div>
           ${childMenu}
-          ${node.children.length ? renderHierarchyNodes(node.children, depth + 1) : ""}
+          ${node.children.length ? renderHierarchyNodes(node.children, depth + 1, nodePath) : ""}
         </div>
       `;
     })
@@ -555,7 +673,9 @@ const renderSelectedNodePanel = () => {
     selectedNodeTypeLabel.textContent = "Asset node";
     backgroundDetailHeading.textContent = "No asset selected";
     backgroundDetailSummary.textContent = "Select a node from the hierarchy to extend the taxonomy and configure maintainable items.";
+    selectedNodeCodeInput.value = "";
     selectedNodeNameInput.value = "";
+    selectedNodeCodeInput.disabled = true;
     selectedNodeNameInput.disabled = true;
     selectedNodePathPreview.textContent = "Select a node from the hierarchy.";
     selectedNodeQuickActions.innerHTML = "";
@@ -567,11 +687,13 @@ const renderSelectedNodePanel = () => {
   const actions = getChildActions(node.type);
 
   selectedNodeTypeLabel.textContent = getNodeLabel(node);
-  backgroundDetailHeading.textContent = getNodeTitle(node);
-  backgroundDetailSummary.textContent = `Extend the hierarchy below ${getNodeLabel(node).toLowerCase()} or work on its maintainable items.`;
+  backgroundDetailHeading.textContent = getFullCodeFromPath(path) || getNodeCodeValue(node, "Code pending");
+  backgroundDetailSummary.textContent = getFullNameFromPath(path) || getNodeTitle(node);
+  selectedNodeCodeInput.disabled = false;
   selectedNodeNameInput.disabled = false;
+  selectedNodeCodeInput.value = node.code;
   selectedNodeNameInput.value = node.name;
-  selectedNodePathPreview.textContent = path.map((item) => getNodeTitle(item)).join(" > ");
+  selectedNodePathPreview.textContent = formatFunctionalLocationPreview(path);
   selectedNodeQuickActions.innerHTML = actions.length
     ? actions
         .map(
@@ -637,7 +759,7 @@ const renderMaintainableItems = () => {
     return;
   }
 
-  maintainableItemHint.textContent = `Maintainable items for ${getNodeTitle(node)}.`;
+  maintainableItemHint.textContent = `Maintainable items for ${formatFunctionalLocationPreview(nodeInfo.path)}.`;
 
   if (!selectedItems.length) {
     maintainableItemList.innerHTML = `
@@ -666,8 +788,9 @@ const renderMaintainableItems = () => {
 
 const renderWorkspaceSummary = () => {
   if (!state.hierarchy.length) {
-    backgroundDraftTitle.textContent = getDisplayValue(state.entry.equipmentUnit, "New strategy draft");
-    backgroundDraftPath.textContent = getEntryPathSegments(true).join(" > ");
+    const entrySegments = getEntryPathSegments(false).map((segment) => ({ code: segment.code, name: segment.name }));
+    backgroundDraftTitle.textContent = getFullCodeFromPath(entrySegments) || "New strategy draft";
+    backgroundDraftPath.textContent = getFullNameFromPath(entrySegments) || "Functional location name pending";
     return;
   }
 
@@ -679,12 +802,14 @@ const renderWorkspaceSummary = () => {
     return;
   }
 
-  backgroundDraftTitle.textContent = getNodeTitle(nodeInfo.node);
-  backgroundDraftPath.textContent = nodeInfo.path.map((node) => getNodeTitle(node)).join(" > ");
+  backgroundDraftTitle.textContent = getFullCodeFromPath(nodeInfo.path) || getNodeCodeValue(nodeInfo.node, "Code pending");
+  backgroundDraftPath.textContent = getFullNameFromPath(nodeInfo.path) || getNodeTitle(nodeInfo.node);
 };
 
 const renderWorkspaceState = () => {
   assetContextOverlay.hidden = !state.modalVisible;
+  assetContextOverlay.classList.toggle("is-hidden", !state.modalVisible);
+  assetContextOverlay.setAttribute("aria-hidden", String(!state.modalVisible));
   maintenanceWorkspace.classList.toggle("is-workspace-active", !state.modalVisible);
   assetWorkspace.classList.toggle("is-muted", state.modalVisible);
   renderWorkspaceSummary();
@@ -739,31 +864,37 @@ assetContextForm?.addEventListener("submit", (event) => {
   event.preventDefault();
 });
 
-plantUnitInput?.addEventListener("input", (event) => {
-  state.entry.plantUnit = event.target.value;
+[
+  [plantUnitCodeInput, "plantUnit", "code"],
+  [plantUnitNameInput, "plantUnit", "name"],
+  [sectionSystemCodeInput, "sectionSystem", "code"],
+  [sectionSystemNameInput, "sectionSystem", "name"],
+  [equipmentUnitCodeInput, "equipmentUnit", "code"],
+  [equipmentUnitNameInput, "equipmentUnit", "name"],
+].forEach(([element, group, field]) => {
+  element?.addEventListener("input", (event) => {
+    state.entry[group][field] = event.target.value;
 
-  if (!hasValue(state.entry.plantUnit)) {
-    state.entry = defaultEntryState();
-  }
+    if (isNodeBlank(state.entry.plantUnit)) {
+      state.entry = defaultEntryState();
+    }
 
-  persistDraftSilently();
-  renderAll();
-  hideNotice();
-});
+    if (!hasNodeValue(state.entry.sectionSystem)) {
+      state.entry.subsystems = [];
+      state.entry.equipmentUnit = { code: "", name: "" };
+      state.entry.hasSubunit = false;
+      state.entry.subunit = { code: "", name: "" };
+    }
 
-sectionSystemInput?.addEventListener("input", (event) => {
-  state.entry.sectionSystem = event.target.value;
+    if (!hasNodeValue(state.entry.equipmentUnit)) {
+      state.entry.hasSubunit = false;
+      state.entry.subunit = { code: "", name: "" };
+    }
 
-  if (!hasValue(state.entry.sectionSystem)) {
-    state.entry.subsystems = [];
-    state.entry.equipmentUnit = "";
-    state.entry.hasSubunit = false;
-    state.entry.subunit = "";
-  }
-
-  persistDraftSilently();
-  renderAll();
-  hideNotice();
+    persistDraftSilently();
+    renderAll();
+    hideNotice();
+  });
 });
 
 subsystemList?.addEventListener("input", (event) => {
@@ -777,7 +908,7 @@ subsystemList?.addEventListener("input", (event) => {
     return;
   }
 
-  subsystem.name = input.value;
+  subsystem[input.dataset.entrySubsystemField] = input.value;
   persistDraftSilently();
   renderAll({
     includeEntryDynamic: false,
@@ -797,26 +928,21 @@ subsystemList?.addEventListener("click", (event) => {
   hideNotice();
 });
 
-equipmentUnitInput?.addEventListener("input", (event) => {
-  state.entry.equipmentUnit = event.target.value;
-
-  if (!hasValue(state.entry.equipmentUnit)) {
-    state.entry.hasSubunit = false;
-    state.entry.subunit = "";
-  }
-
-  persistDraftSilently();
-  renderAll();
-  hideNotice();
-});
-
 subunitContainer?.addEventListener("input", (event) => {
-  const input = event.target.closest("#entrySubunitInput");
-  if (!input) {
+  const codeInput = event.target.closest("#entrySubunitCodeInput");
+  const nameInput = event.target.closest("#entrySubunitNameInput");
+  if (!codeInput && !nameInput) {
     return;
   }
 
-  state.entry.subunit = input.value;
+  if (codeInput) {
+    state.entry.subunit.code = codeInput.value;
+  }
+
+  if (nameInput) {
+    state.entry.subunit.name = nameInput.value;
+  }
+
   persistDraftSilently();
   renderAll({
     includeEntryDynamic: false,
@@ -831,7 +957,7 @@ subunitContainer?.addEventListener("click", (event) => {
   }
 
   state.entry.hasSubunit = false;
-  state.entry.subunit = "";
+  state.entry.subunit = { code: "", name: "" };
   persistDraftSilently();
   renderAll();
   hideNotice();
@@ -840,6 +966,7 @@ subunitContainer?.addEventListener("click", (event) => {
 addSubsystemButton?.addEventListener("click", () => {
   state.entry.subsystems.push({
     id: createId("entry-subsystem"),
+    code: "",
     name: "",
   });
   persistDraftSilently();
@@ -929,6 +1056,17 @@ selectedNodeNameInput?.addEventListener("input", (event) => {
   }
 
   info.node.name = event.target.value;
+  persistDraftSilently();
+  renderWorkspaceState();
+});
+
+selectedNodeCodeInput?.addEventListener("input", (event) => {
+  const info = getSelectedNodeInfo();
+  if (!info) {
+    return;
+  }
+
+  info.node.code = event.target.value;
   persistDraftSilently();
   renderWorkspaceState();
 });

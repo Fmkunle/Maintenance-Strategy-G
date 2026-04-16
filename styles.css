@@ -4941,6 +4941,12 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   letter-spacing: -0.01em;
 }
 
+.asset-hierarchy-node__name {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
 .asset-hierarchy-node.is-selected .asset-hierarchy-node__main {
   border-color: rgba(88, 102, 255, 0.38);
   background: rgba(88, 102, 255, 0.1);
@@ -5036,6 +5042,23 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   padding: 0 20px;
 }
 
+.asset-context-entry-block {
+  display: grid;
+  gap: 10px;
+}
+
+.asset-context-entry-block__label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.asset-context-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .asset-context-overlay {
   position: absolute;
   inset: 0;
@@ -5044,6 +5067,10 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   padding: 32px 20px;
   background: rgba(239, 244, 252, 0.58);
   backdrop-filter: blur(10px);
+}
+
+.asset-context-overlay.is-hidden {
+  display: none;
 }
 
 .asset-context-modal {
@@ -5154,6 +5181,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .asset-context-path strong {
   font-size: 0.96rem;
   letter-spacing: -0.01em;
+  line-height: 1.5;
 }
 
 .asset-context-modal__footer {
@@ -5313,6 +5341,10 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   .asset-context-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .asset-context-entry-grid {
+    grid-template-columns: 1fr;
   }
 
   .asset-hierarchy-summary {
