@@ -17,7 +17,7 @@ const toolDefinitions = {
     badgeLabel: "Ready",
     action: "Create new strategy",
     secondaryAction: "Open existing",
-    actionHref: "maintenance-strategy.html",
+    actionHref: "maintenance-strategy.html?mode=new",
     existingHref: "maintenance-strategy.html?mode=existing",
     available: true,
   },
@@ -103,6 +103,7 @@ const resetMaintenanceLaunchContext = () => {
 };
 
 resetMaintenanceLaunchContext();
+window.addEventListener("pageshow", resetMaintenanceLaunchContext);
 
 // Rich detail seed for the gearbox recommendation used by the final drill-down page.
 const gearboxOpportunityDetailSeed = {
