@@ -42,7 +42,8 @@ const backgroundDetailSummary = document.getElementById("backgroundDetailSummary
 const themeStorageKey = "agenticai-theme";
 const sidebarStorageKey = "agenticai-sidebar-collapsed";
 const draftStorageKey = "maintenance-strategy-step1-draft";
-const launchIntentStorageKey = "maintenance-strategy-launch-intent";
+const launchStateStorageKey = "maintenance-strategy-launch-state";
+const sessionActiveStorageKey = "maintenance-strategy-session-active";
 
 const nodeTypeMeta = {
   plant: {
@@ -296,45 +297,79 @@ const normalizeState = (draft) => {
   };
 };
 
-const getLaunchIntent = () => {
+const readStoredLaunchMode = () => {
   try {
-    const params = new URLSearchParams(window.location.search);
-    const intent = params.get("intent");
-    if (intent === "new" || intent === "existing") {
-      return intent;
+    const rawState = window.sessionStorage.getItem(launchStateStorageKey);
+    if (!rawState) {
+      return "";
     }
 
-    const storedIntent = window.sessionStorage.getItem(launchIntentStorageKey);
-    return storedIntent === "new" || storedIntent === "existing" ? storedIntent : "";
+    const parsedState = JSON.parse(rawState);
+    return parsedState?.mode === "new" || parsedState?.mode === "existing" ? parsedState.mode : "";
   } catch (error) {
     return "";
   }
 };
 
-const clearLaunchIntent = () => {
+const readLaunchMode = () => {
   try {
-    window.sessionStorage.removeItem(launchIntentStorageKey);
     const params = new URLSearchParams(window.location.search);
-    if (!params.has("intent")) {
+    const urlMode = params.get("mode") || params.get("intent");
+    if (urlMode === "new" || urlMode === "existing") {
+      return urlMode;
+    }
+
+    return readStoredLaunchMode();
+  } catch (error) {
+    return "";
+  }
+};
+
+const hasActiveMaintenanceSession = () => {
+  try {
+    return window.sessionStorage.getItem(sessionActiveStorageKey) === "true";
+  } catch (error) {
+    return false;
+  }
+};
+
+const markActiveMaintenanceSession = () => {
+  try {
+    window.sessionStorage.setItem(sessionActiveStorageKey, "true");
+  } catch (error) {
+    // Ignore session storage issues and continue with local draft persistence.
+  }
+};
+
+const consumeLaunchMode = () => {
+  try {
+    window.sessionStorage.removeItem(launchStateStorageKey);
+    const params = new URLSearchParams(window.location.search);
+    let hasLaunchParam = false;
+
+    if (params.has("mode")) {
+      params.delete("mode");
+      hasLaunchParam = true;
+    }
+
+    if (params.has("intent")) {
+      params.delete("intent");
+      hasLaunchParam = true;
+    }
+
+    if (!hasLaunchParam) {
       return;
     }
 
-    params.delete("intent");
     const nextQuery = params.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
     window.history.replaceState({}, "", nextUrl);
   } catch (error) {
-    // Ignore URL cleanup issues and continue with the current page state.
+    // Ignore launch cleanup issues and continue with the current page state.
   }
 };
 
-const loadDraft = () => {
-  const launchIntent = getLaunchIntent();
-
-  if (launchIntent === "new") {
-    return defaultState();
-  }
-
+const loadPersistedDraftState = () => {
   try {
     const storedDraft = window.localStorage.getItem(draftStorageKey);
     if (!storedDraft) {
@@ -347,8 +382,27 @@ const loadDraft = () => {
   }
 };
 
-let state = loadDraft();
-clearLaunchIntent();
+const loadInitialState = () => {
+  const launchMode = readLaunchMode();
+
+  if (launchMode === "new") {
+    return defaultState();
+  }
+
+  if (launchMode === "existing") {
+    return loadPersistedDraftState();
+  }
+
+  if (hasActiveMaintenanceSession()) {
+    return loadPersistedDraftState();
+  }
+
+  return defaultState();
+};
+
+let state = loadInitialState();
+consumeLaunchMode();
+markActiveMaintenanceSession();
 
 const applyTheme = (theme) => {
   if (body) {

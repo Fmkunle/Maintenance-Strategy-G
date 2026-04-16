@@ -1,5 +1,6 @@
 // Central copy and navigation config for the home-page tool selector.
-const maintenanceLaunchIntentKey = "maintenance-strategy-launch-intent";
+const maintenanceLaunchStateKey = "maintenance-strategy-launch-state";
+const maintenanceSessionActiveKey = "maintenance-strategy-session-active";
 
 const toolDefinitions = {
   maintenance: {
@@ -16,8 +17,8 @@ const toolDefinitions = {
     badgeLabel: "Ready",
     action: "Create new strategy",
     secondaryAction: "Open existing",
-    actionHref: "maintenance-strategy.html?intent=new",
-    existingHref: "maintenance-strategy.html?intent=existing",
+    actionHref: "maintenance-strategy.html",
+    existingHref: "maintenance-strategy.html?mode=existing",
     available: true,
   },
   cba: {
@@ -74,17 +75,34 @@ const toolDefinitions = {
   },
 };
 
-const setMaintenanceLaunchIntent = (intent) => {
+const writeMaintenanceLaunchState = (mode) => {
   try {
-    if (intent === "new" || intent === "existing") {
-      window.sessionStorage.setItem(maintenanceLaunchIntentKey, intent);
+    if (mode === "new" || mode === "existing") {
+      window.sessionStorage.setItem(
+        maintenanceLaunchStateKey,
+        JSON.stringify({
+          mode,
+          createdAt: Date.now(),
+        })
+      );
     } else {
-      window.sessionStorage.removeItem(maintenanceLaunchIntentKey);
+      window.sessionStorage.removeItem(maintenanceLaunchStateKey);
     }
   } catch (error) {
     // Ignore session storage issues and continue with URL-based navigation.
   }
 };
+
+const resetMaintenanceLaunchContext = () => {
+  try {
+    window.sessionStorage.removeItem(maintenanceLaunchStateKey);
+    window.sessionStorage.removeItem(maintenanceSessionActiveKey);
+  } catch (error) {
+    // Ignore session storage issues on the landing page.
+  }
+};
+
+resetMaintenanceLaunchContext();
 
 // Rich detail seed for the gearbox recommendation used by the final drill-down page.
 const gearboxOpportunityDetailSeed = {
@@ -2858,8 +2876,8 @@ primaryAction?.addEventListener("click", () => {
 
   const targetHref = toolDefinitions[activeToolKey]?.actionHref || primaryAction.dataset.href;
   if (targetHref) {
-    setMaintenanceLaunchIntent(activeToolKey === "maintenance" ? "new" : "");
-    window.location.href = targetHref;
+    writeMaintenanceLaunchState(activeToolKey === "maintenance" ? "new" : "");
+    window.location.assign(targetHref);
   }
 });
 
@@ -2870,8 +2888,8 @@ secondaryAction?.addEventListener("click", () => {
 
   const targetHref = toolDefinitions[activeToolKey]?.existingHref || toolDefinitions[activeToolKey]?.actionHref || secondaryAction.dataset.href;
   if (targetHref) {
-    setMaintenanceLaunchIntent(activeToolKey === "maintenance" ? "existing" : "");
-    window.location.href = targetHref;
+    writeMaintenanceLaunchState(activeToolKey === "maintenance" ? "existing" : "");
+    window.location.assign(targetHref);
   }
 });
 
