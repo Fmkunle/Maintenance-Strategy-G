@@ -1,4 +1,6 @@
 // Central copy and navigation config for the home-page tool selector.
+const maintenanceLaunchIntentKey = "maintenance-strategy-launch-intent";
+
 const toolDefinitions = {
   maintenance: {
     icon:
@@ -70,6 +72,18 @@ const toolDefinitions = {
     available: false,
     statusMessage: "This tool is planned but not available yet.",
   },
+};
+
+const setMaintenanceLaunchIntent = (intent) => {
+  try {
+    if (intent === "new" || intent === "existing") {
+      window.sessionStorage.setItem(maintenanceLaunchIntentKey, intent);
+    } else {
+      window.sessionStorage.removeItem(maintenanceLaunchIntentKey);
+    }
+  } catch (error) {
+    // Ignore session storage issues and continue with URL-based navigation.
+  }
 };
 
 // Rich detail seed for the gearbox recommendation used by the final drill-down page.
@@ -2844,6 +2858,7 @@ primaryAction?.addEventListener("click", () => {
 
   const targetHref = toolDefinitions[activeToolKey]?.actionHref || primaryAction.dataset.href;
   if (targetHref) {
+    setMaintenanceLaunchIntent(activeToolKey === "maintenance" ? "new" : "");
     window.location.href = targetHref;
   }
 });
@@ -2855,6 +2870,7 @@ secondaryAction?.addEventListener("click", () => {
 
   const targetHref = toolDefinitions[activeToolKey]?.existingHref || toolDefinitions[activeToolKey]?.actionHref || secondaryAction.dataset.href;
   if (targetHref) {
+    setMaintenanceLaunchIntent(activeToolKey === "maintenance" ? "existing" : "");
     window.location.href = targetHref;
   }
 });

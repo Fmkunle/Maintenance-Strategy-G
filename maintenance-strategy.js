@@ -42,6 +42,7 @@ const backgroundDetailSummary = document.getElementById("backgroundDetailSummary
 const themeStorageKey = "agenticai-theme";
 const sidebarStorageKey = "agenticai-sidebar-collapsed";
 const draftStorageKey = "maintenance-strategy-step1-draft";
+const launchIntentStorageKey = "maintenance-strategy-launch-intent";
 
 const nodeTypeMeta = {
   plant: {
@@ -299,7 +300,12 @@ const getLaunchIntent = () => {
   try {
     const params = new URLSearchParams(window.location.search);
     const intent = params.get("intent");
-    return intent === "new" || intent === "existing" ? intent : "";
+    if (intent === "new" || intent === "existing") {
+      return intent;
+    }
+
+    const storedIntent = window.sessionStorage.getItem(launchIntentStorageKey);
+    return storedIntent === "new" || storedIntent === "existing" ? storedIntent : "";
   } catch (error) {
     return "";
   }
@@ -307,6 +313,7 @@ const getLaunchIntent = () => {
 
 const clearLaunchIntent = () => {
   try {
+    window.sessionStorage.removeItem(launchIntentStorageKey);
     const params = new URLSearchParams(window.location.search);
     if (!params.has("intent")) {
       return;
