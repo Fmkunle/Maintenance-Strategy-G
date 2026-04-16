@@ -196,8 +196,22 @@
               </div>
 
               <div class="hero-actions">
-                <button id="primaryAction" class="primary-button">Create new FMEA</button>
-                <button id="secondaryAction" class="secondary-button">Open existing</button>
+                <button
+                  id="primaryAction"
+                  class="primary-button"
+                  type="button"
+                  onclick="try { const selectedTool = document.querySelector('.tool-selector__option.is-selected')?.dataset.tool; if (selectedTool === 'maintenance') { window.sessionStorage.setItem('maintenance-strategy-launch-intent', 'new'); } else { window.sessionStorage.removeItem('maintenance-strategy-launch-intent'); } } catch (error) {}"
+                >
+                  Create new FMEA
+                </button>
+                <button
+                  id="secondaryAction"
+                  class="secondary-button"
+                  type="button"
+                  onclick="try { const selectedTool = document.querySelector('.tool-selector__option.is-selected')?.dataset.tool; if (selectedTool === 'maintenance') { window.sessionStorage.setItem('maintenance-strategy-launch-intent', 'existing'); } else { window.sessionStorage.removeItem('maintenance-strategy-launch-intent'); } } catch (error) {}"
+                >
+                  Open existing
+                </button>
               </div>
             </section>
 
