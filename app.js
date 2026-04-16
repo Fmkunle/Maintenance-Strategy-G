@@ -14,7 +14,8 @@ const toolDefinitions = {
     badgeLabel: "Ready",
     action: "Create new strategy",
     secondaryAction: "Open existing",
-    actionHref: "maintenance-strategy.html",
+    actionHref: "maintenance-strategy.html?intent=new",
+    existingHref: "maintenance-strategy.html?intent=existing",
     available: true,
   },
   cba: {
@@ -2819,6 +2820,7 @@ const applyToolSelection = (toolKey, selectedOption) => {
   }
   if (secondaryAction) {
     secondaryAction.textContent = tool.secondaryAction;
+    secondaryAction.dataset.href = tool.existingHref ?? tool.actionHref ?? "";
     secondaryAction.disabled = !tool.available;
   }
 };
@@ -2841,6 +2843,17 @@ primaryAction?.addEventListener("click", () => {
   }
 
   const targetHref = toolDefinitions[activeToolKey]?.actionHref || primaryAction.dataset.href;
+  if (targetHref) {
+    window.location.href = targetHref;
+  }
+});
+
+secondaryAction?.addEventListener("click", () => {
+  if (secondaryAction.disabled) {
+    return;
+  }
+
+  const targetHref = toolDefinitions[activeToolKey]?.existingHref || toolDefinitions[activeToolKey]?.actionHref || secondaryAction.dataset.href;
   if (targetHref) {
     window.location.href = targetHref;
   }

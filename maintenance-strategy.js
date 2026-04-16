@@ -295,7 +295,39 @@ const normalizeState = (draft) => {
   };
 };
 
+const getLaunchIntent = () => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const intent = params.get("intent");
+    return intent === "new" || intent === "existing" ? intent : "";
+  } catch (error) {
+    return "";
+  }
+};
+
+const clearLaunchIntent = () => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("intent")) {
+      return;
+    }
+
+    params.delete("intent");
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+    window.history.replaceState({}, "", nextUrl);
+  } catch (error) {
+    // Ignore URL cleanup issues and continue with the current page state.
+  }
+};
+
 const loadDraft = () => {
+  const launchIntent = getLaunchIntent();
+
+  if (launchIntent === "new") {
+    return defaultState();
+  }
+
   try {
     const storedDraft = window.localStorage.getItem(draftStorageKey);
     if (!storedDraft) {
@@ -309,6 +341,7 @@ const loadDraft = () => {
 };
 
 let state = loadDraft();
+clearLaunchIntent();
 
 const applyTheme = (theme) => {
   if (body) {
