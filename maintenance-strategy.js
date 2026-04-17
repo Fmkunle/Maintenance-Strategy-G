@@ -13,16 +13,7 @@ const assetHierarchyTreeViewButton = document.getElementById("assetHierarchyTree
 const assetHierarchyListViewButton = document.getElementById("assetHierarchyListViewButton");
 const assetRegisterColumnResizeHandle = document.getElementById("assetRegisterColumnResizeHandle");
 const selectedNodeTypeLabel = document.getElementById("selectedNodeTypeLabel");
-const selectedNodeCodeInput = document.getElementById("selectedNodeCodeInput");
-const selectedNodeNameInput = document.getElementById("selectedNodeNameInput");
-const selectedNodeDescriptionInput = document.getElementById("selectedNodeDescriptionInput");
-const selectedNodePathSection = document.getElementById("selectedNodePathSection");
-const selectedNodePathPreview = document.getElementById("selectedNodePathPreview");
 const childCreatorPanel = document.getElementById("childCreatorPanel");
-const selectedNodeChildrenList = document.getElementById("selectedNodeChildrenList");
-const maintainableItemHint = document.getElementById("maintainableItemHint");
-const addMaintainableItemButton = document.getElementById("addMaintainableItemButton");
-const maintainableItemList = document.getElementById("maintainableItemList");
 const strategyList = document.getElementById("strategyList");
 const maintenanceMenuBar = document.querySelector(".maintenance-menu-bar");
 
@@ -51,8 +42,6 @@ if (maintenanceWorkspace) {
   maintenanceWorkspace.hidden = true;
 }
 
-const backgroundDraftTitle = document.getElementById("backgroundDraftTitle");
-const backgroundDraftPath = document.getElementById("backgroundDraftPath");
 const backgroundDetailHeading = document.getElementById("backgroundDetailHeading");
 const backgroundDetailSummary = document.getElementById("backgroundDetailSummary");
 
@@ -134,9 +123,7 @@ const defaultChildDraftState = () => ({
   isOpen: false,
   parentId: "",
   childType: "",
-  code: "",
   name: "",
-  description: "",
 });
 
 const defaultEntryState = () => ({
@@ -843,6 +830,79 @@ const getSelectedNodeInfo = () => {
 const getNodeLabel = (node) => nodeTypeMeta[node.type]?.label || "Asset node";
 const getNodeTitle = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const isMaintainableTarget = (node) => node.type === "equipment" || node.type === "subunit";
+const getDefaultGeneratedCode = (nodeType) => {
+  switch (nodeType) {
+    case "section":
+      return "SYS";
+    case "subsystem":
+      return "SS";
+    case "equipment":
+      return "EQ";
+    case "subunit":
+      return "SU";
+    default:
+      return "NODE";
+  }
+};
+const generateNodeCodeFromName = (name, nodeType, siblings = []) => {
+  const tokens = String(name || "").trim().match(/[A-Za-z0-9]+/g) || [];
+  let baseCode = "";
+
+  if (tokens.length > 1) {
+    baseCode = tokens
+      .slice(0, 4)
+      .map((token) => token[0])
+      .join("")
+      .toUpperCase();
+  } else if (tokens.length === 1) {
+    baseCode = tokens[0].slice(0, 4).toUpperCase();
+  }
+
+  if (!baseCode) {
+    baseCode = getDefaultGeneratedCode(nodeType);
+  }
+
+  const siblingCodes = new Set(
+    siblings
+      .map((entry) => String(entry?.code || "").trim().toUpperCase())
+      .filter(Boolean)
+  );
+
+  if (!siblingCodes.has(baseCode)) {
+    return baseCode;
+  }
+
+  let suffix = 2;
+  while (siblingCodes.has(`${baseCode}${suffix}`)) {
+    suffix += 1;
+  }
+
+  return `${baseCode}${suffix}`;
+};
+const collectNodeAndDescendantIds = (node, ids = new Set()) => {
+  if (!node) {
+    return ids;
+  }
+
+  ids.add(node.id);
+  (node.children || []).forEach((child) => {
+    collectNodeAndDescendantIds(child, ids);
+  });
+  return ids;
+};
+const getStrategyItemsForNodeInfo = (nodeInfo) => {
+  if (!nodeInfo) {
+    return [];
+  }
+
+  const allowedIds = collectNodeAndDescendantIds(nodeInfo.node);
+  return state.maintainableItems
+    .filter((item) => allowedIds.has(item.nodeId))
+    .map((item) => ({
+      item,
+      nodeInfo: findNodeInfo(state.hierarchy, item.nodeId),
+    }));
+};
 const getNodeDisplayName = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const getNodeDescription = (node, fallback = "") =>
   (typeof node?.description === "string" ? node.description.trim() : "") || fallback;
@@ -1252,21 +1312,11 @@ const openChildCreator = (parentId, childType = "") => {
     isOpen: true,
     parentId,
     childType: nextChildType,
-    code: "",
     name: "",
-    description: "",
   };
 };
 
-const isChildDraftReady = () => Boolean(childDraftState.code.trim() || childDraftState.name.trim());
-
-const getChildDraftPreview = (parentPath, childType) => {
-  const childSegment = {
-    code: childDraftState.code.trim() || "NEW",
-    name: childDraftState.name.trim() || getNodeLabel({ type: childType }),
-  };
-  return formatFunctionalLocationPreview([...parentPath, childSegment]);
-};
+const isChildDraftReady = () => Boolean(childDraftState.name.trim());
 
 const renderChildCreator = (nodeInfo, actions) => {
   if (!childCreatorPanel) {
@@ -1284,8 +1334,6 @@ const renderChildCreator = (nodeInfo, actions) => {
   const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
     ? childDraftState.childType
     : actions[0].type;
-  const inheritedPrefix = buildInheritedCodePrefix(nodeInfo.path.map((segment) => segment.code));
-  const preview = getChildDraftPreview(nodeInfo.path, selectedChildType);
   const childTypeControl =
     actions.length === 1
       ? `
@@ -1308,41 +1356,21 @@ const renderChildCreator = (nodeInfo, actions) => {
 
   childCreatorPanel.innerHTML = `
     <section class="asset-child-creator__form">
-      <div class="strategy-surface__header strategy-surface__header--spread">
+      <div class="strategy-surface__header">
         <div>
-          <strong>Add child under ${escapeHtml(getNodeDisplayName(nodeInfo.node))}</strong>
-          <span>${escapeHtml(getFullCodeFromPath(nodeInfo.path) || getNodeCodeValue(nodeInfo.node, "Code pending"))}</span>
+          <strong>Add ${escapeHtml(getNodeLabel({ type: selectedChildType }).toLowerCase())}</strong>
+          <span>Under ${escapeHtml(getNodeDisplayName(nodeInfo.node))}</span>
         </div>
       </div>
-      <p class="asset-child-creator__summary">
-        Complete the fields below to add a new ${escapeHtml(getNodeLabel({ type: selectedChildType }).toLowerCase())} under the selected hierarchy node.
-      </p>
-      <div class="asset-context-entry-grid">
+      <div class="asset-child-creator__compact-grid">
         <label class="field">
           <span>Child type</span>
           ${childTypeControl}
         </label>
         <label class="field">
-          <span>Code segment</span>
-          <div class="hierarchy-code-field ${inheritedPrefix ? "has-prefix" : ""}">
-            <span class="hierarchy-code-field__prefix">${escapeHtml(inheritedPrefix)}</span>
-            <input id="childCreatorCodeInput" type="text" value="${escapeHtml(childDraftState.code)}" placeholder="Enter code segment">
-          </div>
-        </label>
-      </div>
-      <div class="asset-context-entry-grid">
-        <label class="field field--full">
           <span>Name</span>
           <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name">
         </label>
-      </div>
-      <label class="field field--full">
-        <span>Description</span>
-        <textarea id="childCreatorDescriptionInput" rows="3" placeholder="Enter description">${escapeHtml(childDraftState.description)}</textarea>
-      </label>
-      <div class="asset-context-path asset-context-path--inline">
-        <span class="asset-context-path__label">New child functional location preview</span>
-        <strong id="childCreatorPathPreview">${escapeHtml(preview)}</strong>
       </div>
       <div class="asset-child-creator__actions">
         <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
@@ -1352,49 +1380,65 @@ const renderChildCreator = (nodeInfo, actions) => {
   `;
 };
 
-const renderSelectedNodeChildren = (nodeInfo) => {
-  if (!selectedNodeChildrenList) {
+const renderStrategyDrafts = (nodeInfo) => {
+  if (!strategyList) {
     return;
   }
 
-  const children = nodeInfo.node.children || [];
-  selectedNodeChildrenList.innerHTML = `
-    <section class="asset-child-list__section">
-      <div class="strategy-surface__header">
-        <strong>Children</strong>
-        <span>${children.length ? `${children.length} item${children.length === 1 ? "" : "s"}` : "No children yet"}</span>
-      </div>
-      ${
-        children.length
-          ? `
-            <div class="asset-child-list__items">
-              ${children
-                .map((child) => {
-                  const childInfo = findNodeInfo(state.hierarchy, child.id);
-                  const description = getNodeDescription(child) || getFullCodeFromPath(childInfo?.path || []) || getNodeLabel(child);
-                  return `
-                    <button class="asset-child-list__item" type="button" data-select-node="${child.id}">
-                      <span class="asset-child-list__eyebrow">${escapeHtml(getNodeLabel(child))}</span>
-                      <strong>${escapeHtml(getNodeDisplayName(child))}</strong>
-                      <span class="asset-child-list__meta">${escapeHtml(
-                        getFullCodeFromPath(childInfo?.path || []) || getNodeCodeValue(child, "Code pending")
-                      )}</span>
-                      <p>${escapeHtml(description)}</p>
-                    </button>
-                  `;
-                })
-                .join("")}
+  if (!nodeInfo) {
+    strategyList.hidden = false;
+    strategyList.innerHTML = `
+      <article class="asset-workspace-empty asset-workspace-empty--soft">
+        <strong>No asset selected</strong>
+        <p>Select a node in the asset register to see strategies related to that system or asset.</p>
+      </article>
+    `;
+    return;
+  }
+
+  const strategyItems = getStrategyItemsForNodeInfo(nodeInfo);
+  strategyList.hidden = false;
+  strategyList.innerHTML = strategyItems.length
+    ? `
+        <section class="strategy-draft-list__section">
+          <div class="strategy-surface__header strategy-surface__header--spread">
+            <div>
+              <strong>Strategies</strong>
+              <span>${strategyItems.length} linked item${strategyItems.length === 1 ? "" : "s"}</span>
             </div>
-          `
-          : `
-            <article class="asset-workspace-empty asset-workspace-empty--soft">
-              <strong>No child nodes yet</strong>
-              <p>Use the + on the selected row in the asset register to build out this part of the hierarchy.</p>
-            </article>
-          `
-      }
-    </section>
-  `;
+          </div>
+          ${strategyItems
+            .map(({ item, nodeInfo: itemNodeInfo }, index) => {
+              const sourceLabel = itemNodeInfo
+                ? `${getNodeDisplayName(itemNodeInfo.node)} · ${getNodeLabel(itemNodeInfo.node)}`
+                : "Linked asset";
+              const sourcePath = itemNodeInfo
+                ? getFullNameFromPath(itemNodeInfo.path) || getFullCodeFromPath(itemNodeInfo.path)
+                : "Asset path unavailable";
+              return `
+                <article class="strategy-draft-card">
+                  <span class="strategy-draft-card__eyebrow">Strategy ${index + 1}</span>
+                  <strong>${escapeHtml(getDisplayValue(item.name, `Maintainable item ${index + 1}`))}</strong>
+                  <p>${escapeHtml(sourceLabel)}</p>
+                  <small>${escapeHtml(sourcePath)}</small>
+                </article>
+              `;
+            })
+            .join("")}
+        </section>
+      `
+    : `
+        <section class="strategy-draft-list__section">
+          <div class="strategy-surface__header">
+            <strong>Strategies</strong>
+            <span>No linked items yet</span>
+          </div>
+          <article class="asset-workspace-empty asset-workspace-empty--soft">
+            <strong>No strategies under this selection yet</strong>
+            <p>Select another asset or add hierarchy children to keep building the strategy structure.</p>
+          </article>
+        </section>
+      `;
 };
 
 const renderSelectedNodePanel = () => {
@@ -1402,27 +1446,13 @@ const renderSelectedNodePanel = () => {
   if (!nodeInfo) {
     selectedNodeTypeLabel.textContent = "Asset node";
     backgroundDetailHeading.textContent = "No asset selected";
-    backgroundDetailSummary.textContent = "Select a node from the hierarchy to extend the taxonomy and configure maintainable items.";
-    selectedNodeCodeInput.value = "";
-    selectedNodeNameInput.value = "";
-    selectedNodeDescriptionInput.value = "";
-    selectedNodeCodeInput.disabled = true;
-    selectedNodeNameInput.disabled = true;
-    selectedNodeDescriptionInput.disabled = true;
-    selectedNodeForm.hidden = false;
-    if (selectedNodePathSection) {
-      selectedNodePathSection.hidden = false;
-    }
-    selectedNodePathPreview.textContent = "Select a node from the hierarchy.";
+    backgroundDetailSummary.textContent = "Select a system or asset in the left register to view related strategies.";
     if (childCreatorPanel) {
       childCreatorPanel.hidden = true;
       childCreatorPanel.innerHTML = "";
     }
-    if (selectedNodeChildrenList) {
-      selectedNodeChildrenList.hidden = false;
-      selectedNodeChildrenList.innerHTML = "";
-    }
     closeChildCreator();
+    renderStrategyDrafts(null);
     return;
   }
 
@@ -1438,141 +1468,24 @@ const renderSelectedNodePanel = () => {
       ? childDraftState.childType
       : actions[0].type;
     selectedNodeTypeLabel.textContent = `Add ${getNodeLabel({ type: selectedChildType })}`;
-    backgroundDetailHeading.textContent = `Add child under ${getNodeDisplayName(node)}`;
-    backgroundDetailSummary.textContent = `Complete the form to add a new ${getNodeLabel({ type: selectedChildType }).toLowerCase()} beneath the selected hierarchy node.`;
-    selectedNodeCodeInput.value = "";
-    selectedNodeNameInput.value = "";
-    selectedNodeDescriptionInput.value = "";
-    selectedNodeCodeInput.disabled = true;
-    selectedNodeNameInput.disabled = true;
-    selectedNodeDescriptionInput.disabled = true;
-    selectedNodeForm.hidden = true;
-    if (selectedNodePathSection) {
-      selectedNodePathSection.hidden = true;
-    }
-    if (selectedNodeChildrenList) {
-      selectedNodeChildrenList.hidden = true;
-      selectedNodeChildrenList.innerHTML = "";
-    }
+    backgroundDetailHeading.textContent = getNodeDisplayName(node);
+    backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
     renderChildCreator(nodeInfo, actions);
+    if (strategyList) {
+      strategyList.hidden = true;
+      strategyList.innerHTML = "";
+    }
     return;
   }
 
   selectedNodeTypeLabel.textContent = getNodeLabel(node);
-  backgroundDetailHeading.textContent = getFullCodeFromPath(path) || getNodeCodeValue(node, "Code pending");
-  backgroundDetailSummary.textContent = getFullNameFromPath(path) || getNodeTitle(node);
-  selectedNodeCodeInput.disabled = false;
-  selectedNodeNameInput.disabled = false;
-  selectedNodeDescriptionInput.disabled = false;
-  selectedNodeCodeInput.value = node.code;
-  selectedNodeNameInput.value = node.name;
-  selectedNodeDescriptionInput.value = node.description || "";
-  selectedNodeForm.hidden = false;
-  if (selectedNodePathSection) {
-    selectedNodePathSection.hidden = false;
-  }
-  selectedNodePathPreview.textContent = formatFunctionalLocationPreview(path);
+  backgroundDetailHeading.textContent = getNodeDisplayName(node);
+  backgroundDetailSummary.textContent = `${getNodeLabel(node)} · ${getFullCodeFromPath(path) || getNodeCodeValue(node, "Code pending")}`;
   if (childCreatorPanel) {
     childCreatorPanel.hidden = true;
     childCreatorPanel.innerHTML = "";
   }
-  if (selectedNodeChildrenList) {
-    selectedNodeChildrenList.hidden = false;
-  }
-  renderSelectedNodeChildren(nodeInfo);
-};
-
-const renderStrategyDrafts = (selectedItems, canAddItems) => {
-  if (!canAddItems) {
-    strategyList.innerHTML = `
-      <article class="asset-workspace-empty asset-workspace-empty--soft">
-        <strong>Strategies will appear here later</strong>
-        <p>Select an equipment unit or subunit, then add maintainable items to start building strategy content.</p>
-      </article>
-    `;
-    return;
-  }
-
-  strategyList.innerHTML = selectedItems.length
-    ? selectedItems
-        .map(
-          (item, index) => `
-            <article class="strategy-draft-card">
-              <span class="strategy-draft-card__eyebrow">Strategy draft</span>
-              <strong>${escapeHtml(getDisplayValue(item.name, `Maintainable item ${index + 1}`))}</strong>
-              <p>Failure logic and maintenance strategy design will be configured for this item in the next workflow steps.</p>
-            </article>
-          `
-        )
-        .join("")
-    : `
-        <article class="asset-workspace-empty asset-workspace-empty--soft">
-          <strong>No strategy drafts yet</strong>
-          <p>Add a maintainable item to create room for strategy definition on the selected asset.</p>
-        </article>
-      `;
-};
-
-const renderMaintainableItems = () => {
-  const nodeInfo = getSelectedNodeInfo();
-  const node = nodeInfo?.node || null;
-  const canAddItems = Boolean(node && isMaintainableTarget(node));
-  const selectedItems = canAddItems ? state.maintainableItems.filter((item) => item.nodeId === node.id) : [];
-
-  addMaintainableItemButton.disabled = !canAddItems;
-
-  if (!canAddItems) {
-    maintainableItemHint.textContent = "Select an equipment unit or subunit to define maintainable items.";
-    maintainableItemList.innerHTML = "";
-    renderStrategyDrafts([], false);
-    return;
-  }
-
-  maintainableItemHint.textContent = `Maintainable items for ${formatFunctionalLocationPreview(nodeInfo.path)}.`;
-
-  if (!selectedItems.length) {
-    maintainableItemList.innerHTML = `
-      <article class="asset-workspace-empty asset-workspace-empty--soft">
-        <strong>No maintainable items yet</strong>
-        <p>Add the maintainable items that belong under this selected asset. They stay out of the hierarchy tree to keep it clean.</p>
-      </article>
-    `;
-  } else {
-    maintainableItemList.innerHTML = selectedItems
-      .map(
-        (item, index) => `
-          <article class="maintainable-item-card">
-            <label class="field field--full">
-              <span>Maintainable item ${index + 1}</span>
-              <input type="text" data-maintainable-item-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="Enter maintainable item">
-            </label>
-          </article>
-        `
-      )
-      .join("");
-  }
-
-  renderStrategyDrafts(selectedItems, true);
-};
-
-const renderWorkspaceSummary = () => {
-  if (!state.hierarchy.length) {
-    const entrySegments = getEntryPathSegments(false).map((segment) => ({ code: segment.code, name: segment.name }));
-    backgroundDraftTitle.textContent = getFullCodeFromPath(entrySegments) || "New strategy draft";
-    backgroundDraftPath.textContent = getFullNameFromPath(entrySegments) || "Functional location name pending";
-    return;
-  }
-
-  const fallbackNode = getFirstNode(state.hierarchy);
-  const nodeInfo = getSelectedNodeInfo() || (fallbackNode ? findNodeInfo(state.hierarchy, fallbackNode.id) : null);
-  if (!nodeInfo) {
-    backgroundDraftTitle.textContent = "New strategy draft";
-    backgroundDraftPath.textContent = "Asset hierarchy pending.";
-    return;
-  }
-
-  backgroundDraftTitle.textContent = getFullCodeFromPath(nodeInfo.path) || getNodeCodeValue(nodeInfo.node, "Code pending");
-  backgroundDraftPath.textContent = getFullNameFromPath(nodeInfo.path) || getNodeTitle(nodeInfo.node);
+  renderStrategyDrafts(nodeInfo);
 };
 
 const renderWorkspaceState = () => {
@@ -1590,10 +1503,8 @@ const renderWorkspaceState = () => {
   assetHierarchyTreeViewButton?.setAttribute("aria-pressed", String(isTreeView));
   assetHierarchyListViewButton?.classList.toggle("is-active", !isTreeView);
   assetHierarchyListViewButton?.setAttribute("aria-pressed", String(!isTreeView));
-  renderWorkspaceSummary();
   renderHierarchyTree();
   renderSelectedNodePanel();
-  renderMaintainableItems();
 };
 
 const renderAll = (options = {}) => {
@@ -1603,13 +1514,15 @@ const renderAll = (options = {}) => {
   renderWorkspaceState();
 };
 
-const createChildNode = (parentId, childType, code = "", name = "", description = "") => {
+const createChildNode = (parentId, childType, name = "") => {
   const info = findNodeInfo(state.hierarchy, parentId);
   if (!info) {
     return;
   }
 
-  const nextNode = createNode(childType, code.trim(), name.trim(), description.trim());
+  const trimmedName = name.trim();
+  const generatedCode = generateNodeCodeFromName(trimmedName, childType, info.node.children);
+  const nextNode = createNode(childType, generatedCode, trimmedName, "");
   info.node.children.push(nextNode);
   setNodeCollapsed(parentId, false);
   state.selectedNodeId = nextNode.id;
@@ -1939,39 +1852,6 @@ assetHierarchyTree?.addEventListener("click", (event) => {
   }
 });
 
-selectedNodeNameInput?.addEventListener("input", (event) => {
-  const info = getSelectedNodeInfo();
-  if (!info) {
-    return;
-  }
-
-  info.node.name = event.target.value;
-  persistDraftSilently();
-  renderWorkspaceState();
-});
-
-selectedNodeCodeInput?.addEventListener("input", (event) => {
-  const info = getSelectedNodeInfo();
-  if (!info) {
-    return;
-  }
-
-  info.node.code = event.target.value;
-  persistDraftSilently();
-  renderWorkspaceState();
-});
-
-selectedNodeDescriptionInput?.addEventListener("input", (event) => {
-  const info = getSelectedNodeInfo();
-  if (!info) {
-    return;
-  }
-
-  info.node.description = event.target.value;
-  persistDraftSilently();
-  renderWorkspaceState();
-});
-
 const syncChildCreatorDraftField = (target) => {
   if (!(target instanceof HTMLElement)) {
     return;
@@ -1983,27 +1863,13 @@ const syncChildCreatorDraftField = (target) => {
     return;
   }
 
-  if (target.id === "childCreatorCodeInput") {
-    childDraftState.code = target.value;
-  }
-
   if (target.id === "childCreatorNameInput") {
     childDraftState.name = target.value;
-  }
-
-  if (target.id === "childCreatorDescriptionInput") {
-    childDraftState.description = target.value;
   }
 
   const createButton = childCreatorPanel?.querySelector("#createChildButton");
   if (createButton) {
     createButton.disabled = !isChildDraftReady();
-  }
-
-  const preview = childCreatorPanel?.querySelector("#childCreatorPathPreview");
-  const parentInfo = childDraftState.parentId ? findNodeInfo(state.hierarchy, childDraftState.parentId) : null;
-  if (preview && parentInfo) {
-    preview.textContent = getChildDraftPreview(parentInfo.path, childDraftState.childType || getChildActions(parentInfo.node.type)[0]?.type || "subunit");
   }
 };
 
@@ -2033,56 +1899,7 @@ childCreatorPanel?.addEventListener("click", (event) => {
   createChildNode(
     childDraftState.parentId,
     childDraftState.childType,
-    childDraftState.code,
-    childDraftState.name,
-    childDraftState.description
-  );
-});
-
-selectedNodeChildrenList?.addEventListener("click", (event) => {
-  const childButton = event.target.closest("[data-select-node]");
-  if (!childButton) {
-    return;
-  }
-
-  state.selectedNodeId = childButton.dataset.selectNode;
-  persistDraftSilently();
-  renderAll({
-    includeEntryDynamic: false,
-  });
-});
-
-addMaintainableItemButton?.addEventListener("click", () => {
-  const info = getSelectedNodeInfo();
-  if (!info || !isMaintainableTarget(info.node)) {
-    return;
-  }
-
-  state.maintainableItems.push({
-    id: createId("maintainable-item"),
-    nodeId: info.node.id,
-    name: "",
-  });
-  persistDraftSilently();
-  renderWorkspaceState();
-});
-
-maintainableItemList?.addEventListener("input", (event) => {
-  const input = event.target.closest("[data-maintainable-item-id]");
-  if (!input) {
-    return;
-  }
-
-  const item = state.maintainableItems.find((entry) => entry.id === input.dataset.maintainableItemId);
-  if (!item) {
-    return;
-  }
-
-  item.name = input.value;
-  persistDraftSilently();
-  renderStrategyDrafts(
-    state.maintainableItems.filter((entry) => entry.nodeId === item.nodeId),
-    true
+    childDraftState.name
   );
 });
 
