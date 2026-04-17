@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
   <script>
-    window.__maintenanceAssetVersion = "maintenance-page-20";
+    window.__maintenanceAssetVersion = "maintenance-page-21";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
     maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
@@ -150,6 +150,59 @@
           </a>
         </div>
       </header>
+
+      <nav class="maintenance-menu-bar" aria-label="Workspace menu">
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Context</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Asset hierarchy</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Asset templates</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Operating context</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Criticality and redundancy</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Constraints</button>
+          </div>
+        </div>
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Failure</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">FMEA linkage</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Import FMEA</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Quick failure modes</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Severity and consequence</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Detectability intent</button>
+          </div>
+        </div>
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Strategy</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Strategy type</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Task definition</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Detection strategy</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Frequency and interval logic</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Resource definition</button>
+          </div>
+        </div>
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Planning</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Execution inputs</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Cost modelling</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Risk trade-off</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Strategy output</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Export and packaging</button>
+          </div>
+        </div>
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Help</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">How it works</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Field definitions</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Strategy examples</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Standards and guidance</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">About</button>
+          </div>
+        </div>
+      </nav>
 
       <main id="maintenanceWorkspace" class="workspace workspace--wide workspace--maintenance workspace--maintenance-modal">
         <section id="assetWorkspace" class="asset-workspace">

@@ -25,6 +25,7 @@ const maintainableItemHint = document.getElementById("maintainableItemHint");
 const addMaintainableItemButton = document.getElementById("addMaintainableItemButton");
 const maintainableItemList = document.getElementById("maintainableItemList");
 const strategyList = document.getElementById("strategyList");
+const maintenanceMenuBar = document.querySelector(".maintenance-menu-bar");
 
 const assetContextOverlay = document.getElementById("assetContextOverlay");
 const workflowNotice = document.getElementById("workflowNotice");
@@ -563,6 +564,7 @@ const initializeState = async () => {
 
 let state = defaultState();
 let childDraftState = defaultChildDraftState();
+let openMaintenanceMenu = null;
 
 const collapseHierarchyPane = () => {
   state.layout = normalizeLayoutState({
@@ -593,6 +595,39 @@ const toggleHierarchyPaneCollapse = () => {
 
   applyWorkspaceLayoutStyles();
   persistDraftSilently();
+};
+
+const setMaintenanceMenuState = (menu, shouldOpen) => {
+  const trigger = menu?.querySelector("[data-menu-trigger]");
+  const panel = menu?.querySelector(".maintenance-menu__panel");
+  if (!trigger || !panel) {
+    return;
+  }
+
+  menu.classList.toggle("is-open", shouldOpen);
+  trigger.setAttribute("aria-expanded", String(shouldOpen));
+  panel.hidden = !shouldOpen;
+};
+
+const closeMaintenanceMenus = () => {
+  if (openMaintenanceMenu) {
+    setMaintenanceMenuState(openMaintenanceMenu, false);
+    openMaintenanceMenu = null;
+  }
+};
+
+const toggleMaintenanceMenu = (menu) => {
+  if (!menu) {
+    return;
+  }
+
+  if (openMaintenanceMenu && openMaintenanceMenu !== menu) {
+    setMaintenanceMenuState(openMaintenanceMenu, false);
+  }
+
+  const shouldOpen = openMaintenanceMenu !== menu;
+  setMaintenanceMenuState(menu, shouldOpen);
+  openMaintenanceMenu = shouldOpen ? menu : null;
 };
 
 const applyTheme = (theme) => {
@@ -1995,6 +2030,33 @@ window.addEventListener("resize", () => {
 
   state.layout = normalizeLayoutState(state.layout);
   applyWorkspaceLayoutStyles();
+});
+
+maintenanceMenuBar?.addEventListener("click", (event) => {
+  const trigger = event.target.closest("[data-menu-trigger]");
+  if (trigger) {
+    toggleMaintenanceMenu(trigger.closest("[data-menu]"));
+    return;
+  }
+
+  const menuItem = event.target.closest(".maintenance-menu__item");
+  if (menuItem) {
+    closeMaintenanceMenus();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (!maintenanceMenuBar || maintenanceMenuBar.contains(event.target)) {
+    return;
+  }
+
+  closeMaintenanceMenus();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeMaintenanceMenus();
+  }
 });
 
 const bootApp = async () => {

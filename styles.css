@@ -4121,6 +4121,66 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   font-size: 0.79rem;
 }
 
+.maintenance-menu-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 24px;
+  min-height: 38px;
+  border-top: 1px solid rgba(198, 209, 222, 0.78);
+  border-bottom: 1px solid rgba(198, 209, 222, 0.78);
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(237, 243, 250, 0.98));
+}
+
+.maintenance-menu {
+  position: relative;
+}
+
+.maintenance-menu__button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: #4d6480;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.maintenance-menu.is-open .maintenance-menu__button,
+.maintenance-menu__button:hover {
+  background: rgba(210, 221, 235, 0.68);
+  color: #24384f;
+}
+
+.maintenance-menu__panel {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  z-index: 20;
+  min-width: 220px;
+  display: grid;
+  padding: 6px 0;
+  border: 1px solid #bcc8d5;
+  background: #f8fbff;
+  box-shadow: 0 10px 24px rgba(24, 39, 58, 0.12);
+}
+
+.maintenance-menu__item {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: #334960;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.maintenance-menu__item:hover {
+  background: rgba(214, 226, 240, 0.84);
+}
+
 .workspace--maintenance {
   max-width: 1400px;
   gap: 20px;
@@ -4473,6 +4533,8 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .asset-browser-row__toggle:focus-visible,
 .asset-register-row__toggle:focus-visible,
 .asset-register__view-button:focus-visible,
+.maintenance-menu__button:focus-visible,
+.maintenance-menu__item:focus-visible,
 .asset-node-actions__button:focus-visible,
 .asset-child-list__item:focus-visible {
   border-color: rgba(88, 102, 255, 0.44);
@@ -6024,6 +6086,11 @@ body.is-resizing-layout * {
 
   .workspace--maintenance-modal {
     padding: 16px;
+  }
+
+  .maintenance-menu-bar {
+    overflow-x: auto;
+    padding: 0 16px;
   }
 
   .asset-context-overlay {
