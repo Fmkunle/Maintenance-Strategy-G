@@ -16,7 +16,9 @@ const selectedNodeTypeLabel = document.getElementById("selectedNodeTypeLabel");
 const selectedNodeCodeInput = document.getElementById("selectedNodeCodeInput");
 const selectedNodeNameInput = document.getElementById("selectedNodeNameInput");
 const selectedNodeDescriptionInput = document.getElementById("selectedNodeDescriptionInput");
+const selectedNodePathSection = document.getElementById("selectedNodePathSection");
 const selectedNodePathPreview = document.getElementById("selectedNodePathPreview");
+const childCreatorPanel = document.getElementById("childCreatorPanel");
 const selectedNodeChildrenList = document.getElementById("selectedNodeChildrenList");
 const maintainableItemHint = document.getElementById("maintainableItemHint");
 const addMaintainableItemButton = document.getElementById("addMaintainableItemButton");
@@ -1085,79 +1087,7 @@ const renderHierarchyNodes = (nodes, depth = 0, parentPath = [], filterValue = "
     })
     .join("");
 
-const renderInlineChildCreationRow = (nodeInfo, depth) => {
-  const actions = getChildActions(nodeInfo.node.type);
-  if (!actions.length || !childDraftState.isOpen || childDraftState.parentId !== nodeInfo.node.id) {
-    return "";
-  }
-
-  const inheritedPrefix = buildInheritedCodePrefix(nodeInfo.path.map((segment) => segment.code));
-  const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
-    ? childDraftState.childType
-    : actions[0].type;
-  const childTypeControl =
-    actions.length === 1
-      ? `
-          <input type="hidden" id="childCreatorTypeInput" value="${escapeHtml(selectedChildType)}">
-          <span class="asset-register-inline-create__static-type">${escapeHtml(getNodeLabel({ type: selectedChildType }))}</span>
-        `
-      : `
-          <select id="childCreatorTypeInput">
-            ${actions
-              .map(
-                (action) => `
-                  <option value="${escapeHtml(action.type)}" ${selectedChildType === action.type ? "selected" : ""}>
-                    ${escapeHtml(getNodeLabel({ type: action.type }))}
-                  </option>
-                `
-              )
-              .join("")}
-          </select>
-        `;
-
-  return `
-    <div class="asset-register-row asset-register-row--inline-create" role="row" aria-level="${depth + 2}">
-      <div class="asset-register-row__check" aria-hidden="true"></div>
-      <div class="asset-register-row__location asset-register-row__location--inline" style="--depth:${depth + 1}">
-        <span class="asset-register-row__tree">
-          <span class="asset-register-row__toggle asset-register-row__toggle--spacer" aria-hidden="true"></span>
-          <span class="asset-register-row__icon asset-register-row__icon--ghost" aria-hidden="true"></span>
-        </span>
-        <div class="asset-register-inline-create">
-          <label class="field">
-            <span>Child type</span>
-            ${childTypeControl}
-          </label>
-          <label class="field">
-            <span>Code segment</span>
-            <div class="hierarchy-code-field ${inheritedPrefix ? "has-prefix" : ""}">
-              <span class="hierarchy-code-field__prefix">${escapeHtml(inheritedPrefix)}</span>
-              <input id="childCreatorCodeInput" type="text" value="${escapeHtml(childDraftState.code)}" placeholder="Enter code segment">
-            </div>
-          </label>
-          <label class="field">
-            <span>Name</span>
-            <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name">
-          </label>
-        </div>
-      </div>
-      <div class="asset-register-row__description asset-register-row__description--inline">
-        <div class="asset-register-inline-create asset-register-inline-create--description">
-          <label class="field field--full">
-            <span>Description</span>
-            <textarea id="childCreatorDescriptionInput" rows="2" placeholder="Enter description">${escapeHtml(childDraftState.description)}</textarea>
-          </label>
-          <div class="asset-register-inline-create__actions">
-            <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
-            <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-};
-
-const renderRegisterRow = ({ node, path, depth, hasChildren, expanded, filterValue = "" }) => {
+const renderRegisterRow = ({ node, path, depth, hasChildren, expanded }) => {
   const isSelected = state.selectedNodeId === node.id;
   const selectedClass = isSelected ? "is-selected" : "";
   const nodeLabel = getNodeDisplayName(node);
@@ -1195,7 +1125,6 @@ const renderRegisterRow = ({ node, path, depth, hasChildren, expanded, filterVal
         : ""
     }
   `;
-  const childFormMarkup = renderInlineChildCreationRow({ node, path }, depth);
 
   return `
     <div class="asset-register-row ${selectedClass}" role="row" aria-level="${depth + 1}" data-select-node="${node.id}">
@@ -1213,7 +1142,6 @@ const renderRegisterRow = ({ node, path, depth, hasChildren, expanded, filterVal
         ${descriptionMarkup}
       </div>
     </div>
-    ${childFormMarkup}
   `;
 };
 
@@ -1332,6 +1260,98 @@ const openChildCreator = (parentId, childType = "") => {
 
 const isChildDraftReady = () => Boolean(childDraftState.code.trim() || childDraftState.name.trim());
 
+const getChildDraftPreview = (parentPath, childType) => {
+  const childSegment = {
+    code: childDraftState.code.trim() || "NEW",
+    name: childDraftState.name.trim() || getNodeLabel({ type: childType }),
+  };
+  return formatFunctionalLocationPreview([...parentPath, childSegment]);
+};
+
+const renderChildCreator = (nodeInfo, actions) => {
+  if (!childCreatorPanel) {
+    return;
+  }
+
+  const isActive = childDraftState.isOpen && childDraftState.parentId === nodeInfo.node.id && actions.length;
+  childCreatorPanel.hidden = !isActive;
+
+  if (!isActive) {
+    childCreatorPanel.innerHTML = "";
+    return;
+  }
+
+  const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
+    ? childDraftState.childType
+    : actions[0].type;
+  const inheritedPrefix = buildInheritedCodePrefix(nodeInfo.path.map((segment) => segment.code));
+  const preview = getChildDraftPreview(nodeInfo.path, selectedChildType);
+  const childTypeControl =
+    actions.length === 1
+      ? `
+          <input type="hidden" id="childCreatorTypeInput" value="${escapeHtml(selectedChildType)}">
+          <span class="asset-child-creator__static-type">${escapeHtml(getNodeLabel({ type: selectedChildType }))}</span>
+        `
+      : `
+          <select id="childCreatorTypeInput">
+            ${actions
+              .map(
+                (action) => `
+                  <option value="${escapeHtml(action.type)}" ${selectedChildType === action.type ? "selected" : ""}>
+                    ${escapeHtml(getNodeLabel({ type: action.type }))}
+                  </option>
+                `
+              )
+              .join("")}
+          </select>
+        `;
+
+  childCreatorPanel.innerHTML = `
+    <section class="asset-child-creator__form">
+      <div class="strategy-surface__header strategy-surface__header--spread">
+        <div>
+          <strong>Add child under ${escapeHtml(getNodeDisplayName(nodeInfo.node))}</strong>
+          <span>${escapeHtml(getFullCodeFromPath(nodeInfo.path) || getNodeCodeValue(nodeInfo.node, "Code pending"))}</span>
+        </div>
+      </div>
+      <p class="asset-child-creator__summary">
+        Complete the fields below to add a new ${escapeHtml(getNodeLabel({ type: selectedChildType }).toLowerCase())} under the selected hierarchy node.
+      </p>
+      <div class="asset-context-entry-grid">
+        <label class="field">
+          <span>Child type</span>
+          ${childTypeControl}
+        </label>
+        <label class="field">
+          <span>Code segment</span>
+          <div class="hierarchy-code-field ${inheritedPrefix ? "has-prefix" : ""}">
+            <span class="hierarchy-code-field__prefix">${escapeHtml(inheritedPrefix)}</span>
+            <input id="childCreatorCodeInput" type="text" value="${escapeHtml(childDraftState.code)}" placeholder="Enter code segment">
+          </div>
+        </label>
+      </div>
+      <div class="asset-context-entry-grid">
+        <label class="field field--full">
+          <span>Name</span>
+          <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name">
+        </label>
+      </div>
+      <label class="field field--full">
+        <span>Description</span>
+        <textarea id="childCreatorDescriptionInput" rows="3" placeholder="Enter description">${escapeHtml(childDraftState.description)}</textarea>
+      </label>
+      <div class="asset-context-path asset-context-path--inline">
+        <span class="asset-context-path__label">New child functional location preview</span>
+        <strong id="childCreatorPathPreview">${escapeHtml(preview)}</strong>
+      </div>
+      <div class="asset-child-creator__actions">
+        <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
+        <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
+      </div>
+    </section>
+  `;
+};
+
 const renderSelectedNodeChildren = (nodeInfo) => {
   if (!selectedNodeChildrenList) {
     return;
@@ -1389,8 +1409,17 @@ const renderSelectedNodePanel = () => {
     selectedNodeCodeInput.disabled = true;
     selectedNodeNameInput.disabled = true;
     selectedNodeDescriptionInput.disabled = true;
+    selectedNodeForm.hidden = false;
+    if (selectedNodePathSection) {
+      selectedNodePathSection.hidden = false;
+    }
     selectedNodePathPreview.textContent = "Select a node from the hierarchy.";
+    if (childCreatorPanel) {
+      childCreatorPanel.hidden = true;
+      childCreatorPanel.innerHTML = "";
+    }
     if (selectedNodeChildrenList) {
+      selectedNodeChildrenList.hidden = false;
       selectedNodeChildrenList.innerHTML = "";
     }
     closeChildCreator();
@@ -1398,8 +1427,35 @@ const renderSelectedNodePanel = () => {
   }
 
   const { node, path } = nodeInfo;
+  const actions = getChildActions(node.type);
   if (childDraftState.parentId && childDraftState.parentId !== node.id) {
     closeChildCreator();
+  }
+  const isAddMode = childDraftState.isOpen && childDraftState.parentId === node.id && actions.length > 0;
+
+  if (isAddMode) {
+    const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
+      ? childDraftState.childType
+      : actions[0].type;
+    selectedNodeTypeLabel.textContent = `Add ${getNodeLabel({ type: selectedChildType })}`;
+    backgroundDetailHeading.textContent = `Add child under ${getNodeDisplayName(node)}`;
+    backgroundDetailSummary.textContent = `Complete the form to add a new ${getNodeLabel({ type: selectedChildType }).toLowerCase()} beneath the selected hierarchy node.`;
+    selectedNodeCodeInput.value = "";
+    selectedNodeNameInput.value = "";
+    selectedNodeDescriptionInput.value = "";
+    selectedNodeCodeInput.disabled = true;
+    selectedNodeNameInput.disabled = true;
+    selectedNodeDescriptionInput.disabled = true;
+    selectedNodeForm.hidden = true;
+    if (selectedNodePathSection) {
+      selectedNodePathSection.hidden = true;
+    }
+    if (selectedNodeChildrenList) {
+      selectedNodeChildrenList.hidden = true;
+      selectedNodeChildrenList.innerHTML = "";
+    }
+    renderChildCreator(nodeInfo, actions);
+    return;
   }
 
   selectedNodeTypeLabel.textContent = getNodeLabel(node);
@@ -1411,7 +1467,18 @@ const renderSelectedNodePanel = () => {
   selectedNodeCodeInput.value = node.code;
   selectedNodeNameInput.value = node.name;
   selectedNodeDescriptionInput.value = node.description || "";
+  selectedNodeForm.hidden = false;
+  if (selectedNodePathSection) {
+    selectedNodePathSection.hidden = false;
+  }
   selectedNodePathPreview.textContent = formatFunctionalLocationPreview(path);
+  if (childCreatorPanel) {
+    childCreatorPanel.hidden = true;
+    childCreatorPanel.innerHTML = "";
+  }
+  if (selectedNodeChildrenList) {
+    selectedNodeChildrenList.hidden = false;
+  }
   renderSelectedNodeChildren(nodeInfo);
 };
 
@@ -1851,34 +1918,9 @@ assetHierarchyTree?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     openChildCreator(addChildButton.dataset.openChildCreator);
-    renderWorkspaceState();
-    return;
-  }
-
-  const cancelButton = event.target.closest("#cancelChildCreatorButton");
-  if (cancelButton) {
-    event.preventDefault();
-    event.stopPropagation();
-    closeChildCreator();
-    renderWorkspaceState();
-    return;
-  }
-
-  const createButton = event.target.closest("#createChildButton");
-  if (createButton) {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!isChildDraftReady()) {
-      return;
-    }
-
-    createChildNode(
-      childDraftState.parentId,
-      childDraftState.childType,
-      childDraftState.code,
-      childDraftState.name,
-      childDraftState.description
-    );
+    renderAll({
+      includeEntryDynamic: false,
+    });
     return;
   }
 
@@ -1937,6 +1979,8 @@ const syncChildCreatorDraftField = (target) => {
 
   if (target.id === "childCreatorTypeInput") {
     childDraftState.childType = target.value;
+    renderSelectedNodePanel();
+    return;
   }
 
   if (target.id === "childCreatorCodeInput") {
@@ -1951,18 +1995,48 @@ const syncChildCreatorDraftField = (target) => {
     childDraftState.description = target.value;
   }
 
-  const createButton = assetHierarchyTree?.querySelector("#createChildButton");
+  const createButton = childCreatorPanel?.querySelector("#createChildButton");
   if (createButton) {
     createButton.disabled = !isChildDraftReady();
   }
+
+  const preview = childCreatorPanel?.querySelector("#childCreatorPathPreview");
+  const parentInfo = childDraftState.parentId ? findNodeInfo(state.hierarchy, childDraftState.parentId) : null;
+  if (preview && parentInfo) {
+    preview.textContent = getChildDraftPreview(parentInfo.path, childDraftState.childType || getChildActions(parentInfo.node.type)[0]?.type || "subunit");
+  }
 };
 
-assetHierarchyTree?.addEventListener("input", (event) => {
+childCreatorPanel?.addEventListener("input", (event) => {
   syncChildCreatorDraftField(event.target);
 });
 
-assetHierarchyTree?.addEventListener("change", (event) => {
+childCreatorPanel?.addEventListener("change", (event) => {
   syncChildCreatorDraftField(event.target);
+});
+
+childCreatorPanel?.addEventListener("click", (event) => {
+  const cancelButton = event.target.closest("#cancelChildCreatorButton");
+  if (cancelButton) {
+    closeChildCreator();
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const createButton = event.target.closest("#createChildButton");
+  if (!createButton || !isChildDraftReady()) {
+    return;
+  }
+
+  createChildNode(
+    childDraftState.parentId,
+    childDraftState.childType,
+    childDraftState.code,
+    childDraftState.name,
+    childDraftState.description
+  );
 });
 
 selectedNodeChildrenList?.addEventListener("click", (event) => {

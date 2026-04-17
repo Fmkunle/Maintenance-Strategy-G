@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
   <script>
-    window.__maintenanceAssetVersion = "maintenance-page-22";
+    window.__maintenanceAssetVersion = "maintenance-page-23";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
     maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
@@ -296,6 +296,8 @@
                 <small id="backgroundDraftPath">Complete the asset hierarchy to place this draft.</small>
               </div>
 
+              <div id="childCreatorPanel" class="asset-child-creator" hidden></div>
+
               <form id="selectedNodeForm" class="asset-node-form">
                 <div class="asset-context-entry-grid">
                   <label class="field">
@@ -313,7 +315,7 @@
                 </label>
               </form>
 
-              <div class="asset-context-path">
+              <div id="selectedNodePathSection" class="asset-context-path">
                 <span class="asset-context-path__label">Functional location preview</span>
                 <strong id="selectedNodePathPreview">Select a node from the hierarchy.</strong>
               </div>
