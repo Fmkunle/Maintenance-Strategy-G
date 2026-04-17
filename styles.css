@@ -4415,6 +4415,43 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   color: var(--text-soft);
 }
 
+.code-segment-input {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.code-segment-input__prefix {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0 0 14px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.code-segment-input input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding-left: 6px;
+}
+
+.code-segment-input input:focus {
+  box-shadow: none;
+}
+
+.code-segment-input:focus-within {
+  border-color: rgba(88, 102, 255, 0.44);
+  box-shadow: 0 0 0 3px rgba(88, 102, 255, 0.12);
+}
+
 .field input:focus,
 .field select:focus,
 .field textarea:focus,

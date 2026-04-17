@@ -22,10 +22,12 @@ const workflowNotice = document.getElementById("workflowNotice");
 const assetContextForm = document.getElementById("assetContextForm");
 const plantUnitCodeInput = document.getElementById("plantUnitCodeInput");
 const plantUnitNameInput = document.getElementById("plantUnitNameInput");
+const sectionSystemCodePrefix = document.getElementById("sectionSystemCodePrefix");
 const sectionSystemCodeInput = document.getElementById("sectionSystemCodeInput");
 const sectionSystemNameInput = document.getElementById("sectionSystemNameInput");
 const subsystemList = document.getElementById("subsystemList");
 const addSubsystemButton = document.getElementById("addSubsystemButton");
+const equipmentUnitCodePrefix = document.getElementById("equipmentUnitCodePrefix");
 const equipmentUnitCodeInput = document.getElementById("equipmentUnitCodeInput");
 const equipmentUnitNameInput = document.getElementById("equipmentUnitNameInput");
 const addSubunitButton = document.getElementById("addSubunitButton");
@@ -42,8 +44,6 @@ const backgroundDetailSummary = document.getElementById("backgroundDetailSummary
 const themeStorageKey = "agenticai-theme";
 const sidebarStorageKey = "agenticai-sidebar-collapsed";
 const draftStorageKey = "maintenance-strategy-step1-draft";
-const launchStateStorageKey = "maintenance-strategy-launch-state";
-const sessionActiveStorageKey = "maintenance-strategy-session-active";
 
 const nodeTypeMeta = {
   plant: {
@@ -297,112 +297,7 @@ const normalizeState = (draft) => {
   };
 };
 
-const readStoredLaunchMode = () => {
-  try {
-    const rawState = window.sessionStorage.getItem(launchStateStorageKey);
-    if (!rawState) {
-      return "";
-    }
-
-    const parsedState = JSON.parse(rawState);
-    return parsedState?.mode === "new" || parsedState?.mode === "existing" ? parsedState.mode : "";
-  } catch (error) {
-    return "";
-  }
-};
-
-const readLaunchMode = () => {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const urlMode = params.get("mode") || params.get("intent");
-    if (urlMode === "new" || urlMode === "existing") {
-      return urlMode;
-    }
-
-    return readStoredLaunchMode();
-  } catch (error) {
-    return "";
-  }
-};
-
-const hasActiveMaintenanceSession = () => {
-  try {
-    return window.sessionStorage.getItem(sessionActiveStorageKey) === "true";
-  } catch (error) {
-    return false;
-  }
-};
-
-const markActiveMaintenanceSession = () => {
-  try {
-    window.sessionStorage.setItem(sessionActiveStorageKey, "true");
-  } catch (error) {
-    // Ignore session storage issues and continue with local draft persistence.
-  }
-};
-
-const consumeLaunchMode = () => {
-  try {
-    window.sessionStorage.removeItem(launchStateStorageKey);
-    const params = new URLSearchParams(window.location.search);
-    let hasLaunchParam = false;
-
-    if (params.has("mode")) {
-      params.delete("mode");
-      hasLaunchParam = true;
-    }
-
-    if (params.has("intent")) {
-      params.delete("intent");
-      hasLaunchParam = true;
-    }
-
-    if (!hasLaunchParam) {
-      return;
-    }
-
-    const nextQuery = params.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
-    window.history.replaceState({}, "", nextUrl);
-  } catch (error) {
-    // Ignore launch cleanup issues and continue with the current page state.
-  }
-};
-
-const loadPersistedDraftState = () => {
-  try {
-    const storedDraft = window.localStorage.getItem(draftStorageKey);
-    if (!storedDraft) {
-      return defaultState();
-    }
-
-    return normalizeState(JSON.parse(storedDraft));
-  } catch (error) {
-    return defaultState();
-  }
-};
-
-const loadInitialState = () => {
-  const launchMode = readLaunchMode();
-
-  if (launchMode === "new") {
-    return defaultState();
-  }
-
-  if (launchMode === "existing") {
-    return loadPersistedDraftState();
-  }
-
-  if (hasActiveMaintenanceSession()) {
-    return loadPersistedDraftState();
-  }
-
-  return defaultState();
-};
-
-let state = loadInitialState();
-consumeLaunchMode();
-markActiveMaintenanceSession();
+let state = defaultState();
 
 const applyTheme = (theme) => {
   if (body) {
@@ -427,6 +322,14 @@ const isNodeCompleteOrBlank = (node) => hasNodeValue(node) || isNodeBlank(node);
 const getNodeCodeValue = (node, fallback = "") => getDisplayValue(node.code || "", fallback);
 const getNodeNameValue = (node, fallback = "") => getDisplayValue(node.name || "", fallback);
 const getChildActions = (type) => nodeTypeMeta[type]?.childActions || [];
+const buildInheritedCodePrefix = (segments) => {
+  const prefix = segments
+    .map((segment) => (typeof segment === "string" ? segment.trim() : ""))
+    .filter(Boolean)
+    .join("-");
+
+  return prefix ? `${prefix}-` : "";
+};
 
 const getFullCodeFromPath = (path) =>
   path
@@ -602,18 +505,30 @@ const getNodeTitle = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.p
 const isMaintainableTarget = (node) => node.type === "equipment" || node.type === "subunit";
 
 const renderEntrySubsystemRows = () => {
+  const baseSegments = [state.entry.plantUnit.code, state.entry.sectionSystem.code];
   subsystemList.innerHTML = state.entry.subsystems
     .map(
-      (subsystem, index) => `
+      (subsystem, index) => {
+        const inheritedPrefix = buildInheritedCodePrefix([
+          ...baseSegments,
+          ...state.entry.subsystems.slice(0, index).map((item) => item.code),
+        ]);
+
+        return `
         <div class="asset-context-row asset-context-row--optional">
           <div class="asset-context-row__field asset-context-entry-block">
             <span class="asset-context-entry-block__label">Sub-system ${index + 1}</span>
             <div class="asset-context-entry-grid">
               <label class="field">
                 <span>Code segment</span>
-                <input data-entry-subsystem-id="${subsystem.id}" data-entry-subsystem-field="code" type="text" value="${escapeHtml(
-                  subsystem.code
-                )}" placeholder="Enter code segment">
+                <div class="code-segment-input">
+                  <span class="code-segment-input__prefix" ${inheritedPrefix ? "" : "hidden"}>${escapeHtml(
+                    inheritedPrefix
+                  )}</span>
+                  <input data-entry-subsystem-id="${subsystem.id}" data-entry-subsystem-field="code" type="text" value="${escapeHtml(
+                    subsystem.code
+                  )}" placeholder="Enter code segment">
+                </div>
               </label>
               <label class="field">
                 <span>Name</span>
@@ -625,7 +540,8 @@ const renderEntrySubsystemRows = () => {
           </div>
           <button class="asset-context-remove" type="button" data-remove-entry-subsystem="${subsystem.id}">Remove</button>
         </div>
-      `
+      `;
+      }
     )
     .join("");
 };
@@ -636,6 +552,13 @@ const renderEntrySubunitRow = () => {
     return;
   }
 
+  const inheritedPrefix = buildInheritedCodePrefix([
+    state.entry.plantUnit.code,
+    state.entry.sectionSystem.code,
+    ...state.entry.subsystems.map((item) => item.code),
+    state.entry.equipmentUnit.code,
+  ]);
+
   subunitContainer.innerHTML = `
     <div class="asset-context-row asset-context-row--optional">
       <div class="asset-context-row__field asset-context-entry-block">
@@ -643,7 +566,12 @@ const renderEntrySubunitRow = () => {
         <div class="asset-context-entry-grid">
           <label class="field">
             <span>Code segment</span>
-            <input id="entrySubunitCodeInput" type="text" value="${escapeHtml(state.entry.subunit.code)}" placeholder="Enter code segment">
+            <div class="code-segment-input">
+              <span class="code-segment-input__prefix" ${inheritedPrefix ? "" : "hidden"}>${escapeHtml(
+                inheritedPrefix
+              )}</span>
+              <input id="entrySubunitCodeInput" type="text" value="${escapeHtml(state.entry.subunit.code)}" placeholder="Enter code segment">
+            </div>
           </label>
           <label class="field">
             <span>Name</span>
@@ -673,6 +601,23 @@ const renderEntryForm = (options = {}) => {
   sectionSystemNameInput.value = entry.sectionSystem.name;
   equipmentUnitCodeInput.value = entry.equipmentUnit.code;
   equipmentUnitNameInput.value = entry.equipmentUnit.name;
+
+  const sectionPrefix = buildInheritedCodePrefix([entry.plantUnit.code]);
+  const equipmentPrefix = buildInheritedCodePrefix([
+    entry.plantUnit.code,
+    entry.sectionSystem.code,
+    ...entry.subsystems.map((item) => item.code),
+  ]);
+
+  if (sectionSystemCodePrefix) {
+    sectionSystemCodePrefix.textContent = sectionPrefix;
+    sectionSystemCodePrefix.hidden = !sectionPrefix;
+  }
+
+  if (equipmentUnitCodePrefix) {
+    equipmentUnitCodePrefix.textContent = equipmentPrefix;
+    equipmentUnitCodePrefix.hidden = !equipmentPrefix;
+  }
 
   sectionSystemCodeInput.disabled = !canEditSection;
   sectionSystemNameInput.disabled = !canEditSection;
