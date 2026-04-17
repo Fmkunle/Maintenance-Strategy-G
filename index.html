@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator Demo</title>
-  <link rel="stylesheet" href="styles.css?v=welcome-layout-3">
+  <script>
+    window.__welcomeAssetVersion = "welcome-page-9";
+    const welcomeStylesheet = document.createElement("link");
+    welcomeStylesheet.rel = "stylesheet";
+    welcomeStylesheet.href = `styles.css?v=${window.__welcomeAssetVersion}`;
+    document.head.appendChild(welcomeStylesheet);
+  </script>
 </head>
 <body data-theme="light">
   <div class="app-shell">
@@ -340,7 +346,10 @@
       </main>
     </div>
   </div>
-
-  <script src="app.js?v=welcome-layout-7"></script>
+  <script>
+    const welcomeScript = document.createElement("script");
+    welcomeScript.src = `app.js?v=${window.__welcomeAssetVersion}`;
+    document.body.appendChild(welcomeScript);
+  </script>
 </body>
 </html>

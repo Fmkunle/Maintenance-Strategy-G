@@ -1,7 +1,4 @@
 // Central copy and navigation config for the home-page tool selector.
-const maintenanceLaunchStateKey = "maintenance-strategy-launch-state";
-const maintenanceSessionActiveKey = "maintenance-strategy-session-active";
-
 const toolDefinitions = {
   maintenance: {
     icon:
@@ -17,8 +14,9 @@ const toolDefinitions = {
     badgeLabel: "Ready",
     action: "Create new strategy",
     secondaryAction: "Open existing",
-    actionHref: "maintenance-strategy.html?mode=new",
-    existingHref: "maintenance-strategy.html?mode=existing",
+    actionHref: "maintenance-strategy.html",
+    existingHref: null,
+    secondaryAvailable: false,
     available: true,
   },
   cba: {
@@ -36,6 +34,8 @@ const toolDefinitions = {
     action: "Open insights",
     secondaryAction: "Open existing",
     actionHref: "reliability-insights-fiori.html",
+    existingHref: null,
+    secondaryAvailable: false,
     available: true,
   },
   fmea: {
@@ -53,6 +53,8 @@ const toolDefinitions = {
     action: "Create new FMEA",
     secondaryAction: "Open existing",
     actionHref: null,
+    existingHref: null,
+    secondaryAvailable: false,
     available: true,
   },
   pareto: {
@@ -70,40 +72,12 @@ const toolDefinitions = {
     action: "Available soon",
     secondaryAction: "Open existing",
     actionHref: null,
+    existingHref: null,
+    secondaryAvailable: false,
     available: false,
     statusMessage: "This tool is planned but not available yet.",
   },
 };
-
-const writeMaintenanceLaunchState = (mode) => {
-  try {
-    if (mode === "new" || mode === "existing") {
-      window.sessionStorage.setItem(
-        maintenanceLaunchStateKey,
-        JSON.stringify({
-          mode,
-          createdAt: Date.now(),
-        })
-      );
-    } else {
-      window.sessionStorage.removeItem(maintenanceLaunchStateKey);
-    }
-  } catch (error) {
-    // Ignore session storage issues and continue with URL-based navigation.
-  }
-};
-
-const resetMaintenanceLaunchContext = () => {
-  try {
-    window.sessionStorage.removeItem(maintenanceLaunchStateKey);
-    window.sessionStorage.removeItem(maintenanceSessionActiveKey);
-  } catch (error) {
-    // Ignore session storage issues on the landing page.
-  }
-};
-
-resetMaintenanceLaunchContext();
-window.addEventListener("pageshow", resetMaintenanceLaunchContext);
 
 // Rich detail seed for the gearbox recommendation used by the final drill-down page.
 const gearboxOpportunityDetailSeed = {
@@ -2854,7 +2828,8 @@ const applyToolSelection = (toolKey, selectedOption) => {
   if (secondaryAction) {
     secondaryAction.textContent = tool.secondaryAction;
     secondaryAction.dataset.href = tool.existingHref ?? tool.actionHref ?? "";
-    secondaryAction.disabled = !tool.available;
+    secondaryAction.disabled =
+      !tool.available || tool.secondaryAvailable === false || !tool.existingHref;
   }
 };
 
@@ -2877,7 +2852,6 @@ primaryAction?.addEventListener("click", () => {
 
   const targetHref = toolDefinitions[activeToolKey]?.actionHref || primaryAction.dataset.href;
   if (targetHref) {
-    writeMaintenanceLaunchState(activeToolKey === "maintenance" ? "new" : "");
     window.location.assign(targetHref);
   }
 });
@@ -2889,7 +2863,6 @@ secondaryAction?.addEventListener("click", () => {
 
   const targetHref = toolDefinitions[activeToolKey]?.existingHref || toolDefinitions[activeToolKey]?.actionHref || secondaryAction.dataset.href;
   if (targetHref) {
-    writeMaintenanceLaunchState(activeToolKey === "maintenance" ? "existing" : "");
     window.location.assign(targetHref);
   }
 });

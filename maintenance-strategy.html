@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
-  <link rel="stylesheet" href="styles.css?v=maintenance-step-9">
+  <script>
+    window.__maintenanceAssetVersion = "maintenance-page-12";
+    const maintenanceStylesheet = document.createElement("link");
+    maintenanceStylesheet.rel = "stylesheet";
+    maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
+    document.head.appendChild(maintenanceStylesheet);
+  </script>
 </head>
 <body class="maintenance-strategy-page" data-theme="light">
   <div class="app-shell">
@@ -311,7 +317,10 @@
       </main>
     </div>
   </div>
-
-  <script src="maintenance-strategy.js?v=maintenance-step-11"></script>
+  <script>
+    const maintenanceScript = document.createElement("script");
+    maintenanceScript.src = `maintenance-strategy.js?v=${window.__maintenanceAssetVersion}`;
+    document.body.appendChild(maintenanceScript);
+  </script>
 </body>
 </html>
