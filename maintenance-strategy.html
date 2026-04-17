@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
   <script>
-    window.__maintenanceAssetVersion = "maintenance-page-17";
+    window.__maintenanceAssetVersion = "maintenance-page-18";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
     maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
@@ -157,13 +157,25 @@
             <div class="asset-register__toolbar">
               <div class="asset-register__titlebar">
                 <strong>Assets</strong>
-                <div class="asset-register__view-toggle" aria-hidden="true">
-                  <button class="asset-register__view-button is-active" type="button" tabindex="-1">
+                <div class="asset-register__view-toggle" role="group" aria-label="Asset browser view">
+                  <button
+                    id="assetHierarchyTreeViewButton"
+                    class="asset-register__view-button is-active"
+                    type="button"
+                    aria-label="Show grouped asset hierarchy"
+                    aria-pressed="true"
+                  >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M4 5h6v6H4zM14 5h6v6h-6zM4 13h6v6H4zM14 13h6v6h-6z"></path>
                     </svg>
                   </button>
-                  <button class="asset-register__view-button" type="button" tabindex="-1">
+                  <button
+                    id="assetHierarchyListViewButton"
+                    class="asset-register__view-button"
+                    type="button"
+                    aria-label="Show equipment list"
+                    aria-pressed="false"
+                  >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M4 7h16M4 12h16M4 17h16"></path>
                     </svg>

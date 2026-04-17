@@ -8,6 +8,8 @@ const assetWorkspace = document.getElementById("assetWorkspace");
 const assetWorkspacePaneResizeHandle = document.getElementById("assetWorkspacePaneResizeHandle");
 const assetHierarchyTree = document.getElementById("assetHierarchyTree");
 const assetHierarchyFilter = document.getElementById("assetHierarchyFilter");
+const assetHierarchyTreeViewButton = document.getElementById("assetHierarchyTreeViewButton");
+const assetHierarchyListViewButton = document.getElementById("assetHierarchyListViewButton");
 const assetRegisterColumnResizeHandle = document.getElementById("assetRegisterColumnResizeHandle");
 const selectedNodeTypeLabel = document.getElementById("selectedNodeTypeLabel");
 const addSelectedChildButton = document.getElementById("addSelectedChildButton");
@@ -55,10 +57,15 @@ const sidebarStorageKey = "agenticai-sidebar-collapsed";
 const draftStorageKey = "maintenance-strategy-step1-draft";
 const workspaceApiUrl = "/api/maintenance-workspace";
 const workspaceSaveDebounceMs = 250;
+const assetViewModes = {
+  tree: "tree",
+  list: "list",
+};
 const layoutDefaults = {
   leftPaneWidth: 720,
   locationColumnWidth: 430,
   descriptionColumnWidth: 258,
+  assetViewMode: assetViewModes.tree,
 };
 const layoutLimits = {
   paneMin: 480,
@@ -174,12 +181,15 @@ const normalizeLayoutState = (layout, workspaceWidth = getAssetWorkspaceWidth())
     ...layoutDefaults,
     ...(layout && typeof layout === "object" ? layout : {}),
   };
+  const assetViewMode =
+    baseLayout.assetViewMode === assetViewModes.list ? assetViewModes.list : assetViewModes.tree;
 
   if (!workspaceWidth || isResizableLayoutDisabled()) {
     return {
       leftPaneWidth: baseLayout.leftPaneWidth,
       locationColumnWidth: baseLayout.locationColumnWidth,
       descriptionColumnWidth: baseLayout.descriptionColumnWidth,
+      assetViewMode,
     };
   }
 
@@ -203,6 +213,7 @@ const normalizeLayoutState = (layout, workspaceWidth = getAssetWorkspaceWidth())
     leftPaneWidth,
     locationColumnWidth,
     descriptionColumnWidth,
+    assetViewMode,
   };
 };
 
@@ -764,6 +775,7 @@ const nodeMatchesFilter = (nodePath, filterValue) => {
   const node = nodePath[nodePath.length - 1];
   const searchText = [
     getFullCodeFromPath(nodePath),
+    getFullNameFromPath(nodePath),
     node.code,
     node.name,
     getNodeLabel(node),
@@ -1019,6 +1031,52 @@ const renderHierarchyRegisterNodes = (nodes, depth = 0, parentPath = [], filterV
     })
     .join("");
 
+const collectEquipmentRegisterRows = (nodes, parentPath = [], rows = []) => {
+  nodes.forEach((node) => {
+    const nodePath = [...parentPath, node];
+    if (node.type === "equipment") {
+      rows.push({
+        node,
+        path: nodePath,
+      });
+    }
+
+    if (node.children.length) {
+      collectEquipmentRegisterRows(node.children, nodePath, rows);
+    }
+  });
+
+  return rows;
+};
+
+const renderEquipmentListRows = (filterValue = "") =>
+  collectEquipmentRegisterRows(state.hierarchy)
+    .filter(({ path }) => nodeMatchesFilter(path, filterValue))
+    .map(({ node, path }) => {
+      const selectedClass = state.selectedNodeId === node.id ? "is-selected" : "";
+      const nodeLabel = getNodeDisplayName(node);
+      const description = getNodeBrowserDescription(path, node);
+
+      return `
+        <div class="asset-register-row ${selectedClass}" role="row" aria-level="1" data-select-node="${node.id}">
+          <div class="asset-register-row__check">
+            <input class="asset-register-row__checkbox" type="checkbox" tabindex="-1" aria-label="Select ${escapeHtml(nodeLabel)}">
+          </div>
+          <div class="asset-register-row__location" style="--depth:0">
+            <span class="asset-register-row__tree">
+              <span class="asset-register-row__toggle asset-register-row__toggle--spacer" aria-hidden="true"></span>
+              <span class="asset-register-row__icon" aria-hidden="true">${getNodeIcon(node.type)}</span>
+            </span>
+            <span class="asset-register-row__label">${escapeHtml(nodeLabel)}</span>
+          </div>
+          <div class="asset-register-row__description">
+            <span>${escapeHtml(description)}</span>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
 const renderHierarchyTree = () => {
   if (!state.hierarchy.length) {
     assetHierarchyTree.innerHTML = `
@@ -1031,13 +1089,16 @@ const renderHierarchyTree = () => {
   }
 
   const filterValue = getHierarchyFilterValue();
-  const treeMarkup = renderHierarchyRegisterNodes(state.hierarchy, 0, [], filterValue);
+  const isListView = state.layout.assetViewMode === assetViewModes.list;
+  const treeMarkup = isListView
+    ? renderEquipmentListRows(filterValue)
+    : renderHierarchyRegisterNodes(state.hierarchy, 0, [], filterValue);
   assetHierarchyTree.innerHTML =
     treeMarkup ||
     `
       <article class="asset-workspace-empty asset-workspace-empty--soft">
-        <strong>No assets match this filter</strong>
-        <p>Try a broader search term or clear the filter to see the full hierarchy.</p>
+        <strong>${isListView ? "No equipment matches this filter" : "No assets match this filter"}</strong>
+        <p>${isListView ? "Try a broader search term or switch back to the grouped hierarchy view." : "Try a broader search term or clear the filter to see the full hierarchy."}</p>
       </article>
     `;
 };
@@ -1191,6 +1252,11 @@ const renderWorkspaceState = () => {
   if (assetHierarchyFilter) {
     assetHierarchyFilter.value = state.hierarchyFilter;
   }
+  const isTreeView = state.layout.assetViewMode !== assetViewModes.list;
+  assetHierarchyTreeViewButton?.classList.toggle("is-active", isTreeView);
+  assetHierarchyTreeViewButton?.setAttribute("aria-pressed", String(isTreeView));
+  assetHierarchyListViewButton?.classList.toggle("is-active", !isTreeView);
+  assetHierarchyListViewButton?.setAttribute("aria-pressed", String(!isTreeView));
   renderWorkspaceSummary();
   renderHierarchyTree();
   renderSelectedNodePanel();
@@ -1457,7 +1523,38 @@ assetRegisterColumnResizeHandle?.addEventListener("pointerdown", (event) => {
   beginLayoutResize("column", event.clientX);
 });
 
+assetHierarchyTreeViewButton?.addEventListener("click", () => {
+  if (state.layout.assetViewMode === assetViewModes.tree) {
+    return;
+  }
+
+  state.layout = normalizeLayoutState({
+    ...state.layout,
+    assetViewMode: assetViewModes.tree,
+  });
+  persistDraftSilently();
+  renderWorkspaceState();
+});
+
+assetHierarchyListViewButton?.addEventListener("click", () => {
+  if (state.layout.assetViewMode === assetViewModes.list) {
+    return;
+  }
+
+  state.layout = normalizeLayoutState({
+    ...state.layout,
+    assetViewMode: assetViewModes.list,
+  });
+  persistDraftSilently();
+  renderWorkspaceState();
+});
+
 assetHierarchyFilter?.addEventListener("input", (event) => {
+  state.hierarchyFilter = event.target.value;
+  renderWorkspaceState();
+});
+
+assetHierarchyFilter?.addEventListener("search", (event) => {
   state.hierarchyFilter = event.target.value;
   renderWorkspaceState();
 });
