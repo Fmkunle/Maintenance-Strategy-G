@@ -76,10 +76,16 @@ To run the demo from a GitHub Codespace:
 
 ```bash
 git pull --ff-only origin main
-python -m http.server 8000
+python codespaces_server.py --port 8000
 ```
 
 6. Open the `Ports` tab in Codespaces.
 7. Open the forwarded URL for port `8000`.
 
-This will serve `index.html` in the browser.
+This will serve `index.html` in the browser and persist the latest Maintenance Strategy workspace to:
+
+```text
+.app-data/maintenance-workspace.json
+```
+
+That file is intentionally untracked so saved workspace data behaves like app data rather than source code.

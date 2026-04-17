@@ -15,8 +15,8 @@ const toolDefinitions = {
     action: "Create new strategy",
     secondaryAction: "Open existing",
     actionHref: "maintenance-strategy.html",
-    existingHref: null,
-    secondaryAvailable: false,
+    existingHref: "maintenance-strategy.html?mode=existing",
+    secondaryAvailable: true,
     available: true,
   },
   cba: {
@@ -77,6 +77,61 @@ const toolDefinitions = {
     available: false,
     statusMessage: "This tool is planned but not available yet.",
   },
+};
+
+const maintenanceDraftStorageKey = "maintenance-strategy-step1-draft";
+const maintenanceWorkspaceApiUrl = "/api/maintenance-workspace";
+let maintenanceAvailabilityRequestId = 0;
+
+const isExistingMaintenanceWorkspaceCandidate = (draft) => {
+  if (!draft || typeof draft !== "object") {
+    return false;
+  }
+
+  return Boolean(
+    draft.modalVisible === false &&
+      Array.isArray(draft.hierarchy) &&
+      draft.hierarchy.length > 0
+  );
+};
+
+const hasExistingMaintenanceWorkspaceLocally = () => {
+  try {
+    const rawDraft = window.localStorage.getItem(maintenanceDraftStorageKey);
+    if (!rawDraft) {
+      return false;
+    }
+
+    const draft = JSON.parse(rawDraft);
+    return isExistingMaintenanceWorkspaceCandidate(draft);
+  } catch {
+    return false;
+  }
+};
+
+const hasExistingMaintenanceWorkspace = async () => {
+  try {
+    const response = await fetch(maintenanceWorkspaceApiUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (response.status === 404) {
+      return hasExistingMaintenanceWorkspaceLocally();
+    }
+
+    if (!response.ok) {
+      throw new Error(`Unable to check saved workspace: ${response.status}`);
+    }
+
+    const draft = await response.json();
+    return isExistingMaintenanceWorkspaceCandidate(draft);
+  } catch {
+    return hasExistingMaintenanceWorkspaceLocally();
+  }
 };
 
 // Rich detail seed for the gearbox recommendation used by the final drill-down page.
@@ -2782,11 +2837,23 @@ sidebarToggle?.addEventListener("click", () => {
 });
 
 // Sync the selected tool tile with the hero card content and CTA behavior.
-const applyToolSelection = (toolKey, selectedOption) => {
+const applyToolSelection = async (toolKey, selectedOption) => {
   const tool = toolDefinitions[toolKey];
   if (!tool) {
     return;
   }
+
+  const availabilityRequestId = ++maintenanceAvailabilityRequestId;
+  const initialExistingWorkspace =
+    toolKey === "maintenance"
+      ? hasExistingMaintenanceWorkspaceLocally()
+      : Boolean(tool.secondaryAvailable);
+  const initialSecondaryHref =
+    toolKey === "maintenance"
+      ? initialExistingWorkspace
+        ? tool.existingHref ?? ""
+        : ""
+      : tool.existingHref ?? tool.actionHref ?? "";
 
   activeToolKey = toolKey;
 
@@ -2827,10 +2894,23 @@ const applyToolSelection = (toolKey, selectedOption) => {
   }
   if (secondaryAction) {
     secondaryAction.textContent = tool.secondaryAction;
-    secondaryAction.dataset.href = tool.existingHref ?? tool.actionHref ?? "";
+    secondaryAction.dataset.href = initialSecondaryHref;
     secondaryAction.disabled =
-      !tool.available || tool.secondaryAvailable === false || !tool.existingHref;
+      !tool.available || !initialExistingWorkspace || !initialSecondaryHref;
   }
+
+  if (toolKey !== "maintenance" || !secondaryAction) {
+    return;
+  }
+
+  const hasExistingWorkspace = await hasExistingMaintenanceWorkspace();
+  if (availabilityRequestId !== maintenanceAvailabilityRequestId || activeToolKey !== toolKey) {
+    return;
+  }
+
+  const secondaryHref = hasExistingWorkspace ? tool.existingHref ?? "" : "";
+  secondaryAction.dataset.href = secondaryHref;
+  secondaryAction.disabled = !tool.available || !hasExistingWorkspace || !secondaryHref;
 };
 
 toolOptions.forEach((option) => {
@@ -2843,6 +2923,13 @@ const selectedOption = document.querySelector(`.tool-selector__option[data-tool=
 if (selectedOption) {
   applyToolSelection(activeToolKey, selectedOption);
 }
+
+window.addEventListener("pageshow", () => {
+  const activeOption = document.querySelector(`.tool-selector__option[data-tool="${activeToolKey}"]`);
+  if (activeOption) {
+    applyToolSelection(activeToolKey, activeOption);
+  }
+});
 
 // Some tools stay on the landing page; others launch a dedicated workflow page.
 primaryAction?.addEventListener("click", () => {

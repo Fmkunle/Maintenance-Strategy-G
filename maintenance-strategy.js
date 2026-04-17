@@ -39,6 +39,10 @@ const assetPathPreview = document.getElementById("assetPathPreview");
 const saveDraftButton = document.getElementById("saveDraftButton");
 const continueButton = document.getElementById("continueButton");
 
+if (maintenanceWorkspace) {
+  maintenanceWorkspace.hidden = true;
+}
+
 const backgroundDraftTitle = document.getElementById("backgroundDraftTitle");
 const backgroundDraftPath = document.getElementById("backgroundDraftPath");
 const backgroundDetailHeading = document.getElementById("backgroundDetailHeading");
@@ -47,6 +51,8 @@ const backgroundDetailSummary = document.getElementById("backgroundDetailSummary
 const themeStorageKey = "agenticai-theme";
 const sidebarStorageKey = "agenticai-sidebar-collapsed";
 const draftStorageKey = "maintenance-strategy-step1-draft";
+const workspaceApiUrl = "/api/maintenance-workspace";
+const workspaceSaveDebounceMs = 250;
 
 const nodeTypeMeta = {
   plant: {
@@ -113,6 +119,46 @@ const defaultState = () => ({
   savedAt: "",
 });
 
+let workspaceSaveTimer = null;
+let workspaceSaveSequence = Promise.resolve();
+
+const getLaunchMode = () => {
+  const mode = new URLSearchParams(window.location.search).get("mode");
+  return mode === "existing" ? "existing" : "new";
+};
+
+const normalizeEntryNode = (value) => ({
+  code: typeof value?.code === "string" ? value.code : "",
+  name: typeof value?.name === "string" ? value.name : "",
+});
+
+const normalizeEntryState = (entry) => ({
+  plantUnit: normalizeEntryNode(entry?.plantUnit),
+  sectionSystem: normalizeEntryNode(entry?.sectionSystem),
+  subsystems: Array.isArray(entry?.subsystems)
+    ? entry.subsystems.map((item, index) => ({
+        id: typeof item?.id === "string" && item.id ? item.id : createId(`entry-subsystem-${index}`),
+        code: typeof item?.code === "string" ? item.code : "",
+        name: typeof item?.name === "string" ? item.name : "",
+      }))
+    : [],
+  equipmentUnit: normalizeEntryNode(entry?.equipmentUnit),
+  hasSubunit: Boolean(entry?.hasSubunit),
+  subunit: normalizeEntryNode(entry?.subunit),
+});
+
+const isExistingWorkspaceCandidate = (draft) => {
+  if (!draft || typeof draft !== "object") {
+    return false;
+  }
+
+  return Boolean(
+    draft.modalVisible === false &&
+      Array.isArray(draft.hierarchy) &&
+      draft.hierarchy.length > 0
+  );
+};
+
 const escapeHtml = (value) =>
   String(value)
     .replace(/&/g, "&amp;")
@@ -151,6 +197,178 @@ const getFirstNode = (nodes) => {
     current = current.children[0];
   }
   return current;
+};
+
+const normalizeHierarchyNode = (node, fallbackType = "subsystem") => {
+  const type = nodeTypeMeta[node?.type] ? node.type : fallbackType;
+  return {
+    id: typeof node?.id === "string" && node.id ? node.id : createId(type),
+    type,
+    code: typeof node?.code === "string" ? node.code : "",
+    name: typeof node?.name === "string" ? node.name : "",
+    children: Array.isArray(node?.children)
+      ? node.children.map((child) => normalizeHierarchyNode(child, "subsystem"))
+      : [],
+  };
+};
+
+const collectHierarchyNodeIds = (nodes, nodeIds = new Set()) => {
+  nodes.forEach((node) => {
+    nodeIds.add(node.id);
+    if (node.children.length) {
+      collectHierarchyNodeIds(node.children, nodeIds);
+    }
+  });
+  return nodeIds;
+};
+
+const normalizeMaintainableItems = (items, hierarchy) => {
+  const validNodeIds = collectHierarchyNodeIds(hierarchy);
+
+  return Array.isArray(items)
+    ? items
+        .map((item, index) => ({
+          id: typeof item?.id === "string" && item.id ? item.id : createId(`maintainable-item-${index}`),
+          nodeId: typeof item?.nodeId === "string" ? item.nodeId : "",
+          name: typeof item?.name === "string" ? item.name : "",
+        }))
+        .filter((item) => validNodeIds.has(item.nodeId))
+    : [];
+};
+
+const normalizeWorkspaceState = (draft) => {
+  if (!isExistingWorkspaceCandidate(draft)) {
+    return null;
+  }
+
+  const hierarchy = draft.hierarchy.map((node) => normalizeHierarchyNode(node, "plant"));
+  if (!hierarchy.length) {
+    return null;
+  }
+
+  const firstNode = getFirstNode(hierarchy);
+  const selectedNodeId =
+    typeof draft?.selectedNodeId === "string" && findNodeInfo(hierarchy, draft.selectedNodeId)
+      ? draft.selectedNodeId
+      : firstNode?.id || "";
+  const validNodeIds = collectHierarchyNodeIds(hierarchy);
+
+  return {
+    ...defaultState(),
+    entry: normalizeEntryState(draft?.entry),
+    hierarchy,
+    maintainableItems: normalizeMaintainableItems(draft?.maintainableItems, hierarchy),
+    selectedNodeId,
+    collapsedNodeIds: Array.isArray(draft?.collapsedNodeIds)
+      ? draft.collapsedNodeIds.filter((nodeId) => validNodeIds.has(nodeId))
+      : [],
+    hierarchyFilter: typeof draft?.hierarchyFilter === "string" ? draft.hierarchyFilter : "",
+    modalVisible: false,
+    savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
+  };
+};
+
+const loadExistingWorkspaceFromLocalStorage = () => {
+  try {
+    const rawDraft = window.localStorage.getItem(draftStorageKey);
+    if (!rawDraft) {
+      return null;
+    }
+
+    return normalizeWorkspaceState(JSON.parse(rawDraft));
+  } catch {
+    return null;
+  }
+};
+
+const loadWorkspaceFromApi = async () => {
+  try {
+    const response = await fetch(workspaceApiUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (response.status === 404) {
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Unable to load workspace: ${response.status}`);
+    }
+
+    return normalizeWorkspaceState(await response.json());
+  } catch {
+    return null;
+  }
+};
+
+const createPersistableWorkspace = (draft) => ({
+  entry: draft.entry,
+  hierarchy: draft.hierarchy,
+  maintainableItems: draft.maintainableItems,
+  selectedNodeId: draft.selectedNodeId,
+  collapsedNodeIds: draft.collapsedNodeIds,
+  hierarchyFilter: draft.hierarchyFilter,
+  modalVisible: draft.modalVisible,
+  savedAt: draft.savedAt,
+});
+
+const saveWorkspaceToLocalStorage = (draft) => {
+  window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+};
+
+const saveWorkspaceToApi = async (draft) => {
+  if (!isExistingWorkspaceCandidate(draft)) {
+    return false;
+  }
+
+  const response = await fetch(workspaceApiUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(createPersistableWorkspace(draft)),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Unable to save workspace: ${response.status}`);
+  }
+
+  return true;
+};
+
+const queueWorkspaceSave = (draft) => {
+  if (!isExistingWorkspaceCandidate(draft)) {
+    return;
+  }
+
+  const snapshot = JSON.parse(JSON.stringify(createPersistableWorkspace(draft)));
+  if (workspaceSaveTimer) {
+    window.clearTimeout(workspaceSaveTimer);
+  }
+
+  workspaceSaveTimer = window.setTimeout(() => {
+    workspaceSaveTimer = null;
+    workspaceSaveSequence = workspaceSaveSequence
+      .then(() => saveWorkspaceToApi(snapshot))
+      .catch(() => {});
+  }, workspaceSaveDebounceMs);
+};
+
+const initializeState = async () => {
+  if (getLaunchMode() === "existing") {
+    const existingWorkspace = (await loadWorkspaceFromApi()) || loadExistingWorkspaceFromLocalStorage();
+    if (existingWorkspace) {
+      state = existingWorkspace;
+      return;
+    }
+  }
+
+  state = defaultState();
 };
 
 let state = defaultState();
@@ -297,7 +515,8 @@ const persistDraft = (message = "") => {
     savedAt: new Date().toISOString(),
   };
 
-  window.localStorage.setItem(draftStorageKey, JSON.stringify(state));
+  saveWorkspaceToLocalStorage(state);
+  queueWorkspaceSave(state);
   if (message) {
     showNotice(message);
   } else {
@@ -311,7 +530,8 @@ const persistDraftSilently = () => {
     savedAt: new Date().toISOString(),
   };
 
-  window.localStorage.setItem(draftStorageKey, JSON.stringify(state));
+  saveWorkspaceToLocalStorage(state);
+  queueWorkspaceSave(state);
 };
 
 const buildInitialHierarchyFromEntry = () => {
@@ -1077,7 +1297,7 @@ continueButton?.addEventListener("click", () => {
 });
 
 saveDraftButton?.addEventListener("click", () => {
-  persistDraft("Draft saved locally.");
+  persistDraft("Draft saved.");
 });
 
 assetHierarchyFilter?.addEventListener("input", (event) => {
@@ -1190,4 +1410,15 @@ maintainableItemList?.addEventListener("input", (event) => {
   );
 });
 
-renderAll();
+const bootApp = async () => {
+  try {
+    await initializeState();
+  } finally {
+    renderAll();
+    if (maintenanceWorkspace) {
+      maintenanceWorkspace.hidden = false;
+    }
+  }
+};
+
+bootApp();
