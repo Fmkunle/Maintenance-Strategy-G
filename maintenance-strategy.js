@@ -367,7 +367,9 @@ const getSelectedNodeInfo = () => {
 const getNodeLabel = (node) => nodeTypeMeta[node.type]?.label || "Asset node";
 const getNodeTitle = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const isMaintainableTarget = (node) => node.type === "equipment" || node.type === "subunit";
+const getNodeDisplayName = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const getNodeDescription = (node) => getNodeNameValue(node, "Description pending");
+const getNodeBrowserDescription = (nodePath, node) => getFullCodeFromPath(nodePath) || getNodeLabel(node);
 const getNodeIcon = (type) => {
   switch (type) {
     case "plant":
@@ -606,6 +608,59 @@ const renderHierarchyNodes = (nodes, depth = 0, parentPath = [], filterValue = "
     })
     .join("");
 
+const renderHierarchyRegisterNodes = (nodes, depth = 0, parentPath = [], filterValue = "") =>
+  nodes
+    .map((node) => {
+      const nodePath = [...parentPath, node];
+      if (!nodeOrDescendantMatchesFilter(node, parentPath, filterValue)) {
+        return "";
+      }
+
+      const selectedClass = state.selectedNodeId === node.id ? "is-selected" : "";
+      const nodeLabel = getNodeDisplayName(node);
+      const description = getNodeBrowserDescription(nodePath, node);
+      const hasChildren = node.children.length > 0;
+      const expanded = filterValue ? true : !isNodeCollapsed(node.id);
+      const toggleControl = hasChildren
+        ? `
+            <button
+              class="asset-register-row__toggle"
+              type="button"
+              data-toggle-collapse="${node.id}"
+              aria-expanded="${expanded ? "true" : "false"}"
+              aria-label="${expanded ? "Collapse" : "Expand"} ${escapeHtml(nodeLabel)}"
+            >
+              ${expanded ? "&minus;" : "+"}
+            </button>
+          `
+        : `<span class="asset-register-row__toggle asset-register-row__toggle--spacer" aria-hidden="true"></span>`;
+
+      const childrenMarkup =
+        hasChildren && expanded
+          ? renderHierarchyRegisterNodes(node.children, depth + 1, nodePath, filterValue)
+          : "";
+
+      return `
+        <div class="asset-register-row ${selectedClass}" role="row" aria-level="${depth + 1}" data-select-node="${node.id}">
+          <div class="asset-register-row__check">
+            <input class="asset-register-row__checkbox" type="checkbox" tabindex="-1" aria-label="Select ${escapeHtml(nodeLabel)}">
+          </div>
+          <div class="asset-register-row__location" style="--depth:${depth}">
+            <span class="asset-register-row__tree">
+              ${toggleControl}
+              <span class="asset-register-row__icon" aria-hidden="true">${getNodeIcon(node.type)}</span>
+            </span>
+            <span class="asset-register-row__label">${escapeHtml(nodeLabel)}</span>
+          </div>
+          <div class="asset-register-row__description">
+            <span>${escapeHtml(description)}</span>
+          </div>
+        </div>
+        ${childrenMarkup}
+      `;
+    })
+    .join("");
+
 const renderHierarchyTree = () => {
   if (!state.hierarchy.length) {
     assetHierarchyTree.innerHTML = `
@@ -618,7 +673,7 @@ const renderHierarchyTree = () => {
   }
 
   const filterValue = getHierarchyFilterValue();
-  const treeMarkup = renderHierarchyNodes(state.hierarchy, 0, [], filterValue);
+  const treeMarkup = renderHierarchyRegisterNodes(state.hierarchy, 0, [], filterValue);
   assetHierarchyTree.innerHTML =
     treeMarkup ||
     `
@@ -1037,6 +1092,10 @@ assetHierarchyTree?.addEventListener("click", (event) => {
     setNodeCollapsed(nodeId, !isNodeCollapsed(nodeId));
     persistDraftSilently();
     renderWorkspaceState();
+    return;
+  }
+
+  if (event.target.closest(".asset-register-row__checkbox")) {
     return;
   }
 

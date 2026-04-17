@@ -4471,6 +4471,8 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .asset-browser-row__location:focus-visible,
 .asset-browser-row__description:focus-visible,
 .asset-browser-row__toggle:focus-visible,
+.asset-register-row__toggle:focus-visible,
+.asset-register__view-button:focus-visible,
 .asset-node-actions__button:focus-visible {
   border-color: rgba(88, 102, 255, 0.44);
   box-shadow: 0 0 0 3px rgba(88, 102, 255, 0.12);
@@ -5164,6 +5166,272 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   text-overflow: ellipsis;
 }
 
+.asset-register {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: 0;
+  border: 1px solid #b8c2cf;
+  border-radius: 2px;
+  background: #eef3f8;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.asset-register__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #bcc7d4;
+  background: linear-gradient(180deg, #d9e3ef 0%, #ccd9e7 100%);
+}
+
+.asset-register__titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.asset-register__titlebar strong {
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.asset-register__view-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #8fa1b6;
+  border-radius: 4px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f2f6fb 0%, #d9e3ef 100%);
+}
+
+.asset-register__view-button {
+  width: 30px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-right: 1px solid #8fa1b6;
+  background: transparent;
+  color: #5c7088;
+  padding: 0;
+}
+
+.asset-register__view-button:last-child {
+  border-right: 0;
+}
+
+.asset-register__view-button.is-active {
+  background: linear-gradient(180deg, #c4d3e6 0%, #aebfd7 100%);
+  color: #32465f;
+}
+
+.asset-register__view-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.asset-register__filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4b6079;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.asset-register__filter-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.asset-register__filter-shell input {
+  width: 290px;
+  min-height: 29px;
+  padding: 0 30px 0 10px;
+  border: 1px solid #aab6c5;
+  border-radius: 2px;
+  background: #ffffff;
+  color: #2e4159;
+  font-size: 0.88rem;
+}
+
+.asset-register__filter-caret {
+  position: absolute;
+  right: 10px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #657a92;
+  pointer-events: none;
+}
+
+.asset-register__table {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  background: #f5f8fb;
+}
+
+.asset-register__header,
+.asset-register-row {
+  display: grid;
+  grid-template-columns: 32px minmax(250px, 1.35fr) minmax(180px, 1fr);
+}
+
+.asset-register__header {
+  min-height: 28px;
+  border-bottom: 1px solid #b4c0cf;
+  background: #d3dfec;
+  color: #4b617b;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.asset-register__header span {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+}
+
+.asset-register__header span + span {
+  border-left: 1px solid #bcc8d5;
+}
+
+.asset-register__body {
+  min-height: 0;
+  overflow: auto;
+  background: #ffffff;
+}
+
+.asset-register-row {
+  min-height: 34px;
+  border-bottom: 1px solid #d9e1ea;
+  color: #22364d;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.asset-register-row:hover {
+  background: #f4f8fc;
+}
+
+.asset-register-row.is-selected {
+  background: #d7e4f3;
+}
+
+.asset-register-row__check,
+.asset-register-row__location,
+.asset-register-row__description {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.asset-register-row__check,
+.asset-register-row__location {
+  border-right: 1px solid #e0e7ef;
+}
+
+.asset-register-row__check {
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.asset-register-row__checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: #7f94ad;
+}
+
+.asset-register-row__location {
+  gap: 6px;
+  padding: 4px 10px 4px calc(8px + (var(--depth, 0) * 20px));
+}
+
+.asset-register-row__tree {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.asset-register-row__toggle {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #9aaabd;
+  border-radius: 2px;
+  background: #ffffff;
+  color: #5a6f88;
+  font-size: 0.78rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.asset-register-row__toggle--spacer {
+  border-color: transparent;
+  background: transparent;
+}
+
+.asset-register-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: #8d6a3e;
+}
+
+.asset-register-row__icon svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.asset-register-row__label {
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #23364d;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asset-register-row__description {
+  padding: 4px 10px;
+}
+
+.asset-register-row__description span {
+  display: block;
+  min-width: 0;
+  font-size: 0.88rem;
+  color: #51677f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .asset-workspace-empty {
   display: grid;
   gap: 8px;
@@ -5407,6 +5675,24 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
   .asset-browser__header span:last-child,
   .asset-browser-row__description {
+    display: none;
+  }
+
+  .asset-register__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .asset-register__filter-shell input {
+    width: min(100%, 220px);
+  }
+
+  .asset-register__header,
+  .asset-register-row {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .asset-register__header span:last-child,
+  .asset-register-row__description {
     display: none;
   }
 

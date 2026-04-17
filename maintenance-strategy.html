@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
   <script>
-    window.__maintenanceAssetVersion = "maintenance-page-13";
+    window.__maintenanceAssetVersion = "maintenance-page-14";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
     maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
@@ -153,24 +153,39 @@
 
       <main id="maintenanceWorkspace" class="workspace workspace--wide workspace--maintenance workspace--maintenance-modal">
         <section id="assetWorkspace" class="asset-workspace">
-          <aside class="asset-browser asset-workspace__hierarchy" aria-label="Asset hierarchy browser">
-            <div class="asset-browser__toolbar">
-              <div class="asset-browser__title-group">
+          <aside class="asset-register asset-workspace__hierarchy" aria-label="Asset hierarchy browser">
+            <div class="asset-register__toolbar">
+              <div class="asset-register__titlebar">
                 <strong>Assets</strong>
-                <span>Hierarchy browser</span>
+                <div class="asset-register__view-toggle" aria-hidden="true">
+                  <button class="asset-register__view-button is-active" type="button" tabindex="-1">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 5h6v6H4zM14 5h6v6h-6zM4 13h6v6H4zM14 13h6v6h-6z"></path>
+                    </svg>
+                  </button>
+                  <button class="asset-register__view-button" type="button" tabindex="-1">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7h16M4 12h16M4 17h16"></path>
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <label class="asset-browser__filter" for="assetHierarchyFilter">
-                <span>Filter by</span>
-                <input id="assetHierarchyFilter" type="search" placeholder="Assets">
+              <label class="asset-register__filter" for="assetHierarchyFilter">
+                <span>filter by</span>
+                <div class="asset-register__filter-shell">
+                  <input id="assetHierarchyFilter" type="search" placeholder="Assets">
+                  <span class="asset-register__filter-caret" aria-hidden="true"></span>
+                </div>
               </label>
             </div>
 
-            <div class="asset-browser__table" role="treegrid" aria-label="Asset hierarchy">
-              <div class="asset-browser__header">
+            <div class="asset-register__table" role="treegrid" aria-label="Asset hierarchy">
+              <div class="asset-register__header">
+                <span aria-hidden="true"></span>
                 <span>Location</span>
                 <span>Description</span>
               </div>
-              <div id="assetHierarchyTree" class="asset-browser__body"></div>
+              <div id="assetHierarchyTree" class="asset-register__body"></div>
             </div>
           </aside>
 
