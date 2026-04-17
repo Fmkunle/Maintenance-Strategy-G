@@ -4468,9 +4468,9 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .component-card__remove:focus-visible,
 .asset-context-inline-action:focus-visible,
 .asset-context-remove:focus-visible,
-.asset-hierarchy-node__main:focus-visible,
-.asset-hierarchy-node__add:focus-visible,
-.asset-hierarchy-node__menu-button:focus-visible,
+.asset-browser-row__location:focus-visible,
+.asset-browser-row__description:focus-visible,
+.asset-browser-row__toggle:focus-visible,
 .asset-node-actions__button:focus-visible {
   border-color: rgba(88, 102, 255, 0.44);
   box-shadow: 0 0 0 3px rgba(88, 102, 255, 0.12);
@@ -4672,6 +4672,38 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   padding: 24px;
 }
 
+.maintenance-strategy-page .app-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.maintenance-strategy-page .sidebar {
+  display: none;
+}
+
+.maintenance-strategy-page .topbar {
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(144, 158, 180, 0.32);
+  background: rgba(246, 249, 253, 0.94);
+  backdrop-filter: none;
+}
+
+.maintenance-strategy-page .search-shell--page {
+  width: auto;
+  min-width: 0;
+  border-radius: 10px;
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+}
+
+.maintenance-strategy-page .search-shell__copy strong {
+  font-size: 1rem;
+}
+
+.maintenance-strategy-page .search-shell__copy span {
+  font-size: 0.78rem;
+}
+
 .strategy-backdrop {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
@@ -4696,6 +4728,12 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow);
+}
+
+.strategy-surface--flat {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
 }
 
 .strategy-surface__header {
@@ -4875,8 +4913,8 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .asset-workspace {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(420px, 46%) minmax(0, 1fr);
+  gap: 16px;
   min-height: calc(100vh - 160px);
   transition: filter var(--transition-fast), opacity var(--transition-fast);
 }
@@ -4894,152 +4932,236 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 }
 
 .asset-workspace__hierarchy {
-  display: grid;
-  align-content: start;
-  padding-bottom: 20px;
+  align-self: stretch;
 }
 
 .asset-workspace__main {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .asset-workspace__main-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px;
 }
 
-.asset-hierarchy-summary {
+.asset-workspace__status {
   display: grid;
-  gap: 2px;
-  text-align: right;
+  gap: 3px;
+  padding: 0 20px 18px;
+  border-bottom: 1px solid rgba(144, 158, 180, 0.22);
 }
 
-.asset-hierarchy-summary span,
-.asset-hierarchy-summary small {
+.asset-workspace__status span,
+.asset-workspace__status small {
   display: block;
 }
 
-.asset-hierarchy-summary span {
-  font-size: 0.92rem;
+.asset-workspace__status span {
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.01em;
 }
 
-.asset-hierarchy-summary small {
+.asset-workspace__status small {
   color: var(--text-muted);
   line-height: 1.4;
 }
 
-.asset-hierarchy-tree {
+.asset-browser {
   display: grid;
-  gap: 8px;
-  padding: 18px 20px 20px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: 0;
+  border: 1px solid rgba(144, 158, 180, 0.34);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: none;
+  overflow: hidden;
 }
 
-.asset-hierarchy-branch {
-  display: grid;
-  gap: 8px;
-}
-
-.asset-hierarchy-node {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px;
-  gap: 10px;
-  align-items: center;
-  padding-left: calc(var(--depth) * 18px);
-}
-
-.asset-hierarchy-node__main,
-.asset-hierarchy-node__add,
-.asset-hierarchy-node__menu-button,
-.asset-node-actions__button {
-  border: 1px solid var(--border);
-  background: rgba(247, 249, 253, 0.94);
-  color: var(--text);
-}
-
-.asset-hierarchy-node__main {
-  width: 100%;
-  display: grid;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  text-align: left;
-}
-
-.asset-hierarchy-node__type,
-.strategy-draft-card__eyebrow {
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-
-.asset-hierarchy-node__main strong,
-.strategy-draft-card strong {
-  font-size: 0.92rem;
-  letter-spacing: -0.01em;
-}
-
-.asset-hierarchy-node__name {
-  color: var(--text-muted);
-  font-size: 0.84rem;
-  line-height: 1.45;
-}
-
-.asset-hierarchy-node.is-selected .asset-hierarchy-node__main {
-  border-color: rgba(88, 102, 255, 0.38);
-  background: rgba(88, 102, 255, 0.1);
-}
-
-.asset-hierarchy-node__add {
-  width: 40px;
-  min-height: 40px;
-  border-radius: 999px;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.asset-hierarchy-node__add:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.asset-hierarchy-node__menu {
+.asset-browser__toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-left: calc(var(--depth) * 18px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(144, 158, 180, 0.28);
+  background: linear-gradient(180deg, rgba(229, 236, 246, 0.95), rgba(215, 225, 238, 0.95));
 }
 
-.asset-hierarchy-node__menu-button,
-.asset-node-actions__button {
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 999px;
+.asset-browser__title-group {
+  display: grid;
+  gap: 2px;
+}
+
+.asset-browser__title-group strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.asset-browser__title-group span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.asset-browser__filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
   font-size: 0.82rem;
   font-weight: 700;
 }
 
-.asset-node-actions {
+.asset-browser__filter input {
+  width: min(100%, 240px);
+  min-height: 34px;
+  border: 1px solid rgba(123, 138, 159, 0.32);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--text);
+  padding: 0 10px;
+}
+
+.asset-browser__table {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.asset-browser__header {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) minmax(160px, 1fr);
+  gap: 0;
+  border-bottom: 1px solid rgba(144, 158, 180, 0.32);
+  background: rgba(216, 226, 238, 0.9);
+  color: #4d6582;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.asset-browser__header span {
+  padding: 8px 12px;
+}
+
+.asset-browser__header span + span {
+  border-left: 1px solid rgba(144, 158, 180, 0.28);
+}
+
+.asset-browser__body {
+  min-height: 0;
+  overflow: auto;
+  background: #fefefe;
+}
+
+.asset-browser-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) minmax(160px, 1fr);
+  min-height: 38px;
+  border-bottom: 1px solid rgba(144, 158, 180, 0.18);
+  background: #ffffff;
+}
+
+.asset-browser-row.is-selected {
+  background: rgba(214, 228, 247, 0.75);
+}
+
+.asset-browser-row__location,
+.asset-browser-row__description {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--text);
+}
+
+.asset-browser-row__location {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0 20px 20px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 10px 7px calc(10px + (var(--depth, 0) * 18px));
 }
 
-.asset-node-form {
-  padding: 0 20px 20px;
+.asset-browser-row__description {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 7px 12px;
+  border-left: 1px solid rgba(144, 158, 180, 0.12);
 }
 
-.asset-workspace__hint {
-  margin: 0;
+.asset-browser-row__tree {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.asset-browser-row__toggle {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(123, 138, 159, 0.45);
+  border-radius: 3px;
+  background: #ffffff;
+  color: #5a718f;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.asset-browser-row__toggle--spacer {
+  border-color: transparent;
+  background: transparent;
+}
+
+.asset-browser-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: #6a7f99;
+}
+
+.asset-browser-row__icon svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.7;
+}
+
+.asset-browser-row__copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.asset-browser-row__copy strong,
+.asset-browser-row__description span {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.asset-browser-row__copy small {
   color: var(--text-muted);
-  line-height: 1.6;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.asset-browser-row__description span {
+  display: block;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .asset-workspace-empty {
@@ -5047,7 +5169,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   gap: 8px;
   padding: 18px;
   border: 1px dashed var(--border);
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(247, 249, 253, 0.78);
 }
 
@@ -5077,7 +5199,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .maintainable-item-card,
 .strategy-draft-card {
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(247, 249, 253, 0.92);
   padding: 16px;
 }
@@ -5278,6 +5400,16 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
     grid-template-columns: 1fr;
   }
 
+  .asset-browser__header,
+  .asset-browser-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .asset-browser__header span:last-child,
+  .asset-browser-row__description {
+    display: none;
+  }
+
   .fiori-decision-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -5391,14 +5523,9 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
     grid-template-columns: 1fr;
   }
 
-  .asset-hierarchy-summary {
-    text-align: left;
-  }
-
   .asset-context-inline-action,
   .asset-context-remove,
-  .asset-node-actions__button,
-  .asset-hierarchy-node__menu-button {
+  .asset-node-actions__button {
     width: 100%;
   }
 

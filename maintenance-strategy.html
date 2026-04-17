@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
   <script>
-    window.__maintenanceAssetVersion = "maintenance-page-12";
+    window.__maintenanceAssetVersion = "maintenance-page-13";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
     maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
@@ -14,7 +14,7 @@
 </head>
 <body class="maintenance-strategy-page" data-theme="light">
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar" aria-hidden="true">
       <div class="sidebar__brand">
         <button id="sidebarToggle" class="sidebar-logo" aria-label="Toggle sidebar" aria-expanded="false" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -153,22 +153,29 @@
 
       <main id="maintenanceWorkspace" class="workspace workspace--wide workspace--maintenance workspace--maintenance-modal">
         <section id="assetWorkspace" class="asset-workspace">
-          <aside class="strategy-surface asset-workspace__hierarchy">
-            <div class="strategy-surface__header strategy-surface__header--spread">
-              <div>
-                <strong>Asset Hierarchy</strong>
-                <span>Structure</span>
+          <aside class="asset-browser asset-workspace__hierarchy" aria-label="Asset hierarchy browser">
+            <div class="asset-browser__toolbar">
+              <div class="asset-browser__title-group">
+                <strong>Assets</strong>
+                <span>Hierarchy browser</span>
               </div>
-              <div class="asset-hierarchy-summary">
-                <span id="backgroundDraftTitle">New strategy draft</span>
-                <small id="backgroundDraftPath">Complete the asset hierarchy to place this draft.</small>
-              </div>
+              <label class="asset-browser__filter" for="assetHierarchyFilter">
+                <span>Filter by</span>
+                <input id="assetHierarchyFilter" type="search" placeholder="Assets">
+              </label>
             </div>
-            <div id="assetHierarchyTree" class="asset-hierarchy-tree"></div>
+
+            <div class="asset-browser__table" role="treegrid" aria-label="Asset hierarchy">
+              <div class="asset-browser__header">
+                <span>Location</span>
+                <span>Description</span>
+              </div>
+              <div id="assetHierarchyTree" class="asset-browser__body"></div>
+            </div>
           </aside>
 
           <section class="asset-workspace__main">
-            <section class="strategy-surface asset-workspace__panel">
+            <section class="strategy-surface strategy-surface--flat asset-workspace__panel">
               <div class="strategy-surface__header strategy-surface__header--spread">
                 <div>
                   <strong>Selected Node</strong>
@@ -180,6 +187,11 @@
               <div class="strategy-detail">
                 <h2 id="backgroundDetailHeading">Asset context pending</h2>
                 <p id="backgroundDetailSummary">The strategy workspace will open once the asset hierarchy is defined.</p>
+              </div>
+
+              <div class="asset-workspace__status">
+                <span id="backgroundDraftTitle">New strategy draft</span>
+                <small id="backgroundDraftPath">Complete the asset hierarchy to place this draft.</small>
               </div>
 
               <div id="selectedNodeQuickActions" class="asset-node-actions"></div>
@@ -204,7 +216,7 @@
             </section>
 
             <div class="asset-workspace__main-grid">
-              <section class="strategy-surface asset-workspace__panel">
+              <section class="strategy-surface strategy-surface--flat asset-workspace__panel">
                 <div class="strategy-surface__header strategy-surface__header--spread">
                   <div>
                     <strong>Maintainable Items</strong>
@@ -217,7 +229,7 @@
                 <div id="maintainableItemList" class="maintainable-item-list"></div>
               </section>
 
-              <section class="strategy-surface asset-workspace__panel">
+              <section class="strategy-surface strategy-surface--flat asset-workspace__panel">
                 <div class="strategy-surface__header">
                   <strong>Strategies</strong>
                   <span>Selected asset</span>

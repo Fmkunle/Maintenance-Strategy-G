@@ -6,6 +6,7 @@ const themeToggle = document.getElementById("themeToggle");
 const maintenanceWorkspace = document.getElementById("maintenanceWorkspace");
 const assetWorkspace = document.getElementById("assetWorkspace");
 const assetHierarchyTree = document.getElementById("assetHierarchyTree");
+const assetHierarchyFilter = document.getElementById("assetHierarchyFilter");
 const selectedNodeTypeLabel = document.getElementById("selectedNodeTypeLabel");
 const addSelectedChildButton = document.getElementById("addSelectedChildButton");
 const selectedNodeQuickActions = document.getElementById("selectedNodeQuickActions");
@@ -106,7 +107,8 @@ const defaultState = () => ({
   hierarchy: [],
   maintainableItems: [],
   selectedNodeId: "",
-  addMenuNodeId: "",
+  collapsedNodeIds: [],
+  hierarchyFilter: "",
   modalVisible: true,
   savedAt: "",
 });
@@ -118,106 +120,6 @@ const escapeHtml = (value) =>
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
-
-const normalizeEntryNode = (value, fallbackCode = "", fallbackName = "") => ({
-  code:
-    typeof value?.code === "string"
-      ? value.code
-      : typeof fallbackCode === "string"
-      ? fallbackCode
-      : "",
-  name:
-    typeof value?.name === "string"
-      ? value.name
-      : typeof value === "string"
-      ? value
-      : typeof fallbackName === "string"
-      ? fallbackName
-      : "",
-});
-
-const normalizeEntry = (draft) => {
-  const base = defaultEntryState();
-  const deepestLevelName = Array.isArray(draft?.levels)
-    ? [...draft.levels]
-        .reverse()
-        .find((level) => typeof level?.name === "string" && level.name.trim())
-        ?.name || ""
-    : "";
-
-  return {
-    ...base,
-    plantUnit: normalizeEntryNode(
-      draft?.entry?.plantUnit,
-      "",
-      typeof draft?.plantUnit === "string"
-        ? draft.plantUnit
-        : typeof draft?.site === "string"
-        ? draft.site
-        : typeof draft?.site?.name === "string"
-        ? draft.site.name
-        : ""
-    ),
-    sectionSystem: normalizeEntryNode(
-      draft?.entry?.sectionSystem,
-      "",
-      typeof draft?.sectionSystem === "string"
-        ? draft.sectionSystem
-        : typeof draft?.system === "string"
-        ? draft.system
-        : deepestLevelName
-    ),
-    subsystems: Array.isArray(draft?.entry?.subsystems)
-      ? draft.entry.subsystems.map((item, index) => ({
-          id: item?.id || createId(`entry-subsystem-${index}`),
-          code: typeof item?.code === "string" ? item.code : "",
-          name: typeof item?.name === "string" ? item.name : typeof item === "string" ? item : "",
-        }))
-      : Array.isArray(draft?.subsystems)
-      ? draft.subsystems.map((item, index) => ({
-          id: item?.id || createId(`entry-subsystem-${index}`),
-          code: typeof item?.code === "string" ? item.code : "",
-          name: typeof item?.name === "string" ? item.name : typeof item === "string" ? item : "",
-        }))
-      : [],
-    equipmentUnit: normalizeEntryNode(
-      draft?.entry?.equipmentUnit,
-      "",
-      typeof draft?.equipmentUnit === "string"
-        ? draft.equipmentUnit
-        : typeof draft?.asset === "string"
-        ? draft.asset
-        : typeof draft?.equipment?.name === "string"
-        ? draft.equipment.name
-        : ""
-    ),
-    hasSubunit:
-      typeof draft?.entry?.hasSubunit === "boolean"
-        ? draft.entry.hasSubunit
-        : typeof draft?.hasSubunit === "boolean"
-        ? draft.hasSubunit
-        : Boolean(
-            draft?.entry?.subunit?.name ||
-              draft?.entry?.subunit?.code ||
-              draft?.entry?.subunit ||
-              draft?.subunit
-          ),
-    subunit: normalizeEntryNode(draft?.entry?.subunit, "", typeof draft?.subunit === "string" ? draft.subunit : ""),
-  };
-};
-
-const normalizeNode = (node, fallbackType = "subsystem") => {
-  const type = nodeTypeMeta[node?.type] ? node.type : fallbackType;
-  return {
-    id: node?.id || createId(type),
-    type,
-    code: typeof node?.code === "string" ? node.code : "",
-    name: typeof node?.name === "string" ? node.name : "",
-    children: Array.isArray(node?.children)
-      ? node.children.map((child) => normalizeNode(child, "subsystem"))
-      : [],
-  };
-};
 
 const findNodeInfo = (nodes, nodeId, parent = null, path = []) => {
   for (const node of nodes) {
@@ -249,54 +151,6 @@ const getFirstNode = (nodes) => {
     current = current.children[0];
   }
   return current;
-};
-
-const normalizeMaintainableItems = (items, nodes) => {
-  const validNodeIds = new Set();
-
-  const collectIds = (list) => {
-    list.forEach((node) => {
-      validNodeIds.add(node.id);
-      if (node.children.length) {
-        collectIds(node.children);
-      }
-    });
-  };
-
-  collectIds(nodes);
-
-  return Array.isArray(items)
-    ? items
-        .map((item, index) => ({
-          id: item?.id || createId(`maintainable-item-${index}`),
-          nodeId: typeof item?.nodeId === "string" ? item.nodeId : "",
-          name: typeof item?.name === "string" ? item.name : "",
-        }))
-        .filter((item) => validNodeIds.has(item.nodeId))
-    : [];
-};
-
-const normalizeState = (draft) => {
-  const base = defaultState();
-  const hierarchy = Array.isArray(draft?.hierarchy)
-    ? draft.hierarchy.map((node) => normalizeNode(node, "plant"))
-    : [];
-  const firstNode = getFirstNode(hierarchy);
-  const selectedNodeId =
-    typeof draft?.selectedNodeId === "string" && findNodeInfo(hierarchy, draft.selectedNodeId)
-      ? draft.selectedNodeId
-      : firstNode?.id || "";
-
-  return {
-    ...base,
-    entry: normalizeEntry(draft),
-    hierarchy,
-    maintainableItems: normalizeMaintainableItems(draft?.maintainableItems, hierarchy),
-    selectedNodeId,
-    addMenuNodeId: "",
-    modalVisible: typeof draft?.modalVisible === "boolean" ? draft.modalVisible : hierarchy.length === 0,
-    savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
-  };
 };
 
 let state = defaultState();
@@ -513,6 +367,65 @@ const getSelectedNodeInfo = () => {
 const getNodeLabel = (node) => nodeTypeMeta[node.type]?.label || "Asset node";
 const getNodeTitle = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const isMaintainableTarget = (node) => node.type === "equipment" || node.type === "subunit";
+const getNodeDescription = (node) => getNodeNameValue(node, "Description pending");
+const getNodeIcon = (type) => {
+  switch (type) {
+    case "plant":
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V8l4-3v15M10 20V11l4-3v12M16 20v-7l4-2v9M3 20h18"></path></svg>';
+    case "section":
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v10H4z"></path><path d="M8 7V4h8v3"></path></svg>';
+    case "subsystem":
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v12H5z"></path><path d="M9 10h6M9 14h6"></path></svg>';
+    case "equipment":
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h14V8H5z"></path><path d="M8 16v3M16 16v3M9 11h6"></path></svg>';
+    case "subunit":
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17h10V7H7z"></path><path d="M10 10h4M10 14h4"></path></svg>';
+    default:
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"></rect></svg>';
+  }
+};
+const getHierarchyFilterValue = () => state.hierarchyFilter.trim().toLowerCase();
+const isNodeCollapsed = (nodeId) => state.collapsedNodeIds.includes(nodeId);
+const setNodeCollapsed = (nodeId, collapsed) => {
+  if (collapsed) {
+    if (!state.collapsedNodeIds.includes(nodeId)) {
+      state.collapsedNodeIds.push(nodeId);
+    }
+    return;
+  }
+
+  state.collapsedNodeIds = state.collapsedNodeIds.filter((id) => id !== nodeId);
+};
+const nodeMatchesFilter = (nodePath, filterValue) => {
+  if (!filterValue) {
+    return true;
+  }
+
+  const node = nodePath[nodePath.length - 1];
+  const searchText = [
+    getFullCodeFromPath(nodePath),
+    node.code,
+    node.name,
+    getNodeLabel(node),
+    getNodeDescription(node),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return searchText.includes(filterValue);
+};
+const nodeOrDescendantMatchesFilter = (node, path, filterValue) => {
+  if (!filterValue) {
+    return true;
+  }
+
+  const nodePath = [...path, node];
+  if (nodeMatchesFilter(nodePath, filterValue)) {
+    return true;
+  }
+
+  return node.children.some((child) => nodeOrDescendantMatchesFilter(child, nodePath, filterValue));
+};
 
 const renderEntrySubsystemRows = () => {
   const baseSegments = [state.entry.plantUnit.code, state.entry.sectionSystem.code];
@@ -640,52 +553,55 @@ const renderEntryForm = (options = {}) => {
   continueButton.disabled = !isEntryReady();
 };
 
-const renderHierarchyNodes = (nodes, depth = 0, parentPath = []) =>
+const renderHierarchyNodes = (nodes, depth = 0, parentPath = [], filterValue = "") =>
   nodes
     .map((node) => {
       const nodePath = [...parentPath, node];
+      if (!nodeOrDescendantMatchesFilter(node, parentPath, filterValue)) {
+        return "";
+      }
+
       const selectedClass = state.selectedNodeId === node.id ? "is-selected" : "";
-      const menuOpen = state.addMenuNodeId === node.id;
-      const childActions = getChildActions(node.type);
       const fullCode = getFullCodeFromPath(nodePath) || getNodeCodeValue(node, "Code pending");
-      const childMenu =
-        menuOpen && childActions.length
-          ? `
-            <div class="asset-hierarchy-node__menu" style="--depth:${depth + 1}">
-              ${childActions
-                .map(
-                  (action) => `
-                    <button class="asset-hierarchy-node__menu-button" type="button" data-add-child-parent="${node.id}" data-child-type="${action.type}">
-                      ${escapeHtml(action.label)}
-                    </button>
-                  `
-                )
-                .join("")}
-            </div>
+      const hasChildren = node.children.length > 0;
+      const expanded = filterValue ? true : !isNodeCollapsed(node.id);
+      const toggleControl = hasChildren
+        ? `
+            <button
+              class="asset-browser-row__toggle"
+              type="button"
+              data-toggle-collapse="${node.id}"
+              aria-expanded="${expanded ? "true" : "false"}"
+              aria-label="${expanded ? "Collapse" : "Expand"} ${escapeHtml(getNodeTitle(node))}"
+            >
+              ${expanded ? "−" : "+"}
+            </button>
           `
+        : `<span class="asset-browser-row__toggle asset-browser-row__toggle--spacer" aria-hidden="true"></span>`;
+
+      const description = getNodeDescription(node);
+      const childrenMarkup =
+        hasChildren && expanded
+          ? renderHierarchyNodes(node.children, depth + 1, nodePath, filterValue)
           : "";
 
       return `
-        <div class="asset-hierarchy-branch">
-          <div class="asset-hierarchy-node ${selectedClass}" style="--depth:${depth}">
-            <button class="asset-hierarchy-node__main" type="button" data-select-node="${node.id}">
-              <span class="asset-hierarchy-node__type">${escapeHtml(getNodeLabel(node))}</span>
+        <div class="asset-browser-row ${selectedClass}" role="row" aria-level="${depth + 1}">
+          <button class="asset-browser-row__location" type="button" data-select-node="${node.id}" style="--depth:${depth}">
+            <span class="asset-browser-row__tree">
+              ${toggleControl}
+              <span class="asset-browser-row__icon" aria-hidden="true">${getNodeIcon(node.type)}</span>
+            </span>
+            <span class="asset-browser-row__copy">
               <strong>${escapeHtml(fullCode)}</strong>
-              <span class="asset-hierarchy-node__name">${escapeHtml(getNodeTitle(node))}</span>
-            </button>
-            <button
-              class="asset-hierarchy-node__add"
-              type="button"
-              data-toggle-add-menu="${node.id}"
-              aria-expanded="${menuOpen ? "true" : "false"}"
-              ${childActions.length ? "" : "disabled"}
-            >
-              +
-            </button>
-          </div>
-          ${childMenu}
-          ${node.children.length ? renderHierarchyNodes(node.children, depth + 1, nodePath) : ""}
+              <small>${escapeHtml(getNodeLabel(node))}</small>
+            </span>
+          </button>
+          <button class="asset-browser-row__description" type="button" data-select-node="${node.id}">
+            <span>${escapeHtml(description)}</span>
+          </button>
         </div>
+        ${childrenMarkup}
       `;
     })
     .join("");
@@ -701,7 +617,16 @@ const renderHierarchyTree = () => {
     return;
   }
 
-  assetHierarchyTree.innerHTML = renderHierarchyNodes(state.hierarchy);
+  const filterValue = getHierarchyFilterValue();
+  const treeMarkup = renderHierarchyNodes(state.hierarchy, 0, [], filterValue);
+  assetHierarchyTree.innerHTML =
+    treeMarkup ||
+    `
+      <article class="asset-workspace-empty asset-workspace-empty--soft">
+        <strong>No assets match this filter</strong>
+        <p>Try a broader search term or clear the filter to see the full hierarchy.</p>
+      </article>
+    `;
 };
 
 const renderSelectedNodePanel = () => {
@@ -849,6 +774,9 @@ const renderWorkspaceState = () => {
   assetContextOverlay.setAttribute("aria-hidden", String(!state.modalVisible));
   maintenanceWorkspace.classList.toggle("is-workspace-active", !state.modalVisible);
   assetWorkspace.classList.toggle("is-muted", state.modalVisible);
+  if (assetHierarchyFilter) {
+    assetHierarchyFilter.value = state.hierarchyFilter;
+  }
   renderWorkspaceSummary();
   renderHierarchyTree();
   renderSelectedNodePanel();
@@ -870,8 +798,8 @@ const addChildNode = (parentId, childType) => {
 
   const nextNode = createNode(childType);
   info.node.children.push(nextNode);
+  setNodeCollapsed(parentId, false);
   state.selectedNodeId = nextNode.id;
-  state.addMenuNodeId = "";
   persistDraftSilently();
   renderAll();
   hideNotice();
@@ -1089,7 +1017,6 @@ continueButton?.addEventListener("click", () => {
   }
 
   state.modalVisible = false;
-  state.addMenuNodeId = "";
   persistDraft();
   renderAll();
 });
@@ -1098,22 +1025,25 @@ saveDraftButton?.addEventListener("click", () => {
   persistDraft("Draft saved locally.");
 });
 
+assetHierarchyFilter?.addEventListener("input", (event) => {
+  state.hierarchyFilter = event.target.value;
+  renderWorkspaceState();
+});
+
 assetHierarchyTree?.addEventListener("click", (event) => {
-  const selectButton = event.target.closest("[data-select-node]");
-  if (selectButton) {
-    state.selectedNodeId = selectButton.dataset.selectNode;
-    state.addMenuNodeId = "";
+  const collapseButton = event.target.closest("[data-toggle-collapse]");
+  if (collapseButton) {
+    const nodeId = collapseButton.dataset.toggleCollapse;
+    setNodeCollapsed(nodeId, !isNodeCollapsed(nodeId));
     persistDraftSilently();
-    renderAll({
-      includeEntryDynamic: false,
-    });
+    renderWorkspaceState();
     return;
   }
 
-  const toggleButton = event.target.closest("[data-toggle-add-menu]");
-  if (toggleButton) {
-    const nodeId = toggleButton.dataset.toggleAddMenu;
-    state.addMenuNodeId = state.addMenuNodeId === nodeId ? "" : nodeId;
+  const selectButton = event.target.closest("[data-select-node]");
+  if (selectButton) {
+    state.selectedNodeId = selectButton.dataset.selectNode;
+    persistDraftSilently();
     renderAll({
       includeEntryDynamic: false,
     });
