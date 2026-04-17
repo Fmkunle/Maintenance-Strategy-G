@@ -22,12 +22,10 @@ const workflowNotice = document.getElementById("workflowNotice");
 const assetContextForm = document.getElementById("assetContextForm");
 const plantUnitCodeInput = document.getElementById("plantUnitCodeInput");
 const plantUnitNameInput = document.getElementById("plantUnitNameInput");
-const sectionSystemCodePrefix = document.getElementById("sectionSystemCodePrefix");
 const sectionSystemCodeInput = document.getElementById("sectionSystemCodeInput");
 const sectionSystemNameInput = document.getElementById("sectionSystemNameInput");
 const subsystemList = document.getElementById("subsystemList");
 const addSubsystemButton = document.getElementById("addSubsystemButton");
-const equipmentUnitCodePrefix = document.getElementById("equipmentUnitCodePrefix");
 const equipmentUnitCodeInput = document.getElementById("equipmentUnitCodeInput");
 const equipmentUnitNameInput = document.getElementById("equipmentUnitNameInput");
 const addSubunitButton = document.getElementById("addSubunitButton");
@@ -330,6 +328,22 @@ const buildInheritedCodePrefix = (segments) => {
 
   return prefix ? `${prefix}-` : "";
 };
+const getDisplayedCodeValue = (segments, localSegment) =>
+  `${buildInheritedCodePrefix(segments)}${typeof localSegment === "string" ? localSegment : ""}`;
+const extractLocalCodeValue = (displayValue, segments) => {
+  const rawValue = typeof displayValue === "string" ? displayValue : "";
+  const prefix = buildInheritedCodePrefix(segments);
+
+  if (!prefix) {
+    return rawValue;
+  }
+
+  if (rawValue.startsWith(prefix)) {
+    return rawValue.slice(prefix.length);
+  }
+
+  return rawValue.replace(prefix, "");
+};
 
 const getFullCodeFromPath = (path) =>
   path
@@ -521,14 +535,9 @@ const renderEntrySubsystemRows = () => {
             <div class="asset-context-entry-grid">
               <label class="field">
                 <span>Code segment</span>
-                <div class="code-segment-input">
-                  <span class="code-segment-input__prefix" ${inheritedPrefix ? "" : "hidden"}>${escapeHtml(
-                    inheritedPrefix
-                  )}</span>
-                  <input data-entry-subsystem-id="${subsystem.id}" data-entry-subsystem-field="code" type="text" value="${escapeHtml(
-                    subsystem.code
-                  )}" placeholder="Enter code segment">
-                </div>
+                <input data-entry-subsystem-id="${subsystem.id}" data-entry-subsystem-field="code" type="text" value="${escapeHtml(
+                  `${inheritedPrefix}${subsystem.code}`
+                )}" placeholder="Enter code segment">
               </label>
               <label class="field">
                 <span>Name</span>
@@ -566,12 +575,9 @@ const renderEntrySubunitRow = () => {
         <div class="asset-context-entry-grid">
           <label class="field">
             <span>Code segment</span>
-            <div class="code-segment-input">
-              <span class="code-segment-input__prefix" ${inheritedPrefix ? "" : "hidden"}>${escapeHtml(
-                inheritedPrefix
-              )}</span>
-              <input id="entrySubunitCodeInput" type="text" value="${escapeHtml(state.entry.subunit.code)}" placeholder="Enter code segment">
-            </div>
+            <input id="entrySubunitCodeInput" type="text" value="${escapeHtml(
+              `${inheritedPrefix}${state.entry.subunit.code}`
+            )}" placeholder="Enter code segment">
           </label>
           <label class="field">
             <span>Name</span>
@@ -597,27 +603,13 @@ const renderEntryForm = (options = {}) => {
 
   plantUnitCodeInput.value = entry.plantUnit.code;
   plantUnitNameInput.value = entry.plantUnit.name;
-  sectionSystemCodeInput.value = entry.sectionSystem.code;
+  sectionSystemCodeInput.value = getDisplayedCodeValue([entry.plantUnit.code], entry.sectionSystem.code);
   sectionSystemNameInput.value = entry.sectionSystem.name;
-  equipmentUnitCodeInput.value = entry.equipmentUnit.code;
+  equipmentUnitCodeInput.value = getDisplayedCodeValue(
+    [entry.plantUnit.code, entry.sectionSystem.code, ...entry.subsystems.map((item) => item.code)],
+    entry.equipmentUnit.code
+  );
   equipmentUnitNameInput.value = entry.equipmentUnit.name;
-
-  const sectionPrefix = buildInheritedCodePrefix([entry.plantUnit.code]);
-  const equipmentPrefix = buildInheritedCodePrefix([
-    entry.plantUnit.code,
-    entry.sectionSystem.code,
-    ...entry.subsystems.map((item) => item.code),
-  ]);
-
-  if (sectionSystemCodePrefix) {
-    sectionSystemCodePrefix.textContent = sectionPrefix;
-    sectionSystemCodePrefix.hidden = !sectionPrefix;
-  }
-
-  if (equipmentUnitCodePrefix) {
-    equipmentUnitCodePrefix.textContent = equipmentPrefix;
-    equipmentUnitCodePrefix.hidden = !equipmentPrefix;
-  }
 
   sectionSystemCodeInput.disabled = !canEditSection;
   sectionSystemNameInput.disabled = !canEditSection;
@@ -904,11 +896,8 @@ assetContextForm?.addEventListener("submit", (event) => {
 });
 
 [
-  [plantUnitCodeInput, "plantUnit", "code"],
   [plantUnitNameInput, "plantUnit", "name"],
-  [sectionSystemCodeInput, "sectionSystem", "code"],
   [sectionSystemNameInput, "sectionSystem", "name"],
-  [equipmentUnitCodeInput, "equipmentUnit", "code"],
   [equipmentUnitNameInput, "equipmentUnit", "name"],
 ].forEach(([element, group, field]) => {
   element?.addEventListener("input", (event) => {
@@ -936,6 +925,67 @@ assetContextForm?.addEventListener("submit", (event) => {
   });
 });
 
+plantUnitCodeInput?.addEventListener("input", (event) => {
+  state.entry.plantUnit.code = event.target.value;
+
+  if (isNodeBlank(state.entry.plantUnit)) {
+    state.entry = defaultEntryState();
+  }
+
+  if (!hasNodeValue(state.entry.sectionSystem)) {
+    state.entry.subsystems = [];
+    state.entry.equipmentUnit = { code: "", name: "" };
+    state.entry.hasSubunit = false;
+    state.entry.subunit = { code: "", name: "" };
+  }
+
+  if (!hasNodeValue(state.entry.equipmentUnit)) {
+    state.entry.hasSubunit = false;
+    state.entry.subunit = { code: "", name: "" };
+  }
+
+  persistDraftSilently();
+  renderAll();
+  hideNotice();
+});
+
+sectionSystemCodeInput?.addEventListener("input", (event) => {
+  state.entry.sectionSystem.code = extractLocalCodeValue(event.target.value, [state.entry.plantUnit.code]);
+
+  if (!hasNodeValue(state.entry.sectionSystem)) {
+    state.entry.subsystems = [];
+    state.entry.equipmentUnit = { code: "", name: "" };
+    state.entry.hasSubunit = false;
+    state.entry.subunit = { code: "", name: "" };
+  }
+
+  if (!hasNodeValue(state.entry.equipmentUnit)) {
+    state.entry.hasSubunit = false;
+    state.entry.subunit = { code: "", name: "" };
+  }
+
+  persistDraftSilently();
+  renderAll();
+  hideNotice();
+});
+
+equipmentUnitCodeInput?.addEventListener("input", (event) => {
+  state.entry.equipmentUnit.code = extractLocalCodeValue(event.target.value, [
+    state.entry.plantUnit.code,
+    state.entry.sectionSystem.code,
+    ...state.entry.subsystems.map((item) => item.code),
+  ]);
+
+  if (!hasNodeValue(state.entry.equipmentUnit)) {
+    state.entry.hasSubunit = false;
+    state.entry.subunit = { code: "", name: "" };
+  }
+
+  persistDraftSilently();
+  renderAll();
+  hideNotice();
+});
+
 subsystemList?.addEventListener("input", (event) => {
   const input = event.target.closest("[data-entry-subsystem-id]");
   if (!input) {
@@ -947,7 +997,18 @@ subsystemList?.addEventListener("input", (event) => {
     return;
   }
 
-  subsystem[input.dataset.entrySubsystemField] = input.value;
+  if (input.dataset.entrySubsystemField === "code") {
+    const subsystemIndex = state.entry.subsystems.findIndex((item) => item.id === subsystem.id);
+    const inheritedSegments = [
+      state.entry.plantUnit.code,
+      state.entry.sectionSystem.code,
+      ...state.entry.subsystems.slice(0, subsystemIndex).map((item) => item.code),
+    ];
+    subsystem.code = extractLocalCodeValue(input.value, inheritedSegments);
+  } else {
+    subsystem.name = input.value;
+  }
+
   persistDraftSilently();
   renderAll({
     includeEntryDynamic: false,
@@ -975,7 +1036,12 @@ subunitContainer?.addEventListener("input", (event) => {
   }
 
   if (codeInput) {
-    state.entry.subunit.code = codeInput.value;
+    state.entry.subunit.code = extractLocalCodeValue(codeInput.value, [
+      state.entry.plantUnit.code,
+      state.entry.sectionSystem.code,
+      ...state.entry.subsystems.map((item) => item.code),
+      state.entry.equipmentUnit.code,
+    ]);
   }
 
   if (nameInput) {
