@@ -13,13 +13,10 @@ const assetHierarchyTreeViewButton = document.getElementById("assetHierarchyTree
 const assetHierarchyListViewButton = document.getElementById("assetHierarchyListViewButton");
 const assetRegisterColumnResizeHandle = document.getElementById("assetRegisterColumnResizeHandle");
 const selectedNodeTypeLabel = document.getElementById("selectedNodeTypeLabel");
-const addSelectedChildButton = document.getElementById("addSelectedChildButton");
-const selectedNodeQuickActions = document.getElementById("selectedNodeQuickActions");
 const selectedNodeCodeInput = document.getElementById("selectedNodeCodeInput");
 const selectedNodeNameInput = document.getElementById("selectedNodeNameInput");
 const selectedNodeDescriptionInput = document.getElementById("selectedNodeDescriptionInput");
 const selectedNodePathPreview = document.getElementById("selectedNodePathPreview");
-const childCreatorPanel = document.getElementById("childCreatorPanel");
 const selectedNodeChildrenList = document.getElementById("selectedNodeChildrenList");
 const maintainableItemHint = document.getElementById("maintainableItemHint");
 const addMaintainableItemButton = document.getElementById("addMaintainableItemButton");
@@ -1088,6 +1085,138 @@ const renderHierarchyNodes = (nodes, depth = 0, parentPath = [], filterValue = "
     })
     .join("");
 
+const renderInlineChildCreationRow = (nodeInfo, depth) => {
+  const actions = getChildActions(nodeInfo.node.type);
+  if (!actions.length || !childDraftState.isOpen || childDraftState.parentId !== nodeInfo.node.id) {
+    return "";
+  }
+
+  const inheritedPrefix = buildInheritedCodePrefix(nodeInfo.path.map((segment) => segment.code));
+  const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
+    ? childDraftState.childType
+    : actions[0].type;
+  const childTypeControl =
+    actions.length === 1
+      ? `
+          <input type="hidden" id="childCreatorTypeInput" value="${escapeHtml(selectedChildType)}">
+          <span class="asset-register-inline-create__static-type">${escapeHtml(getNodeLabel({ type: selectedChildType }))}</span>
+        `
+      : `
+          <select id="childCreatorTypeInput">
+            ${actions
+              .map(
+                (action) => `
+                  <option value="${escapeHtml(action.type)}" ${selectedChildType === action.type ? "selected" : ""}>
+                    ${escapeHtml(getNodeLabel({ type: action.type }))}
+                  </option>
+                `
+              )
+              .join("")}
+          </select>
+        `;
+
+  return `
+    <div class="asset-register-row asset-register-row--inline-create" role="row" aria-level="${depth + 2}">
+      <div class="asset-register-row__check" aria-hidden="true"></div>
+      <div class="asset-register-row__location asset-register-row__location--inline" style="--depth:${depth + 1}">
+        <span class="asset-register-row__tree">
+          <span class="asset-register-row__toggle asset-register-row__toggle--spacer" aria-hidden="true"></span>
+          <span class="asset-register-row__icon asset-register-row__icon--ghost" aria-hidden="true"></span>
+        </span>
+        <div class="asset-register-inline-create">
+          <label class="field">
+            <span>Child type</span>
+            ${childTypeControl}
+          </label>
+          <label class="field">
+            <span>Code segment</span>
+            <div class="hierarchy-code-field ${inheritedPrefix ? "has-prefix" : ""}">
+              <span class="hierarchy-code-field__prefix">${escapeHtml(inheritedPrefix)}</span>
+              <input id="childCreatorCodeInput" type="text" value="${escapeHtml(childDraftState.code)}" placeholder="Enter code segment">
+            </div>
+          </label>
+          <label class="field">
+            <span>Name</span>
+            <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name">
+          </label>
+        </div>
+      </div>
+      <div class="asset-register-row__description asset-register-row__description--inline">
+        <div class="asset-register-inline-create asset-register-inline-create--description">
+          <label class="field field--full">
+            <span>Description</span>
+            <textarea id="childCreatorDescriptionInput" rows="2" placeholder="Enter description">${escapeHtml(childDraftState.description)}</textarea>
+          </label>
+          <div class="asset-register-inline-create__actions">
+            <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
+            <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const renderRegisterRow = ({ node, path, depth, hasChildren, expanded, filterValue = "" }) => {
+  const isSelected = state.selectedNodeId === node.id;
+  const selectedClass = isSelected ? "is-selected" : "";
+  const nodeLabel = getNodeDisplayName(node);
+  const description = getNodeBrowserDescription(path, node);
+  const actions = getChildActions(node.type);
+  const showAddButton = isSelected && actions.length;
+  const toggleControl = hasChildren
+    ? `
+        <button
+          class="asset-register-row__toggle"
+          type="button"
+          data-toggle-collapse="${node.id}"
+          aria-expanded="${expanded ? "true" : "false"}"
+          aria-label="${expanded ? "Collapse" : "Expand"} ${escapeHtml(nodeLabel)}"
+        >
+          ${expanded ? "&minus;" : "+"}
+        </button>
+      `
+    : `<span class="asset-register-row__toggle asset-register-row__toggle--spacer" aria-hidden="true"></span>`;
+  const descriptionMarkup = `
+    <span>${escapeHtml(description)}</span>
+    ${
+      showAddButton
+        ? `
+          <button
+            class="asset-register-row__add"
+            type="button"
+            data-open-child-creator="${node.id}"
+            aria-label="Add child under ${escapeHtml(nodeLabel)}"
+            title="Add child"
+          >
+            +
+          </button>
+        `
+        : ""
+    }
+  `;
+  const childFormMarkup = renderInlineChildCreationRow({ node, path }, depth);
+
+  return `
+    <div class="asset-register-row ${selectedClass}" role="row" aria-level="${depth + 1}" data-select-node="${node.id}">
+      <div class="asset-register-row__check">
+        <input class="asset-register-row__checkbox" type="checkbox" tabindex="-1" aria-label="Select ${escapeHtml(nodeLabel)}">
+      </div>
+      <div class="asset-register-row__location" style="--depth:${depth}">
+        <span class="asset-register-row__tree">
+          ${toggleControl}
+          <span class="asset-register-row__icon" aria-hidden="true">${getNodeIcon(node.type)}</span>
+        </span>
+        <span class="asset-register-row__label">${escapeHtml(nodeLabel)}</span>
+      </div>
+      <div class="asset-register-row__description">
+        ${descriptionMarkup}
+      </div>
+    </div>
+    ${childFormMarkup}
+  `;
+};
+
 const renderHierarchyRegisterNodes = (nodes, depth = 0, parentPath = [], filterValue = "") =>
   nodes
     .map((node) => {
@@ -1096,48 +1225,22 @@ const renderHierarchyRegisterNodes = (nodes, depth = 0, parentPath = [], filterV
         return "";
       }
 
-      const selectedClass = state.selectedNodeId === node.id ? "is-selected" : "";
-      const nodeLabel = getNodeDisplayName(node);
-      const description = getNodeBrowserDescription(nodePath, node);
       const hasChildren = node.children.length > 0;
       const expanded = filterValue ? true : !isNodeCollapsed(node.id);
-      const toggleControl = hasChildren
-        ? `
-            <button
-              class="asset-register-row__toggle"
-              type="button"
-              data-toggle-collapse="${node.id}"
-              aria-expanded="${expanded ? "true" : "false"}"
-              aria-label="${expanded ? "Collapse" : "Expand"} ${escapeHtml(nodeLabel)}"
-            >
-              ${expanded ? "&minus;" : "+"}
-            </button>
-          `
-        : `<span class="asset-register-row__toggle asset-register-row__toggle--spacer" aria-hidden="true"></span>`;
-
+      const rowMarkup = renderRegisterRow({
+        node,
+        path: nodePath,
+        depth,
+        hasChildren,
+        expanded,
+        filterValue,
+      });
       const childrenMarkup =
         hasChildren && expanded
           ? renderHierarchyRegisterNodes(node.children, depth + 1, nodePath, filterValue)
           : "";
 
-      return `
-        <div class="asset-register-row ${selectedClass}" role="row" aria-level="${depth + 1}" data-select-node="${node.id}">
-          <div class="asset-register-row__check">
-            <input class="asset-register-row__checkbox" type="checkbox" tabindex="-1" aria-label="Select ${escapeHtml(nodeLabel)}">
-          </div>
-          <div class="asset-register-row__location" style="--depth:${depth}">
-            <span class="asset-register-row__tree">
-              ${toggleControl}
-              <span class="asset-register-row__icon" aria-hidden="true">${getNodeIcon(node.type)}</span>
-            </span>
-            <span class="asset-register-row__label">${escapeHtml(nodeLabel)}</span>
-          </div>
-          <div class="asset-register-row__description">
-            <span>${escapeHtml(description)}</span>
-          </div>
-        </div>
-        ${childrenMarkup}
-      `;
+      return `${rowMarkup}${childrenMarkup}`;
     })
     .join("");
 
@@ -1163,27 +1266,13 @@ const renderEquipmentListRows = (filterValue = "") =>
   collectEquipmentRegisterRows(state.hierarchy)
     .filter(({ path }) => nodeMatchesFilter(path, filterValue))
     .map(({ node, path }) => {
-      const selectedClass = state.selectedNodeId === node.id ? "is-selected" : "";
-      const nodeLabel = getNodeDisplayName(node);
-      const description = getNodeBrowserDescription(path, node);
-
-      return `
-        <div class="asset-register-row ${selectedClass}" role="row" aria-level="1" data-select-node="${node.id}">
-          <div class="asset-register-row__check">
-            <input class="asset-register-row__checkbox" type="checkbox" tabindex="-1" aria-label="Select ${escapeHtml(nodeLabel)}">
-          </div>
-          <div class="asset-register-row__location" style="--depth:0">
-            <span class="asset-register-row__tree">
-              <span class="asset-register-row__toggle asset-register-row__toggle--spacer" aria-hidden="true"></span>
-              <span class="asset-register-row__icon" aria-hidden="true">${getNodeIcon(node.type)}</span>
-            </span>
-            <span class="asset-register-row__label">${escapeHtml(nodeLabel)}</span>
-          </div>
-          <div class="asset-register-row__description">
-            <span>${escapeHtml(description)}</span>
-          </div>
-        </div>
-      `;
+      return renderRegisterRow({
+        node,
+        path,
+        depth: 0,
+        hasChildren: false,
+        expanded: false,
+      });
     })
     .join("");
 
@@ -1243,75 +1332,6 @@ const openChildCreator = (parentId, childType = "") => {
 
 const isChildDraftReady = () => Boolean(childDraftState.code.trim() || childDraftState.name.trim());
 
-const renderChildCreator = (nodeInfo, actions) => {
-  if (!childCreatorPanel) {
-    return;
-  }
-
-  if (!actions.length) {
-    childCreatorPanel.innerHTML = "";
-    return;
-  }
-
-  const shouldShowDraft = childDraftState.isOpen && childDraftState.parentId === nodeInfo.node.id;
-  if (!shouldShowDraft) {
-    childCreatorPanel.innerHTML = `
-      <section class="asset-child-creator__empty">
-        <strong>Add child</strong>
-        <p>Extend this node with the next valid hierarchy level.</p>
-      </section>
-    `;
-    return;
-  }
-
-  const inheritedPrefix = buildInheritedCodePrefix(nodeInfo.path.map((segment) => segment.code));
-  childCreatorPanel.innerHTML = `
-    <section class="asset-child-creator__form">
-      <div class="strategy-surface__header strategy-surface__header--spread">
-        <div>
-          <strong>Add child</strong>
-          <span>${escapeHtml(getNodeDisplayName(nodeInfo.node))}</span>
-        </div>
-      </div>
-      <label class="field field--full">
-        <span>Child type</span>
-        <select id="childCreatorTypeInput">
-          ${actions
-            .map(
-              (action) => `
-                <option value="${escapeHtml(action.type)}" ${childDraftState.childType === action.type ? "selected" : ""}>
-                  ${escapeHtml(getNodeLabel({ type: action.type }))}
-                </option>
-              `
-            )
-            .join("")}
-        </select>
-      </label>
-      <div class="asset-context-entry-grid">
-        <label class="field">
-          <span>Code segment</span>
-          <div class="hierarchy-code-field ${inheritedPrefix ? "has-prefix" : ""}">
-            <span class="hierarchy-code-field__prefix">${escapeHtml(inheritedPrefix)}</span>
-            <input id="childCreatorCodeInput" type="text" value="${escapeHtml(childDraftState.code)}" placeholder="Enter code segment">
-          </div>
-        </label>
-        <label class="field">
-          <span>Name</span>
-          <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name">
-        </label>
-      </div>
-      <label class="field field--full">
-        <span>Description</span>
-        <textarea id="childCreatorDescriptionInput" rows="3" placeholder="Enter description">${escapeHtml(childDraftState.description)}</textarea>
-      </label>
-      <div class="asset-child-creator__actions">
-        <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
-        <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
-      </div>
-    </section>
-  `;
-};
-
 const renderSelectedNodeChildren = (nodeInfo) => {
   if (!selectedNodeChildrenList) {
     return;
@@ -1349,7 +1369,7 @@ const renderSelectedNodeChildren = (nodeInfo) => {
           : `
             <article class="asset-workspace-empty asset-workspace-empty--soft">
               <strong>No child nodes yet</strong>
-              <p>Use the add child action to build out this part of the hierarchy.</p>
+              <p>Use the + on the selected row in the asset register to build out this part of the hierarchy.</p>
             </article>
           `
       }
@@ -1370,20 +1390,14 @@ const renderSelectedNodePanel = () => {
     selectedNodeNameInput.disabled = true;
     selectedNodeDescriptionInput.disabled = true;
     selectedNodePathPreview.textContent = "Select a node from the hierarchy.";
-    selectedNodeQuickActions.innerHTML = "";
-    if (childCreatorPanel) {
-      childCreatorPanel.innerHTML = "";
-    }
     if (selectedNodeChildrenList) {
       selectedNodeChildrenList.innerHTML = "";
     }
-    addSelectedChildButton.hidden = true;
     closeChildCreator();
     return;
   }
 
   const { node, path } = nodeInfo;
-  const actions = getChildActions(node.type);
   if (childDraftState.parentId && childDraftState.parentId !== node.id) {
     closeChildCreator();
   }
@@ -1398,24 +1412,6 @@ const renderSelectedNodePanel = () => {
   selectedNodeNameInput.value = node.name;
   selectedNodeDescriptionInput.value = node.description || "";
   selectedNodePathPreview.textContent = formatFunctionalLocationPreview(path);
-  selectedNodeQuickActions.innerHTML = actions.length
-    ? actions
-        .map(
-          (action) => `
-            <button class="asset-node-actions__button" type="button" data-open-child-creator="${node.id}" data-child-type="${action.type}">
-              ${escapeHtml(getNodeLabel({ type: action.type }))}
-            </button>
-          `
-        )
-        .join("")
-    : `<span class="asset-workspace__hint">This node is the lowest hierarchy level in the tree.</span>`;
-
-  addSelectedChildButton.hidden = !actions.length;
-  addSelectedChildButton.disabled = !actions.length;
-  addSelectedChildButton.textContent = "Add child";
-  addSelectedChildButton.dataset.parentId = node.id;
-  addSelectedChildButton.dataset.childType = actions[0]?.type || "";
-  renderChildCreator(nodeInfo, actions);
   renderSelectedNodeChildren(nodeInfo);
 };
 
@@ -1850,6 +1846,42 @@ assetHierarchyTree?.addEventListener("click", (event) => {
     return;
   }
 
+  const addChildButton = event.target.closest("[data-open-child-creator]");
+  if (addChildButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    openChildCreator(addChildButton.dataset.openChildCreator);
+    renderWorkspaceState();
+    return;
+  }
+
+  const cancelButton = event.target.closest("#cancelChildCreatorButton");
+  if (cancelButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeChildCreator();
+    renderWorkspaceState();
+    return;
+  }
+
+  const createButton = event.target.closest("#createChildButton");
+  if (createButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isChildDraftReady()) {
+      return;
+    }
+
+    createChildNode(
+      childDraftState.parentId,
+      childDraftState.childType,
+      childDraftState.code,
+      childDraftState.name,
+      childDraftState.description
+    );
+    return;
+  }
+
   if (event.target.closest(".asset-register-row__checkbox")) {
     return;
   }
@@ -1863,27 +1895,6 @@ assetHierarchyTree?.addEventListener("click", (event) => {
     });
     return;
   }
-});
-
-selectedNodeQuickActions?.addEventListener("click", (event) => {
-  const addChildButton = event.target.closest("[data-open-child-creator]");
-  if (!addChildButton) {
-    return;
-  }
-
-  openChildCreator(addChildButton.dataset.openChildCreator, addChildButton.dataset.childType);
-  renderWorkspaceState();
-});
-
-addSelectedChildButton?.addEventListener("click", () => {
-  const parentId = addSelectedChildButton.dataset.parentId;
-  const childType = addSelectedChildButton.dataset.childType;
-  if (!parentId || !childType) {
-    return;
-  }
-
-  openChildCreator(parentId, childType);
-  renderWorkspaceState();
 });
 
 selectedNodeNameInput?.addEventListener("input", (event) => {
@@ -1940,40 +1951,18 @@ const syncChildCreatorDraftField = (target) => {
     childDraftState.description = target.value;
   }
 
-  const createButton = childCreatorPanel.querySelector("#createChildButton");
+  const createButton = assetHierarchyTree?.querySelector("#createChildButton");
   if (createButton) {
     createButton.disabled = !isChildDraftReady();
   }
 };
 
-childCreatorPanel?.addEventListener("input", (event) => {
+assetHierarchyTree?.addEventListener("input", (event) => {
   syncChildCreatorDraftField(event.target);
 });
 
-childCreatorPanel?.addEventListener("change", (event) => {
+assetHierarchyTree?.addEventListener("change", (event) => {
   syncChildCreatorDraftField(event.target);
-});
-
-childCreatorPanel?.addEventListener("click", (event) => {
-  const cancelButton = event.target.closest("#cancelChildCreatorButton");
-  if (cancelButton) {
-    closeChildCreator();
-    renderWorkspaceState();
-    return;
-  }
-
-  const createButton = event.target.closest("#createChildButton");
-  if (!createButton || !isChildDraftReady()) {
-    return;
-  }
-
-  createChildNode(
-    childDraftState.parentId,
-    childDraftState.childType,
-    childDraftState.code,
-    childDraftState.name,
-    childDraftState.description
-  );
 });
 
 selectedNodeChildrenList?.addEventListener("click", (event) => {
