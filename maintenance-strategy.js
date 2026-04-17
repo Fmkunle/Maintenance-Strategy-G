@@ -17,7 +17,10 @@ const addSelectedChildButton = document.getElementById("addSelectedChildButton")
 const selectedNodeQuickActions = document.getElementById("selectedNodeQuickActions");
 const selectedNodeCodeInput = document.getElementById("selectedNodeCodeInput");
 const selectedNodeNameInput = document.getElementById("selectedNodeNameInput");
+const selectedNodeDescriptionInput = document.getElementById("selectedNodeDescriptionInput");
 const selectedNodePathPreview = document.getElementById("selectedNodePathPreview");
+const childCreatorPanel = document.getElementById("childCreatorPanel");
+const selectedNodeChildrenList = document.getElementById("selectedNodeChildrenList");
 const maintainableItemHint = document.getElementById("maintainableItemHint");
 const addMaintainableItemButton = document.getElementById("addMaintainableItemButton");
 const maintainableItemList = document.getElementById("maintainableItemList");
@@ -118,12 +121,22 @@ const nodeTypeMeta = {
 const createId = (prefix) =>
   `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
 
-const createNode = (type, code = "", name = "") => ({
+const createNode = (type, code = "", name = "", description = "") => ({
   id: createId(type),
   type,
   code,
   name,
+  description,
   children: [],
+});
+
+const defaultChildDraftState = () => ({
+  isOpen: false,
+  parentId: "",
+  childType: "",
+  code: "",
+  name: "",
+  description: "",
 });
 
 const defaultEntryState = () => ({
@@ -289,6 +302,7 @@ const normalizeHierarchyNode = (node, fallbackType = "subsystem") => {
     type,
     code: typeof node?.code === "string" ? node.code : "",
     name: typeof node?.name === "string" ? node.name : "",
+    description: typeof node?.description === "string" ? node.description : "",
     children: Array.isArray(node?.children)
       ? node.children.map((child) => normalizeHierarchyNode(child, "subsystem"))
       : [],
@@ -548,6 +562,7 @@ const initializeState = async () => {
 };
 
 let state = defaultState();
+let childDraftState = defaultChildDraftState();
 
 const collapseHierarchyPane = () => {
   state.layout = normalizeLayoutState({
@@ -795,8 +810,10 @@ const getNodeLabel = (node) => nodeTypeMeta[node.type]?.label || "Asset node";
 const getNodeTitle = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const isMaintainableTarget = (node) => node.type === "equipment" || node.type === "subunit";
 const getNodeDisplayName = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
-const getNodeDescription = (node) => getNodeNameValue(node, "Description pending");
-const getNodeBrowserDescription = (nodePath, node) => getFullCodeFromPath(nodePath) || getNodeLabel(node);
+const getNodeDescription = (node, fallback = "") =>
+  (typeof node?.description === "string" ? node.description.trim() : "") || fallback;
+const getNodeBrowserDescription = (nodePath, node) =>
+  getNodeDescription(node) || getFullCodeFromPath(nodePath) || getNodeLabel(node);
 const getNodeIcon = (type) => {
   switch (type) {
     case "plant":
@@ -1161,6 +1178,150 @@ const renderHierarchyTree = () => {
     `;
 };
 
+const closeChildCreator = () => {
+  childDraftState = defaultChildDraftState();
+};
+
+const openChildCreator = (parentId, childType = "") => {
+  const parentInfo = findNodeInfo(state.hierarchy, parentId);
+  if (!parentInfo) {
+    closeChildCreator();
+    return;
+  }
+
+  const actions = getChildActions(parentInfo.node.type);
+  if (!actions.length) {
+    closeChildCreator();
+    return;
+  }
+
+  const nextChildType = actions.some((action) => action.type === childType) ? childType : actions[0].type;
+  childDraftState = {
+    isOpen: true,
+    parentId,
+    childType: nextChildType,
+    code: "",
+    name: "",
+    description: "",
+  };
+};
+
+const isChildDraftReady = () => Boolean(childDraftState.code.trim() || childDraftState.name.trim());
+
+const renderChildCreator = (nodeInfo, actions) => {
+  if (!childCreatorPanel) {
+    return;
+  }
+
+  if (!actions.length) {
+    childCreatorPanel.innerHTML = "";
+    return;
+  }
+
+  const shouldShowDraft = childDraftState.isOpen && childDraftState.parentId === nodeInfo.node.id;
+  if (!shouldShowDraft) {
+    childCreatorPanel.innerHTML = `
+      <section class="asset-child-creator__empty">
+        <strong>Add child</strong>
+        <p>Extend this node with the next valid hierarchy level.</p>
+      </section>
+    `;
+    return;
+  }
+
+  const inheritedPrefix = buildInheritedCodePrefix(nodeInfo.path.map((segment) => segment.code));
+  childCreatorPanel.innerHTML = `
+    <section class="asset-child-creator__form">
+      <div class="strategy-surface__header strategy-surface__header--spread">
+        <div>
+          <strong>Add child</strong>
+          <span>${escapeHtml(getNodeDisplayName(nodeInfo.node))}</span>
+        </div>
+      </div>
+      <label class="field field--full">
+        <span>Child type</span>
+        <select id="childCreatorTypeInput">
+          ${actions
+            .map(
+              (action) => `
+                <option value="${escapeHtml(action.type)}" ${childDraftState.childType === action.type ? "selected" : ""}>
+                  ${escapeHtml(getNodeLabel({ type: action.type }))}
+                </option>
+              `
+            )
+            .join("")}
+        </select>
+      </label>
+      <div class="asset-context-entry-grid">
+        <label class="field">
+          <span>Code segment</span>
+          <div class="hierarchy-code-field ${inheritedPrefix ? "has-prefix" : ""}">
+            <span class="hierarchy-code-field__prefix">${escapeHtml(inheritedPrefix)}</span>
+            <input id="childCreatorCodeInput" type="text" value="${escapeHtml(childDraftState.code)}" placeholder="Enter code segment">
+          </div>
+        </label>
+        <label class="field">
+          <span>Name</span>
+          <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name">
+        </label>
+      </div>
+      <label class="field field--full">
+        <span>Description</span>
+        <textarea id="childCreatorDescriptionInput" rows="3" placeholder="Enter description">${escapeHtml(childDraftState.description)}</textarea>
+      </label>
+      <div class="asset-child-creator__actions">
+        <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
+        <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
+      </div>
+    </section>
+  `;
+};
+
+const renderSelectedNodeChildren = (nodeInfo) => {
+  if (!selectedNodeChildrenList) {
+    return;
+  }
+
+  const children = nodeInfo.node.children || [];
+  selectedNodeChildrenList.innerHTML = `
+    <section class="asset-child-list__section">
+      <div class="strategy-surface__header">
+        <strong>Children</strong>
+        <span>${children.length ? `${children.length} item${children.length === 1 ? "" : "s"}` : "No children yet"}</span>
+      </div>
+      ${
+        children.length
+          ? `
+            <div class="asset-child-list__items">
+              ${children
+                .map((child) => {
+                  const childInfo = findNodeInfo(state.hierarchy, child.id);
+                  const description = getNodeDescription(child) || getFullCodeFromPath(childInfo?.path || []) || getNodeLabel(child);
+                  return `
+                    <button class="asset-child-list__item" type="button" data-select-node="${child.id}">
+                      <span class="asset-child-list__eyebrow">${escapeHtml(getNodeLabel(child))}</span>
+                      <strong>${escapeHtml(getNodeDisplayName(child))}</strong>
+                      <span class="asset-child-list__meta">${escapeHtml(
+                        getFullCodeFromPath(childInfo?.path || []) || getNodeCodeValue(child, "Code pending")
+                      )}</span>
+                      <p>${escapeHtml(description)}</p>
+                    </button>
+                  `;
+                })
+                .join("")}
+            </div>
+          `
+          : `
+            <article class="asset-workspace-empty asset-workspace-empty--soft">
+              <strong>No child nodes yet</strong>
+              <p>Use the add child action to build out this part of the hierarchy.</p>
+            </article>
+          `
+      }
+    </section>
+  `;
+};
+
 const renderSelectedNodePanel = () => {
   const nodeInfo = getSelectedNodeInfo();
   if (!nodeInfo) {
@@ -1169,31 +1330,45 @@ const renderSelectedNodePanel = () => {
     backgroundDetailSummary.textContent = "Select a node from the hierarchy to extend the taxonomy and configure maintainable items.";
     selectedNodeCodeInput.value = "";
     selectedNodeNameInput.value = "";
+    selectedNodeDescriptionInput.value = "";
     selectedNodeCodeInput.disabled = true;
     selectedNodeNameInput.disabled = true;
+    selectedNodeDescriptionInput.disabled = true;
     selectedNodePathPreview.textContent = "Select a node from the hierarchy.";
     selectedNodeQuickActions.innerHTML = "";
+    if (childCreatorPanel) {
+      childCreatorPanel.innerHTML = "";
+    }
+    if (selectedNodeChildrenList) {
+      selectedNodeChildrenList.innerHTML = "";
+    }
     addSelectedChildButton.hidden = true;
+    closeChildCreator();
     return;
   }
 
   const { node, path } = nodeInfo;
   const actions = getChildActions(node.type);
+  if (childDraftState.parentId && childDraftState.parentId !== node.id) {
+    closeChildCreator();
+  }
 
   selectedNodeTypeLabel.textContent = getNodeLabel(node);
   backgroundDetailHeading.textContent = getFullCodeFromPath(path) || getNodeCodeValue(node, "Code pending");
   backgroundDetailSummary.textContent = getFullNameFromPath(path) || getNodeTitle(node);
   selectedNodeCodeInput.disabled = false;
   selectedNodeNameInput.disabled = false;
+  selectedNodeDescriptionInput.disabled = false;
   selectedNodeCodeInput.value = node.code;
   selectedNodeNameInput.value = node.name;
+  selectedNodeDescriptionInput.value = node.description || "";
   selectedNodePathPreview.textContent = formatFunctionalLocationPreview(path);
   selectedNodeQuickActions.innerHTML = actions.length
     ? actions
         .map(
           (action) => `
-            <button class="asset-node-actions__button" type="button" data-add-child-parent="${node.id}" data-child-type="${action.type}">
-              ${escapeHtml(action.label)}
+            <button class="asset-node-actions__button" type="button" data-open-child-creator="${node.id}" data-child-type="${action.type}">
+              ${escapeHtml(getNodeLabel({ type: action.type }))}
             </button>
           `
         )
@@ -1202,9 +1377,11 @@ const renderSelectedNodePanel = () => {
 
   addSelectedChildButton.hidden = !actions.length;
   addSelectedChildButton.disabled = !actions.length;
-  addSelectedChildButton.textContent = actions[0]?.label || "Add child";
+  addSelectedChildButton.textContent = "Add child";
   addSelectedChildButton.dataset.parentId = node.id;
   addSelectedChildButton.dataset.childType = actions[0]?.type || "";
+  renderChildCreator(nodeInfo, actions);
+  renderSelectedNodeChildren(nodeInfo);
 };
 
 const renderStrategyDrafts = (selectedItems, canAddItems) => {
@@ -1328,16 +1505,17 @@ const renderAll = (options = {}) => {
   renderWorkspaceState();
 };
 
-const addChildNode = (parentId, childType) => {
+const createChildNode = (parentId, childType, code = "", name = "", description = "") => {
   const info = findNodeInfo(state.hierarchy, parentId);
   if (!info) {
     return;
   }
 
-  const nextNode = createNode(childType);
+  const nextNode = createNode(childType, code.trim(), name.trim(), description.trim());
   info.node.children.push(nextNode);
   setNodeCollapsed(parentId, false);
   state.selectedNodeId = nextNode.id;
+  closeChildCreator();
   persistDraftSilently();
   renderAll();
   hideNotice();
@@ -1650,20 +1828,16 @@ assetHierarchyTree?.addEventListener("click", (event) => {
     });
     return;
   }
-
-  const addChildButton = event.target.closest("[data-add-child-parent]");
-  if (addChildButton) {
-    addChildNode(addChildButton.dataset.addChildParent, addChildButton.dataset.childType);
-  }
 });
 
 selectedNodeQuickActions?.addEventListener("click", (event) => {
-  const addChildButton = event.target.closest("[data-add-child-parent]");
+  const addChildButton = event.target.closest("[data-open-child-creator]");
   if (!addChildButton) {
     return;
   }
 
-  addChildNode(addChildButton.dataset.addChildParent, addChildButton.dataset.childType);
+  openChildCreator(addChildButton.dataset.openChildCreator, addChildButton.dataset.childType);
+  renderWorkspaceState();
 });
 
 addSelectedChildButton?.addEventListener("click", () => {
@@ -1673,7 +1847,8 @@ addSelectedChildButton?.addEventListener("click", () => {
     return;
   }
 
-  addChildNode(parentId, childType);
+  openChildCreator(parentId, childType);
+  renderWorkspaceState();
 });
 
 selectedNodeNameInput?.addEventListener("input", (event) => {
@@ -1696,6 +1871,87 @@ selectedNodeCodeInput?.addEventListener("input", (event) => {
   info.node.code = event.target.value;
   persistDraftSilently();
   renderWorkspaceState();
+});
+
+selectedNodeDescriptionInput?.addEventListener("input", (event) => {
+  const info = getSelectedNodeInfo();
+  if (!info) {
+    return;
+  }
+
+  info.node.description = event.target.value;
+  persistDraftSilently();
+  renderWorkspaceState();
+});
+
+const syncChildCreatorDraftField = (target) => {
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  if (target.id === "childCreatorTypeInput") {
+    childDraftState.childType = target.value;
+  }
+
+  if (target.id === "childCreatorCodeInput") {
+    childDraftState.code = target.value;
+  }
+
+  if (target.id === "childCreatorNameInput") {
+    childDraftState.name = target.value;
+  }
+
+  if (target.id === "childCreatorDescriptionInput") {
+    childDraftState.description = target.value;
+  }
+
+  const createButton = childCreatorPanel.querySelector("#createChildButton");
+  if (createButton) {
+    createButton.disabled = !isChildDraftReady();
+  }
+};
+
+childCreatorPanel?.addEventListener("input", (event) => {
+  syncChildCreatorDraftField(event.target);
+});
+
+childCreatorPanel?.addEventListener("change", (event) => {
+  syncChildCreatorDraftField(event.target);
+});
+
+childCreatorPanel?.addEventListener("click", (event) => {
+  const cancelButton = event.target.closest("#cancelChildCreatorButton");
+  if (cancelButton) {
+    closeChildCreator();
+    renderWorkspaceState();
+    return;
+  }
+
+  const createButton = event.target.closest("#createChildButton");
+  if (!createButton || !isChildDraftReady()) {
+    return;
+  }
+
+  createChildNode(
+    childDraftState.parentId,
+    childDraftState.childType,
+    childDraftState.code,
+    childDraftState.name,
+    childDraftState.description
+  );
+});
+
+selectedNodeChildrenList?.addEventListener("click", (event) => {
+  const childButton = event.target.closest("[data-select-node]");
+  if (!childButton) {
+    return;
+  }
+
+  state.selectedNodeId = childButton.dataset.selectNode;
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
 });
 
 addMaintainableItemButton?.addEventListener("click", () => {

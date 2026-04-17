@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
   <script>
-    window.__maintenanceAssetVersion = "maintenance-page-19";
+    window.__maintenanceAssetVersion = "maintenance-page-20";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
     maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
@@ -257,12 +257,19 @@
                     <input id="selectedNodeNameInput" type="text" placeholder="Enter name" disabled>
                   </label>
                 </div>
+                <label class="field field--full">
+                  <span>Description</span>
+                  <textarea id="selectedNodeDescriptionInput" rows="3" placeholder="Enter description" disabled></textarea>
+                </label>
               </form>
 
               <div class="asset-context-path">
                 <span class="asset-context-path__label">Functional location preview</span>
                 <strong id="selectedNodePathPreview">Select a node from the hierarchy.</strong>
               </div>
+
+              <div id="childCreatorPanel" class="asset-child-creator"></div>
+              <div id="selectedNodeChildrenList" class="asset-child-list"></div>
             </section>
 
             <div class="asset-workspace__main-grid">
