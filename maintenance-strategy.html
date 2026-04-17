@@ -252,7 +252,10 @@
                 <div class="asset-context-entry-grid">
                   <label class="field">
                     <span>Code segment</span>
-                    <input id="sectionSystemCodeInput" type="text" placeholder="Enter code segment" disabled>
+                    <div class="hierarchy-code-field" id="sectionSystemCodeField">
+                      <span id="sectionSystemCodePrefix" class="hierarchy-code-field__prefix"></span>
+                      <input id="sectionSystemCodeInput" type="text" placeholder="Enter code segment" disabled>
+                    </div>
                   </label>
                   <label class="field">
                     <span>Name</span>
@@ -272,7 +275,10 @@
                 <div class="asset-context-entry-grid">
                   <label class="field">
                     <span>Code segment</span>
-                    <input id="equipmentUnitCodeInput" type="text" placeholder="Enter code segment" disabled>
+                    <div class="hierarchy-code-field" id="equipmentUnitCodeField">
+                      <span id="equipmentUnitCodePrefix" class="hierarchy-code-field__prefix"></span>
+                      <input id="equipmentUnitCodeInput" type="text" placeholder="Enter code segment" disabled>
+                    </div>
                   </label>
                   <label class="field">
                     <span>Name</span>
@@ -306,6 +312,6 @@
     </div>
   </div>
 
-  <script src="maintenance-strategy.js?v=maintenance-step-10"></script>
+  <script src="maintenance-strategy.js?v=maintenance-step-11"></script>
 </body>
 </html>
