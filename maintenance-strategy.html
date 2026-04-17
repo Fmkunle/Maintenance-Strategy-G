@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
   <script>
-    window.__maintenanceAssetVersion = "maintenance-page-16";
+    window.__maintenanceAssetVersion = "maintenance-page-17";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
     maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
@@ -182,12 +182,23 @@
             <div class="asset-register__table" role="treegrid" aria-label="Asset hierarchy">
               <div class="asset-register__header">
                 <span aria-hidden="true"></span>
-                <span>Location</span>
-                <span>Description</span>
+                <span class="asset-register__header-cell asset-register__header-cell--location">
+                  <span>Location</span>
+                  <button id="assetRegisterColumnResizeHandle" class="asset-register__column-resize" type="button" aria-label="Resize location and description columns"></button>
+                </span>
+                <span class="asset-register__header-cell asset-register__header-cell--description">Description</span>
               </div>
               <div id="assetHierarchyTree" class="asset-register__body"></div>
             </div>
           </aside>
+
+          <div
+            id="assetWorkspacePaneResizeHandle"
+            class="asset-workspace__resize-handle"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize asset hierarchy pane"
+          ></div>
 
           <section class="asset-workspace__main">
             <section class="strategy-surface strategy-surface--flat asset-workspace__panel">

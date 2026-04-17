@@ -5,8 +5,10 @@ const themeToggle = document.getElementById("themeToggle");
 
 const maintenanceWorkspace = document.getElementById("maintenanceWorkspace");
 const assetWorkspace = document.getElementById("assetWorkspace");
+const assetWorkspacePaneResizeHandle = document.getElementById("assetWorkspacePaneResizeHandle");
 const assetHierarchyTree = document.getElementById("assetHierarchyTree");
 const assetHierarchyFilter = document.getElementById("assetHierarchyFilter");
+const assetRegisterColumnResizeHandle = document.getElementById("assetRegisterColumnResizeHandle");
 const selectedNodeTypeLabel = document.getElementById("selectedNodeTypeLabel");
 const addSelectedChildButton = document.getElementById("addSelectedChildButton");
 const selectedNodeQuickActions = document.getElementById("selectedNodeQuickActions");
@@ -53,6 +55,20 @@ const sidebarStorageKey = "agenticai-sidebar-collapsed";
 const draftStorageKey = "maintenance-strategy-step1-draft";
 const workspaceApiUrl = "/api/maintenance-workspace";
 const workspaceSaveDebounceMs = 250;
+const layoutDefaults = {
+  leftPaneWidth: 720,
+  locationColumnWidth: 430,
+  descriptionColumnWidth: 258,
+};
+const layoutLimits = {
+  paneMin: 480,
+  rightPaneMin: 420,
+  handleWidth: 12,
+  checkboxWidth: 32,
+  locationMin: 220,
+  descriptionMin: 160,
+};
+const resizableLayoutMediaQuery = "(max-width: 1180px)";
 
 const nodeTypeMeta = {
   plant: {
@@ -115,6 +131,7 @@ const defaultState = () => ({
   selectedNodeId: "",
   collapsedNodeIds: [],
   hierarchyFilter: "",
+  layout: { ...layoutDefaults },
   modalVisible: true,
   savedAt: "",
 });
@@ -146,6 +163,48 @@ const normalizeEntryState = (entry) => ({
   hasSubunit: Boolean(entry?.hasSubunit),
   subunit: normalizeEntryNode(entry?.subunit),
 });
+
+const isResizableLayoutDisabled = () => window.matchMedia(resizableLayoutMediaQuery).matches;
+const getAssetWorkspaceWidth = () => assetWorkspace?.getBoundingClientRect().width || 0;
+const getPaneResizeMaxWidth = (workspaceWidth) =>
+  Math.max(layoutLimits.paneMin, workspaceWidth - layoutLimits.rightPaneMin - layoutLimits.handleWidth);
+
+const normalizeLayoutState = (layout, workspaceWidth = getAssetWorkspaceWidth()) => {
+  const baseLayout = {
+    ...layoutDefaults,
+    ...(layout && typeof layout === "object" ? layout : {}),
+  };
+
+  if (!workspaceWidth || isResizableLayoutDisabled()) {
+    return {
+      leftPaneWidth: baseLayout.leftPaneWidth,
+      locationColumnWidth: baseLayout.locationColumnWidth,
+      descriptionColumnWidth: baseLayout.descriptionColumnWidth,
+    };
+  }
+
+  const maxPaneWidth = getPaneResizeMaxWidth(workspaceWidth);
+  const leftPaneWidth = Math.min(Math.max(baseLayout.leftPaneWidth, layoutLimits.paneMin), maxPaneWidth);
+  const availableColumnWidth = Math.max(
+    layoutLimits.locationMin + layoutLimits.descriptionMin,
+    leftPaneWidth - layoutLimits.checkboxWidth
+  );
+  const maxLocationWidth = Math.max(layoutLimits.locationMin, availableColumnWidth - layoutLimits.descriptionMin);
+  const locationColumnWidth = Math.min(
+    Math.max(baseLayout.locationColumnWidth, layoutLimits.locationMin),
+    maxLocationWidth
+  );
+  const descriptionColumnWidth = Math.max(
+    layoutLimits.descriptionMin,
+    availableColumnWidth - locationColumnWidth
+  );
+
+  return {
+    leftPaneWidth,
+    locationColumnWidth,
+    descriptionColumnWidth,
+  };
+};
 
 const isExistingWorkspaceCandidate = (draft) => {
   if (!draft || typeof draft !== "object") {
@@ -263,6 +322,7 @@ const normalizeWorkspaceState = (draft) => {
       ? draft.collapsedNodeIds.filter((nodeId) => validNodeIds.has(nodeId))
       : [],
     hierarchyFilter: typeof draft?.hierarchyFilter === "string" ? draft.hierarchyFilter : "",
+    layout: normalizeLayoutState(draft?.layout),
     modalVisible: false,
     savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
   };
@@ -312,6 +372,7 @@ const createPersistableWorkspace = (draft) => ({
   selectedNodeId: draft.selectedNodeId,
   collapsedNodeIds: draft.collapsedNodeIds,
   hierarchyFilter: draft.hierarchyFilter,
+  layout: draft.layout,
   modalVisible: draft.modalVisible,
   savedAt: draft.savedAt,
 });
@@ -357,6 +418,83 @@ const queueWorkspaceSave = (draft) => {
       .then(() => saveWorkspaceToApi(snapshot))
       .catch(() => {});
   }, workspaceSaveDebounceMs);
+};
+
+const applyWorkspaceLayoutStyles = () => {
+  if (!assetWorkspace) {
+    return;
+  }
+
+  state.layout = normalizeLayoutState(state.layout);
+
+  if (isResizableLayoutDisabled()) {
+    assetWorkspace.style.removeProperty("--asset-pane-width");
+    assetWorkspace.style.removeProperty("--asset-column-location-width");
+    assetWorkspace.style.removeProperty("--asset-column-description-width");
+    return;
+  }
+
+  assetWorkspace.style.setProperty("--asset-pane-width", `${state.layout.leftPaneWidth}px`);
+  assetWorkspace.style.setProperty("--asset-column-location-width", `${state.layout.locationColumnWidth}px`);
+  assetWorkspace.style.setProperty("--asset-column-description-width", `${state.layout.descriptionColumnWidth}px`);
+};
+
+const beginLayoutResize = (type, pointerStartX) => {
+  if (!assetWorkspace || isResizableLayoutDisabled()) {
+    return;
+  }
+
+  const workspaceWidth = getAssetWorkspaceWidth();
+  if (!workspaceWidth) {
+    return;
+  }
+
+  const startLayout = normalizeLayoutState(state.layout, workspaceWidth);
+  const startPaneWidth = startLayout.leftPaneWidth;
+  const startLocationWidth = startLayout.locationColumnWidth;
+
+  body.classList.add("is-resizing-layout");
+
+  const onPointerMove = (event) => {
+    const deltaX = event.clientX - pointerStartX;
+    if (type === "pane") {
+      state.layout = normalizeLayoutState(
+        {
+          ...state.layout,
+          leftPaneWidth: startPaneWidth + deltaX,
+          locationColumnWidth: startLocationWidth,
+        },
+        workspaceWidth
+      );
+    } else {
+      const nextLocationWidth = startLocationWidth + deltaX;
+      const nextDescriptionWidth =
+        startPaneWidth - layoutLimits.checkboxWidth - nextLocationWidth;
+      state.layout = normalizeLayoutState(
+        {
+          ...state.layout,
+          leftPaneWidth: startPaneWidth,
+          locationColumnWidth: nextLocationWidth,
+          descriptionColumnWidth: nextDescriptionWidth,
+        },
+        workspaceWidth
+      );
+    }
+
+    applyWorkspaceLayoutStyles();
+  };
+
+  const finishResize = () => {
+    body.classList.remove("is-resizing-layout");
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", finishResize);
+    window.removeEventListener("pointercancel", finishResize);
+    persistDraftSilently();
+  };
+
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", finishResize);
+  window.addEventListener("pointercancel", finishResize);
 };
 
 const initializeState = async () => {
@@ -1049,6 +1187,7 @@ const renderWorkspaceState = () => {
   assetContextOverlay.setAttribute("aria-hidden", String(!state.modalVisible));
   maintenanceWorkspace.classList.toggle("is-workspace-active", !state.modalVisible);
   assetWorkspace.classList.toggle("is-muted", state.modalVisible);
+  applyWorkspaceLayoutStyles();
   if (assetHierarchyFilter) {
     assetHierarchyFilter.value = state.hierarchyFilter;
   }
@@ -1300,6 +1439,24 @@ saveDraftButton?.addEventListener("click", () => {
   persistDraft("Draft saved.");
 });
 
+assetWorkspacePaneResizeHandle?.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0) {
+    return;
+  }
+
+  event.preventDefault();
+  beginLayoutResize("pane", event.clientX);
+});
+
+assetRegisterColumnResizeHandle?.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0) {
+    return;
+  }
+
+  event.preventDefault();
+  beginLayoutResize("column", event.clientX);
+});
+
 assetHierarchyFilter?.addEventListener("input", (event) => {
   state.hierarchyFilter = event.target.value;
   renderWorkspaceState();
@@ -1408,6 +1565,15 @@ maintainableItemList?.addEventListener("input", (event) => {
     state.maintainableItems.filter((entry) => entry.nodeId === item.nodeId),
     true
   );
+});
+
+window.addEventListener("resize", () => {
+  if (!assetWorkspace) {
+    return;
+  }
+
+  state.layout = normalizeLayoutState(state.layout);
+  applyWorkspaceLayoutStyles();
 });
 
 const bootApp = async () => {
