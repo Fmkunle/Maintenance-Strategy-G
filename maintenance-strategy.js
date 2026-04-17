@@ -6,6 +6,7 @@ const themeToggle = document.getElementById("themeToggle");
 const maintenanceWorkspace = document.getElementById("maintenanceWorkspace");
 const assetWorkspace = document.getElementById("assetWorkspace");
 const assetWorkspacePaneResizeHandle = document.getElementById("assetWorkspacePaneResizeHandle");
+const assetWorkspaceCollapseToggle = document.getElementById("assetWorkspaceCollapseToggle");
 const assetHierarchyTree = document.getElementById("assetHierarchyTree");
 const assetHierarchyFilter = document.getElementById("assetHierarchyFilter");
 const assetHierarchyTreeViewButton = document.getElementById("assetHierarchyTreeViewButton");
@@ -66,8 +67,11 @@ const layoutDefaults = {
   locationColumnWidth: 430,
   descriptionColumnWidth: 258,
   assetViewMode: assetViewModes.tree,
+  isHierarchyCollapsed: false,
+  lastExpandedPaneWidth: 720,
 };
 const layoutLimits = {
+  collapsedPaneWidth: 48,
   paneMin: 480,
   rightPaneMin: 420,
   handleWidth: 12,
@@ -183,6 +187,7 @@ const normalizeLayoutState = (layout, workspaceWidth = getAssetWorkspaceWidth())
   };
   const assetViewMode =
     baseLayout.assetViewMode === assetViewModes.list ? assetViewModes.list : assetViewModes.tree;
+  const isHierarchyCollapsed = Boolean(baseLayout.isHierarchyCollapsed);
 
   if (!workspaceWidth || isResizableLayoutDisabled()) {
     return {
@@ -190,11 +195,17 @@ const normalizeLayoutState = (layout, workspaceWidth = getAssetWorkspaceWidth())
       locationColumnWidth: baseLayout.locationColumnWidth,
       descriptionColumnWidth: baseLayout.descriptionColumnWidth,
       assetViewMode,
+      isHierarchyCollapsed,
+      lastExpandedPaneWidth: baseLayout.lastExpandedPaneWidth,
     };
   }
 
   const maxPaneWidth = getPaneResizeMaxWidth(workspaceWidth);
   const leftPaneWidth = Math.min(Math.max(baseLayout.leftPaneWidth, layoutLimits.paneMin), maxPaneWidth);
+  const lastExpandedPaneWidth = Math.min(
+    Math.max(baseLayout.lastExpandedPaneWidth || leftPaneWidth, layoutLimits.paneMin),
+    maxPaneWidth
+  );
   const availableColumnWidth = Math.max(
     layoutLimits.locationMin + layoutLimits.descriptionMin,
     leftPaneWidth - layoutLimits.checkboxWidth
@@ -214,6 +225,8 @@ const normalizeLayoutState = (layout, workspaceWidth = getAssetWorkspaceWidth())
     locationColumnWidth,
     descriptionColumnWidth,
     assetViewMode,
+    isHierarchyCollapsed,
+    lastExpandedPaneWidth,
   };
 };
 
@@ -440,18 +453,31 @@ const applyWorkspaceLayoutStyles = () => {
 
   if (isResizableLayoutDisabled()) {
     assetWorkspace.style.removeProperty("--asset-pane-width");
+    assetWorkspace.style.removeProperty("--asset-pane-collapsed-width");
     assetWorkspace.style.removeProperty("--asset-column-location-width");
     assetWorkspace.style.removeProperty("--asset-column-description-width");
+    assetWorkspace.classList.remove("is-hierarchy-collapsed");
     return;
   }
 
   assetWorkspace.style.setProperty("--asset-pane-width", `${state.layout.leftPaneWidth}px`);
+  assetWorkspace.style.setProperty("--asset-pane-collapsed-width", `${layoutLimits.collapsedPaneWidth}px`);
   assetWorkspace.style.setProperty("--asset-column-location-width", `${state.layout.locationColumnWidth}px`);
   assetWorkspace.style.setProperty("--asset-column-description-width", `${state.layout.descriptionColumnWidth}px`);
+  assetWorkspace.classList.toggle("is-hierarchy-collapsed", state.layout.isHierarchyCollapsed);
+  assetWorkspace.querySelector(".asset-workspace__hierarchy")?.setAttribute(
+    "aria-hidden",
+    String(state.layout.isHierarchyCollapsed)
+  );
+  assetWorkspaceCollapseToggle?.setAttribute(
+    "aria-label",
+    state.layout.isHierarchyCollapsed ? "Expand asset browser" : "Collapse asset browser"
+  );
+  assetWorkspaceCollapseToggle?.setAttribute("aria-pressed", String(state.layout.isHierarchyCollapsed));
 };
 
 const beginLayoutResize = (type, pointerStartX) => {
-  if (!assetWorkspace || isResizableLayoutDisabled()) {
+  if (!assetWorkspace || isResizableLayoutDisabled() || state.layout.isHierarchyCollapsed) {
     return;
   }
 
@@ -473,6 +499,7 @@ const beginLayoutResize = (type, pointerStartX) => {
         {
           ...state.layout,
           leftPaneWidth: startPaneWidth + deltaX,
+          lastExpandedPaneWidth: startPaneWidth + deltaX,
           locationColumnWidth: startLocationWidth,
         },
         workspaceWidth
@@ -521,6 +548,37 @@ const initializeState = async () => {
 };
 
 let state = defaultState();
+
+const collapseHierarchyPane = () => {
+  state.layout = normalizeLayoutState({
+    ...state.layout,
+    isHierarchyCollapsed: true,
+    lastExpandedPaneWidth: state.layout.leftPaneWidth,
+  });
+};
+
+const expandHierarchyPane = () => {
+  state.layout = normalizeLayoutState({
+    ...state.layout,
+    isHierarchyCollapsed: false,
+    leftPaneWidth: state.layout.lastExpandedPaneWidth || layoutDefaults.leftPaneWidth,
+  });
+};
+
+const toggleHierarchyPaneCollapse = () => {
+  if (isResizableLayoutDisabled()) {
+    return;
+  }
+
+  if (state.layout.isHierarchyCollapsed) {
+    expandHierarchyPane();
+  } else {
+    collapseHierarchyPane();
+  }
+
+  applyWorkspaceLayoutStyles();
+  persistDraftSilently();
+};
 
 const applyTheme = (theme) => {
   if (body) {
@@ -1510,8 +1568,18 @@ assetWorkspacePaneResizeHandle?.addEventListener("pointerdown", (event) => {
     return;
   }
 
+  if (event.target.closest("#assetWorkspaceCollapseToggle")) {
+    return;
+  }
+
   event.preventDefault();
   beginLayoutResize("pane", event.clientX);
+});
+
+assetWorkspaceCollapseToggle?.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  toggleHierarchyPaneCollapse();
 });
 
 assetRegisterColumnResizeHandle?.addEventListener("pointerdown", (event) => {

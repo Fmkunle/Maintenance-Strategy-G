@@ -43,12 +43,15 @@ def validate_workspace_payload(payload: Any) -> Tuple[bool, str]:
         if not isinstance(payload["layout"], dict):
             return False, "layout must be an object when provided."
 
-        for field in ("leftPaneWidth", "locationColumnWidth", "descriptionColumnWidth"):
+        for field in ("leftPaneWidth", "locationColumnWidth", "descriptionColumnWidth", "lastExpandedPaneWidth"):
             if field in payload["layout"] and not isinstance(payload["layout"][field], (int, float)):
                 return False, f"layout.{field} must be a number when provided."
 
         if "assetViewMode" in payload["layout"] and not isinstance(payload["layout"]["assetViewMode"], str):
             return False, "layout.assetViewMode must be a string when provided."
+
+        if "isHierarchyCollapsed" in payload["layout"] and not isinstance(payload["layout"]["isHierarchyCollapsed"], bool):
+            return False, "layout.isHierarchyCollapsed must be a boolean when provided."
 
     if "savedAt" in payload and not isinstance(payload["savedAt"], str):
         return False, "savedAt must be a string when provided."
