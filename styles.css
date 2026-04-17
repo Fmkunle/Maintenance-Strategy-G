@@ -4159,11 +4159,15 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   left: 0;
   z-index: 20;
   min-width: 220px;
-  display: grid;
+  display: none;
   padding: 6px 0;
   border: 1px solid #bcc8d5;
   background: #f8fbff;
   box-shadow: 0 10px 24px rgba(24, 39, 58, 0.12);
+}
+
+.maintenance-menu.is-open .maintenance-menu__panel {
+  display: grid;
 }
 
 .maintenance-menu__item {
