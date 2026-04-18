@@ -13,6 +13,7 @@ const assetHierarchyTreeViewButton = document.getElementById("assetHierarchyTree
 const assetHierarchyListViewButton = document.getElementById("assetHierarchyListViewButton");
 const assetRegisterColumnResizeHandle = document.getElementById("assetRegisterColumnResizeHandle");
 const selectedNodeTypeLabel = document.getElementById("selectedNodeTypeLabel");
+const selectedNodeActions = document.getElementById("selectedNodeActions");
 const childCreatorPanel = document.getElementById("childCreatorPanel");
 const strategyList = document.getElementById("strategyList");
 const maintenanceMenuBar = document.querySelector(".maintenance-menu-bar");
@@ -153,7 +154,7 @@ const defaultChildDraftState = () => ({
   isOpen: false,
   parentId: "",
   childType: "",
-  location: "",
+  name: "",
   description: "",
   equipmentFunction: "",
   equipmentType: "",
@@ -186,6 +187,8 @@ const defaultState = () => ({
   modalVisible: true,
   savedAt: "",
 });
+
+const deletableNodeTypes = new Set(["equipment", "subsystem", "subunit"]);
 
 let workspaceSaveTimer = null;
 let workspaceSaveSequence = Promise.resolve();
@@ -321,6 +324,14 @@ const getFirstNode = (nodes) => {
   }
   return current;
 };
+
+const removeNodeFromHierarchy = (nodes, nodeId) =>
+  nodes
+    .filter((node) => node.id !== nodeId)
+    .map((node) => ({
+      ...node,
+      children: removeNodeFromHierarchy(node.children, nodeId),
+    }));
 
 const normalizeHierarchyNode = (node, fallbackType = "subsystem") => {
   const type = nodeTypeMeta[node?.type] ? node.type : fallbackType;
@@ -686,6 +697,7 @@ const isNodeCompleteOrBlank = (node) => hasNodeValue(node) || isNodeBlank(node);
 const getNodeCodeValue = (node, fallback = "") => getDisplayValue(node.code || "", fallback);
 const getNodeNameValue = (node, fallback = "") => getDisplayValue(node.name || "", fallback);
 const getChildActions = (type) => nodeTypeMeta[type]?.childActions || [];
+const isNodeDeletable = (node) => Boolean(node && deletableNodeTypes.has(node.type));
 const buildInheritedCodePrefix = (segments) => {
   const prefix = segments
     .map((segment) => (typeof segment === "string" ? segment.trim() : ""))
@@ -915,8 +927,8 @@ const getStrategyItemsForNodeInfo = (nodeInfo) => {
       nodeInfo: findNodeInfo(state.hierarchy, item.nodeId),
     }));
 };
-const sanitizeDescriptionToCode = (description, nodeType, siblings = []) => {
-  const rawValue = String(description || "").trim().toUpperCase();
+const sanitizeNameToCode = (name, nodeType, siblings = []) => {
+  const rawValue = String(name || "").trim().toUpperCase();
   let baseCode = rawValue
     .replace(/[^A-Z0-9]+/g, "-")
     .replace(/-+/g, "-")
@@ -956,7 +968,7 @@ const getChildActionLabel = (childType) => {
   }
 };
 const isChildDraftReady = () => {
-  if (!childDraftState.location.trim() || !childDraftState.description.trim()) {
+  if (!childDraftState.name.trim() || !childDraftState.description.trim()) {
     return false;
   }
 
@@ -966,6 +978,9 @@ const isChildDraftReady = () => {
 
   return true;
 };
+
+const getRequiredFieldLabel = (label) =>
+  `${label} <em class="field-required" aria-hidden="true">*</em><span class="sr-only">required</span>`;
 const getNodeDisplayName = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const getNodeDescription = (node, fallback = "") =>
   (typeof node?.description === "string" ? node.description.trim() : "") || fallback;
@@ -1375,7 +1390,7 @@ const openChildCreator = (parentId, childType = "") => {
     isOpen: true,
     parentId,
     childType: nextChildType,
-    location: "",
+    name: "",
     description: "",
     equipmentFunction: "",
     equipmentType: "",
@@ -1437,12 +1452,12 @@ const renderChildCreator = (nodeInfo, actions) => {
       </header>
       <div class="asset-child-creator__row-grid">
         <label class="field">
-          <span>Location</span>
-          <input id="childCreatorLocationInput" type="text" value="${escapeHtml(childDraftState.location)}" placeholder="Enter location">
+          <span>${getRequiredFieldLabel("Name")}</span>
+          <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name" required>
         </label>
         <label class="field">
-          <span>Description</span>
-          <input id="childCreatorDescriptionInput" type="text" value="${escapeHtml(childDraftState.description)}" placeholder="Enter description">
+          <span>${getRequiredFieldLabel("Description")}</span>
+          <input id="childCreatorDescriptionInput" type="text" value="${escapeHtml(childDraftState.description)}" placeholder="Enter description" required>
         </label>
       </div>
     </section>
@@ -1574,6 +1589,30 @@ const renderChildCreator = (nodeInfo, actions) => {
   `;
 };
 
+const renderSelectedNodeActions = (nodeInfo, isAddMode) => {
+  if (!selectedNodeActions) {
+    return;
+  }
+
+  if (!nodeInfo || isAddMode || !isNodeDeletable(nodeInfo.node)) {
+    selectedNodeActions.innerHTML = "";
+    selectedNodeActions.hidden = true;
+    return;
+  }
+
+  selectedNodeActions.hidden = false;
+  selectedNodeActions.innerHTML = `
+    <button
+      id="deleteSelectedNodeButton"
+      class="secondary-button maintenance-delete-action"
+      type="button"
+      data-delete-node="${escapeHtml(nodeInfo.node.id)}"
+    >
+      Delete
+    </button>
+  `;
+};
+
 const renderStrategyDrafts = (nodeInfo) => {
   if (!strategyList) {
     return;
@@ -1649,6 +1688,7 @@ const renderSelectedNodePanel = () => {
       childCreatorPanel.hidden = true;
       childCreatorPanel.innerHTML = "";
     }
+    renderSelectedNodeActions(null, false);
     closeChildCreator();
     renderStrategyDrafts(null);
     return;
@@ -1669,6 +1709,7 @@ const renderSelectedNodePanel = () => {
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
     backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
     renderChildCreator(nodeInfo, actions);
+    renderSelectedNodeActions(nodeInfo, true);
     if (strategyList) {
       strategyList.hidden = true;
       strategyList.innerHTML = "";
@@ -1683,6 +1724,7 @@ const renderSelectedNodePanel = () => {
     childCreatorPanel.hidden = true;
     childCreatorPanel.innerHTML = "";
   }
+  renderSelectedNodeActions(nodeInfo, false);
   renderStrategyDrafts(nodeInfo);
 };
 
@@ -1718,9 +1760,9 @@ const createChildNode = (parentId, childType, draft) => {
     return;
   }
 
-  const location = String(draft?.location || "").trim();
+  const name = String(draft?.name || "").trim();
   const description = String(draft?.description || "").trim();
-  const generatedCode = sanitizeDescriptionToCode(description, childType, info.node.children);
+  const generatedCode = sanitizeNameToCode(name, childType, info.node.children);
   const equipmentContext =
     childType === "equipment"
       ? {
@@ -1736,7 +1778,7 @@ const createChildNode = (parentId, childType, draft) => {
           criticality: String(draft?.criticality || "").trim(),
         }
       : null;
-  const nextNode = createNode(childType, generatedCode, location, description, equipmentContext);
+  const nextNode = createNode(childType, generatedCode, name, description, equipmentContext);
   info.node.children.push(nextNode);
   setNodeCollapsed(parentId, false);
   state.selectedNodeId = nextNode.id;
@@ -1744,6 +1786,46 @@ const createChildNode = (parentId, childType, draft) => {
   persistDraftSilently();
   renderAll();
   hideNotice();
+};
+
+const deleteHierarchyNode = (nodeId) => {
+  const info = findNodeInfo(state.hierarchy, nodeId);
+  if (!info || !isNodeDeletable(info.node)) {
+    return;
+  }
+
+  const deletedNodeIds = collectNodeAndDescendantIds(info.node);
+  const descendantCount = deletedNodeIds.size - 1;
+  const linkedItemCount = state.maintainableItems.filter((item) => deletedNodeIds.has(item.nodeId)).length;
+  const nodeName = getNodeDisplayName(info.node);
+  const linkedItemText =
+    linkedItemCount > 0
+      ? `\n\nThis will also remove ${linkedItemCount} linked maintainable item${linkedItemCount === 1 ? "" : "s"}.`
+      : "";
+  const message =
+    descendantCount > 0
+      ? `Delete "${nodeName}" and its ${descendantCount} descendant${descendantCount === 1 ? "" : "s"}?${linkedItemText}`
+      : `Delete "${nodeName}"?${linkedItemText}`;
+
+  if (!window.confirm(message)) {
+    return;
+  }
+
+  state.hierarchy = removeNodeFromHierarchy(state.hierarchy, nodeId);
+  state.maintainableItems = state.maintainableItems.filter((item) => !deletedNodeIds.has(item.nodeId));
+  state.collapsedNodeIds = state.collapsedNodeIds.filter((id) => !deletedNodeIds.has(id));
+
+  if (childDraftState.parentId && deletedNodeIds.has(childDraftState.parentId)) {
+    closeChildCreator();
+  }
+
+  const fallbackNodeId = info.parent?.id || getFirstNode(state.hierarchy)?.id || "";
+  state.selectedNodeId = fallbackNodeId;
+
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
 };
 
 const storedTheme = window.localStorage.getItem(themeStorageKey);
@@ -2083,8 +2165,8 @@ const syncChildCreatorDraftField = (target) => {
     childDraftState.childType = target.value;
   }
 
-  if (target.id === "childCreatorLocationInput") {
-    childDraftState.location = target.value;
+  if (target.id === "childCreatorNameInput") {
+    childDraftState.name = target.value;
   }
 
   if (target.id === "childCreatorDescriptionInput") {
@@ -2172,6 +2254,15 @@ childCreatorPanel?.addEventListener("click", (event) => {
     childDraftState.childType,
     childDraftState
   );
+});
+
+selectedNodeActions?.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-node]");
+  if (!deleteButton) {
+    return;
+  }
+
+  deleteHierarchyNode(deleteButton.dataset.deleteNode);
 });
 
 window.addEventListener("resize", () => {

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
   <script>
-    window.__maintenanceAssetVersion = "maintenance-page-27";
+    window.__maintenanceAssetVersion = "maintenance-page-29";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
     maintenanceStylesheet.href = `styles.css?v=${window.__maintenanceAssetVersion}`;
@@ -248,8 +248,8 @@
               <div class="asset-register__header">
                 <span aria-hidden="true"></span>
                 <span class="asset-register__header-cell asset-register__header-cell--location">
-                  <span>Location</span>
-                  <button id="assetRegisterColumnResizeHandle" class="asset-register__column-resize" type="button" aria-label="Resize location and description columns"></button>
+                  <span>Name</span>
+                  <button id="assetRegisterColumnResizeHandle" class="asset-register__column-resize" type="button" aria-label="Resize name and description columns"></button>
                 </span>
                 <span class="asset-register__header-cell asset-register__header-cell--description">Description</span>
               </div>
@@ -283,6 +283,7 @@
                 <div>
                   <strong id="selectedNodeTypeLabel">Strategies</strong>
                 </div>
+                <div id="selectedNodeActions" class="maintenance-panel__actions"></div>
               </div>
 
               <div class="strategy-detail">
