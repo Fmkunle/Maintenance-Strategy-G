@@ -5644,6 +5644,97 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   background: rgba(169, 55, 55, 0.1);
 }
 
+.maintenance-panel__menu {
+  position: relative;
+}
+
+.maintenance-info-action {
+  min-width: 56px;
+  padding-inline: 12px;
+}
+
+.maintenance-panel__menu-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 176px;
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid rgba(146, 163, 184, 0.28);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+  z-index: 20;
+}
+
+.maintenance-panel__menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 32px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #28405c;
+  font-size: 0.78rem;
+  text-align: left;
+  padding: 0 10px;
+}
+
+.maintenance-panel__menu-item:hover {
+  background: rgba(88, 112, 141, 0.08);
+}
+
+.equipment-info-panel {
+  display: grid;
+  gap: 8px;
+  width: min(720px, 100%);
+  justify-self: start;
+}
+
+.equipment-info-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.equipment-info-panel__grid--triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.equipment-info-panel__item {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.equipment-info-panel__item--wide {
+  grid-column: 1 / -1;
+}
+
+.equipment-info-panel__label {
+  color: #60748c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.equipment-info-panel__value {
+  color: #21374f;
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.equipment-info-panel__value.is-empty {
+  color: #8294aa;
+  font-style: italic;
+  font-weight: 400;
+}
+
 .asset-child-creator {
   display: grid;
   gap: 12px;
@@ -6040,6 +6131,32 @@ body[data-theme="dark"] .maintenance-delete-action:hover {
   background: rgba(217, 75, 75, 0.14);
 }
 
+body[data-theme="dark"] .maintenance-panel__menu-popover {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(18, 29, 48, 0.98);
+  box-shadow: 0 16px 28px rgba(2, 6, 23, 0.42);
+}
+
+body[data-theme="dark"] .maintenance-panel__menu-item {
+  color: #dbe7f7;
+}
+
+body[data-theme="dark"] .maintenance-panel__menu-item:hover {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+body[data-theme="dark"] .equipment-info-panel__label {
+  color: #9fb0c7;
+}
+
+body[data-theme="dark"] .equipment-info-panel__value {
+  color: #e3ecfb;
+}
+
+body[data-theme="dark"] .equipment-info-panel__value.is-empty {
+  color: #8ea1bb;
+}
+
 .asset-context-entry-block {
   display: grid;
   gap: 10px;
@@ -6394,6 +6511,11 @@ body[data-theme="dark"] .maintenance-delete-action:hover {
   }
 
   .asset-child-creator__references-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .equipment-info-panel__grid,
+  .equipment-info-panel__grid--triple {
     grid-template-columns: 1fr;
   }
 

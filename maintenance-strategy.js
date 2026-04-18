@@ -167,6 +167,13 @@ const defaultChildDraftState = () => ({
   criticality: "",
 });
 
+const defaultEquipmentInfoState = () => ({
+  mode: "closed",
+  nodeId: "",
+  menuOpen: false,
+  draft: null,
+});
+
 const defaultEntryState = () => ({
   plantUnit: { code: "", name: "" },
   sectionSystem: { code: "", name: "" },
@@ -679,6 +686,7 @@ const initializeState = async () => {
 
 let state = defaultState();
 let childDraftState = defaultChildDraftState();
+let equipmentInfoState = defaultEquipmentInfoState();
 let openMaintenanceMenu = null;
 
 const collapseHierarchyPane = () => {
@@ -1080,6 +1088,22 @@ const isChildDraftReady = () => {
   return true;
 };
 
+const isEquipmentInfoDraftReady = () => {
+  if (!equipmentInfoState.draft) {
+    return false;
+  }
+
+  if (!String(equipmentInfoState.draft.codeSegment || "").trim() || !String(equipmentInfoState.draft.description || "").trim()) {
+    return false;
+  }
+
+  if (equipmentInfoState.draft.redundancyMode === "Custom") {
+    return Boolean(String(equipmentInfoState.draft.redundancyPercent || "").trim());
+  }
+
+  return true;
+};
+
 const getRequiredFieldLabel = (label) =>
   `${label} <em class="field-required" aria-hidden="true">*</em><span class="sr-only">required</span>`;
 const getNodeBrowserName = (node) =>
@@ -1092,6 +1116,65 @@ const getNodeBrowserDescription = (nodePath, node) =>
   getNodeDescription(node) || getFullCodeFromPath(nodePath) || getNodeLabel(node);
 const getNodeFullCode = (node, path = []) =>
   getNodeNameValue(node, getFullCodeFromPath(path) || getNodeCodeValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node"));
+const getParentPath = (path) => (Array.isArray(path) && path.length > 1 ? path.slice(0, -1) : []);
+const getParentFullCodeFromPath = (path) => getFullCodeFromPath(getParentPath(path));
+const createEquipmentInfoDraft = (node) => {
+  const context = node?.equipmentContext && typeof node.equipmentContext === "object" ? node.equipmentContext : defaultEquipmentContext();
+  return {
+    codeSegment: getNodeCodeValue(node),
+    description: getNodeDescription(node),
+    equipmentFunction: String(context.equipmentFunction || ""),
+    equipmentType: String(context.equipmentType || ""),
+    effectPerHourDown: String(context.effectPerHourDown || ""),
+    demandFrequency: String(context.demandFrequency || ""),
+    redundancyMode: String(context.redundancyMode || "None") || "None",
+    redundancyPercent: String(context.redundancyPercent || ""),
+    maeCategory: String(context.maeCategory || "No") || "No",
+    operatingContext: String(context.operatingContext || ""),
+    criticality: String(context.criticality || ""),
+  };
+};
+const closeEquipmentInfo = () => {
+  equipmentInfoState = defaultEquipmentInfoState();
+};
+const closeEquipmentInfoMenu = () => {
+  equipmentInfoState = {
+    ...equipmentInfoState,
+    menuOpen: false,
+  };
+};
+const toggleEquipmentInfoMenu = (nodeId) => {
+  const isSameNode = equipmentInfoState.nodeId === nodeId;
+  equipmentInfoState = {
+    ...equipmentInfoState,
+    nodeId,
+    menuOpen: isSameNode ? !equipmentInfoState.menuOpen : true,
+  };
+};
+const openEquipmentInfoMode = (nodeInfo, mode) => {
+  if (!nodeInfo || nodeInfo.node.type !== "equipment") {
+    closeEquipmentInfo();
+    return;
+  }
+
+  closeChildCreator();
+  equipmentInfoState = {
+    mode,
+    nodeId: nodeInfo.node.id,
+    menuOpen: false,
+    draft: mode === "edit" ? createEquipmentInfoDraft(nodeInfo.node) : null,
+  };
+};
+const updateInheritedCodesForSubtree = (node, parentFullCode = "") => {
+  if (!node) {
+    return;
+  }
+
+  node.name = joinInheritedCode(parentFullCode, node.code);
+  (node.children || []).forEach((child) => {
+    updateInheritedCodesForSubtree(child, node.name);
+  });
+};
 const getNodeIcon = (type) => {
   switch (type) {
     case "plant":
@@ -1491,6 +1574,7 @@ const openChildCreator = (parentId, childType = "") => {
     return;
   }
 
+  closeEquipmentInfo();
   const nextChildType = actions.some((action) => action.type === childType) ? childType : actions[0].type;
   childDraftState = {
     isOpen: true,
@@ -1508,6 +1592,47 @@ const openChildCreator = (parentId, childType = "") => {
     operatingContext: "",
     criticality: "",
   };
+};
+
+const saveEquipmentInfo = (nodeId, draft) => {
+  const info = findNodeInfo(state.hierarchy, nodeId);
+  if (!info || info.node.type !== "equipment") {
+    return;
+  }
+
+  const nextCodeSegment = sanitizeCodeSegment(draft?.codeSegment || "", "equipment", (info.parent?.children || []).filter((child) => child.id !== nodeId));
+  const parentFullCode = getParentFullCodeFromPath(info.path);
+  info.node.code = nextCodeSegment;
+  info.node.name = joinInheritedCode(parentFullCode, nextCodeSegment);
+  info.node.description = String(draft?.description || "").trim();
+  info.node.equipmentContext = {
+    ...defaultEquipmentContext(),
+    equipmentFunction: String(draft?.equipmentFunction || "").trim(),
+    equipmentType: String(draft?.equipmentType || "").trim(),
+    effectPerHourDown: String(draft?.effectPerHourDown || "").trim(),
+    demandFrequency: String(draft?.demandFrequency || "").trim(),
+    redundancyMode: String(draft?.redundancyMode || "None").trim() || "None",
+    redundancyPercent:
+      String(draft?.redundancyMode || "") === "Custom" ? String(draft?.redundancyPercent || "").trim() : "",
+    maeCategory: String(draft?.maeCategory || "No").trim() || "No",
+    operatingContext: String(draft?.operatingContext || "").trim(),
+    criticality: String(draft?.criticality || "").trim(),
+  };
+
+  (info.node.children || []).forEach((child) => {
+    updateInheritedCodesForSubtree(child, info.node.name);
+  });
+
+  equipmentInfoState = {
+    mode: "view",
+    nodeId,
+    menuOpen: false,
+    draft: null,
+  };
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
 };
 
 const renderChildCreator = (nodeInfo, actions) => {
@@ -1704,12 +1829,215 @@ const renderChildCreator = (nodeInfo, actions) => {
   `;
 };
 
-const renderSelectedNodeActions = (nodeInfo, isAddMode) => {
+const getEquipmentInfoValueMarkup = (label, value, isWide = false) => `
+  <div class="equipment-info-panel__item ${isWide ? "equipment-info-panel__item--wide" : ""}">
+    <span class="equipment-info-panel__label">${escapeHtml(label)}</span>
+    <strong class="equipment-info-panel__value ${hasValue(value) ? "" : "is-empty"}">${escapeHtml(
+      getDisplayValue(value, "Not set")
+    )}</strong>
+  </div>
+`;
+
+const renderEquipmentInfoView = (nodeInfo) => {
+  if (!childCreatorPanel) {
+    return;
+  }
+
+  const { node } = nodeInfo;
+  const context = node.equipmentContext || defaultEquipmentContext();
+  childCreatorPanel.hidden = false;
+  childCreatorPanel.innerHTML = `
+    <section class="equipment-info-panel">
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Definition</strong>
+        </header>
+        <div class="equipment-info-panel__grid">
+          ${getEquipmentInfoValueMarkup("Name", getNodeFullCode(node, nodeInfo.path))}
+          ${getEquipmentInfoValueMarkup("Description", getNodeDescription(node))}
+        </div>
+      </section>
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Equipment Context</strong>
+        </header>
+        <div class="equipment-info-panel__grid">
+          ${getEquipmentInfoValueMarkup("Equipment Function", context.equipmentFunction)}
+          ${getEquipmentInfoValueMarkup("Type of Equipment", context.equipmentType)}
+          ${getEquipmentInfoValueMarkup("Operating Context", context.operatingContext, true)}
+        </div>
+      </section>
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Consequence</strong>
+        </header>
+        <div class="equipment-info-panel__grid equipment-info-panel__grid--triple">
+          ${getEquipmentInfoValueMarkup("Effect", context.effectPerHourDown)}
+          ${getEquipmentInfoValueMarkup("Demand Frequency", context.demandFrequency)}
+          ${getEquipmentInfoValueMarkup(
+            "Redundancy",
+            context.redundancyMode === "Custom" && hasValue(context.redundancyPercent)
+              ? `${context.redundancyMode} (${context.redundancyPercent}%)`
+              : context.redundancyMode
+          )}
+          ${getEquipmentInfoValueMarkup("Major Accident Event Category (MAE)", context.maeCategory)}
+          ${getEquipmentInfoValueMarkup("Criticality", context.criticality)}
+        </div>
+      </section>
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Linked References</strong>
+        </header>
+        <div class="equipment-info-panel__grid equipment-info-panel__grid--triple">
+          ${getEquipmentInfoValueMarkup("Link to FMEA", "")}
+          ${getEquipmentInfoValueMarkup("Baseline Strategy", "")}
+          ${getEquipmentInfoValueMarkup("Attach Manuals", "")}
+        </div>
+      </section>
+      <div class="asset-child-creator__actions">
+        <button id="closeEquipmentInfoButton" class="secondary-button" type="button">Back</button>
+        <button id="editEquipmentInfoButton" class="primary-button" type="button">Edit</button>
+      </div>
+    </section>
+  `;
+};
+
+const renderEquipmentInfoEditor = (nodeInfo) => {
+  if (!childCreatorPanel || !equipmentInfoState.draft) {
+    return;
+  }
+
+  const draft = equipmentInfoState.draft;
+  const parentPrefix = buildInheritedCodePrefix([getParentFullCodeFromPath(nodeInfo.path)]);
+  childCreatorPanel.hidden = false;
+  childCreatorPanel.innerHTML = `
+    <section class="asset-child-creator__form">
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Definition</strong>
+        </header>
+        <div class="asset-child-creator__row-grid">
+          <label class="field">
+            <span>${getRequiredFieldLabel("Name")}</span>
+            <div class="hierarchy-code-field ${parentPrefix ? "has-prefix" : ""}">
+              <span class="hierarchy-code-field__prefix">${escapeHtml(parentPrefix)}</span>
+              <input id="equipmentInfoCodeSegmentInput" type="text" value="${escapeHtml(draft.codeSegment)}" placeholder="Enter code segment" required>
+            </div>
+          </label>
+          <label class="field">
+            <span>${getRequiredFieldLabel("Description")}</span>
+            <input id="equipmentInfoDescriptionInput" type="text" value="${escapeHtml(draft.description)}" placeholder="Enter description, e.g. Main Belt Conveyor" required>
+          </label>
+        </div>
+      </section>
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Equipment Context</strong>
+        </header>
+        <div class="asset-child-creator__row-grid">
+          <label class="field">
+            <span>Equipment Function</span>
+            <input id="equipmentInfoFunctionInput" type="text" value="${escapeHtml(draft.equipmentFunction)}" placeholder="Enter equipment function">
+          </label>
+          <label class="field">
+            <span>Type of Equipment</span>
+            <input id="equipmentInfoTypeInput" type="text" value="${escapeHtml(draft.equipmentType)}" placeholder="Enter equipment type">
+          </label>
+        </div>
+        <label class="field field--full">
+          <span>Operating Context</span>
+          <textarea id="equipmentInfoOperatingContextInput" rows="3" placeholder="Add operating context">${escapeHtml(draft.operatingContext)}</textarea>
+        </label>
+      </section>
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Consequence</strong>
+        </header>
+        <div class="asset-child-creator__row-grid">
+          <label class="field">
+            <span>Effect</span>
+            <select id="equipmentInfoEffectInput">
+              <option value="">Select effect</option>
+              ${effectPerHourDownOptions.map((option) => `<option value="${escapeHtml(option)}" ${draft.effectPerHourDown === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="field">
+            <span>Demand Frequency</span>
+            <select id="equipmentInfoDemandFrequencyInput">
+              <option value="">Select demand frequency</option>
+              ${demandFrequencyOptions.map((option) => `<option value="${escapeHtml(option)}" ${draft.demandFrequency === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+          <label class="field">
+            <span>Redundancy</span>
+            <select id="equipmentInfoRedundancyModeInput">
+              ${redundancyOptions.map((option) => `<option value="${escapeHtml(option)}" ${draft.redundancyMode === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+            </select>
+          </label>
+          ${
+            draft.redundancyMode === "Custom"
+              ? `<label class="field">
+                  <span>Redundancy %</span>
+                  <input id="equipmentInfoRedundancyPercentInput" type="number" min="0" max="100" step="1" value="${escapeHtml(draft.redundancyPercent)}" placeholder="Enter percent">
+                </label>`
+              : `<div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
+          }
+          <label class="field">
+            <span>Major Accident Event Category (MAE)</span>
+            <select id="equipmentInfoMaeCategoryInput">
+              ${maeCategoryOptions.map((option) => `<option value="${escapeHtml(option)}" ${draft.maeCategory === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <div class="asset-child-creator__row-grid">
+          <label class="field">
+            <span>Criticality</span>
+            <select id="equipmentInfoCriticalityInput">
+              <option value="">Select criticality</option>
+              ${criticalityOptions.map((option) => `<option value="${escapeHtml(option)}" ${draft.criticality === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+      </section>
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Linked References</strong>
+          <span class="asset-child-creator__section-note">Connections will activate once FMEA and baseline strategy modules are enabled.</span>
+        </header>
+        <div class="asset-child-creator__references-grid">
+          <button class="asset-child-creator__disabled-action" type="button" disabled>Link to FMEA</button>
+          <label class="asset-child-creator__reference-field">
+            <span>Baseline Strategy</span>
+            <select disabled>
+              <option>Available later</option>
+            </select>
+          </label>
+          <button class="asset-child-creator__disabled-action" type="button" disabled>Attach Manuals</button>
+        </div>
+      </section>
+      <div class="asset-child-creator__actions">
+        <button id="cancelEquipmentInfoEditButton" class="secondary-button" type="button">Cancel</button>
+        <button id="saveEquipmentInfoButton" class="primary-button" type="button" ${isEquipmentInfoDraftReady() ? "" : "disabled"}>Save</button>
+      </div>
+    </section>
+  `;
+};
+
+const renderSelectedNodeActions = (nodeInfo, options = {}) => {
   if (!selectedNodeActions) {
     return;
   }
 
-  if (!nodeInfo || isAddMode || !isNodeDeletable(nodeInfo.node)) {
+  const isAddMode = Boolean(options.isAddMode);
+  const equipmentInfoMode = options.equipmentInfoMode || "closed";
+  const showEquipmentInfoAction =
+    Boolean(nodeInfo && nodeInfo.node.type === "equipment" && !isAddMode && equipmentInfoMode !== "edit");
+  const showDeleteAction =
+    Boolean(nodeInfo && isNodeDeletable(nodeInfo.node) && !isAddMode && equipmentInfoMode !== "edit");
+
+  if (!showEquipmentInfoAction && !showDeleteAction) {
     selectedNodeActions.innerHTML = "";
     selectedNodeActions.hidden = true;
     return;
@@ -1717,14 +2045,55 @@ const renderSelectedNodeActions = (nodeInfo, isAddMode) => {
 
   selectedNodeActions.hidden = false;
   selectedNodeActions.innerHTML = `
-    <button
-      id="deleteSelectedNodeButton"
-      class="secondary-button maintenance-delete-action"
-      type="button"
-      data-delete-node="${escapeHtml(nodeInfo.node.id)}"
-    >
-      Delete
-    </button>
+    ${
+      showEquipmentInfoAction
+        ? `
+          <div class="maintenance-panel__menu">
+            <button
+              id="equipmentInfoMenuButton"
+              class="secondary-button maintenance-info-action"
+              type="button"
+              aria-expanded="${equipmentInfoState.menuOpen && equipmentInfoState.nodeId === nodeInfo.node.id ? "true" : "false"}"
+              data-toggle-equipment-info-menu="${escapeHtml(nodeInfo.node.id)}"
+            >
+              Info
+            </button>
+            ${
+              equipmentInfoState.menuOpen && equipmentInfoState.nodeId === nodeInfo.node.id
+                ? `
+                  <div class="maintenance-panel__menu-popover" role="menu" aria-label="Equipment actions">
+                    <button class="maintenance-panel__menu-item" type="button" role="menuitem" data-open-equipment-info="view" data-equipment-node="${escapeHtml(
+                      nodeInfo.node.id
+                    )}">
+                      View equipment info
+                    </button>
+                    <button class="maintenance-panel__menu-item" type="button" role="menuitem" data-open-equipment-info="edit" data-equipment-node="${escapeHtml(
+                      nodeInfo.node.id
+                    )}">
+                      Edit equipment info
+                    </button>
+                  </div>
+                `
+                : ""
+            }
+          </div>
+        `
+        : ""
+    }
+    ${
+      showDeleteAction
+        ? `
+          <button
+            id="deleteSelectedNodeButton"
+            class="secondary-button maintenance-delete-action"
+            type="button"
+            data-delete-node="${escapeHtml(nodeInfo.node.id)}"
+          >
+            Delete
+          </button>
+        `
+        : ""
+    }
   `;
 };
 
@@ -1803,8 +2172,9 @@ const renderSelectedNodePanel = () => {
       childCreatorPanel.hidden = true;
       childCreatorPanel.innerHTML = "";
     }
-    renderSelectedNodeActions(null, false);
+    renderSelectedNodeActions(null, { isAddMode: false, equipmentInfoMode: "closed" });
     closeChildCreator();
+    closeEquipmentInfo();
     renderStrategyDrafts(null);
     return;
   }
@@ -1814,7 +2184,12 @@ const renderSelectedNodePanel = () => {
   if (childDraftState.parentId && childDraftState.parentId !== node.id) {
     closeChildCreator();
   }
+  if (equipmentInfoState.nodeId && equipmentInfoState.nodeId !== node.id) {
+    closeEquipmentInfo();
+  }
   const isAddMode = childDraftState.isOpen && childDraftState.parentId === node.id && actions.length > 0;
+  const equipmentInfoMode =
+    node.type === "equipment" && equipmentInfoState.nodeId === node.id ? equipmentInfoState.mode : "closed";
 
   if (isAddMode) {
     const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
@@ -1824,7 +2199,33 @@ const renderSelectedNodePanel = () => {
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
     backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
     renderChildCreator(nodeInfo, actions);
-    renderSelectedNodeActions(nodeInfo, true);
+    renderSelectedNodeActions(nodeInfo, { isAddMode: true, equipmentInfoMode: "closed" });
+    if (strategyList) {
+      strategyList.hidden = true;
+      strategyList.innerHTML = "";
+    }
+    return;
+  }
+
+  if (equipmentInfoMode === "edit") {
+    selectedNodeTypeLabel.textContent = "Edit Equipment Info";
+    backgroundDetailHeading.textContent = getNodeDisplayName(node);
+    backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
+    renderEquipmentInfoEditor(nodeInfo);
+    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode });
+    if (strategyList) {
+      strategyList.hidden = true;
+      strategyList.innerHTML = "";
+    }
+    return;
+  }
+
+  if (equipmentInfoMode === "view") {
+    selectedNodeTypeLabel.textContent = "Equipment Info";
+    backgroundDetailHeading.textContent = getNodeDisplayName(node);
+    backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
+    renderEquipmentInfoView(nodeInfo);
+    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode });
     if (strategyList) {
       strategyList.hidden = true;
       strategyList.innerHTML = "";
@@ -1839,7 +2240,7 @@ const renderSelectedNodePanel = () => {
     childCreatorPanel.hidden = true;
     childCreatorPanel.innerHTML = "";
   }
-  renderSelectedNodeActions(nodeInfo, false);
+  renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed" });
   renderStrategyDrafts(nodeInfo);
 };
 
@@ -1933,6 +2334,9 @@ const deleteHierarchyNode = (nodeId) => {
 
   if (childDraftState.parentId && deletedNodeIds.has(childDraftState.parentId)) {
     closeChildCreator();
+  }
+  if (equipmentInfoState.nodeId && deletedNodeIds.has(equipmentInfoState.nodeId)) {
+    closeEquipmentInfo();
   }
 
   const fallbackNodeId = info.parent?.id || getFirstNode(state.hierarchy)?.id || "";
@@ -2330,9 +2734,70 @@ const syncChildCreatorDraftField = (target) => {
     childDraftState.criticality = target.value;
   }
 
+  if (!equipmentInfoState.draft) {
+    const createButton = childCreatorPanel?.querySelector("#createChildButton");
+    if (createButton) {
+      createButton.disabled = !isChildDraftReady();
+    }
+    return;
+  }
+
+  if (target.id === "equipmentInfoCodeSegmentInput") {
+    equipmentInfoState.draft.codeSegment = target.value;
+  }
+
+  if (target.id === "equipmentInfoDescriptionInput") {
+    equipmentInfoState.draft.description = target.value;
+  }
+
+  if (target.id === "equipmentInfoFunctionInput") {
+    equipmentInfoState.draft.equipmentFunction = target.value;
+  }
+
+  if (target.id === "equipmentInfoTypeInput") {
+    equipmentInfoState.draft.equipmentType = target.value;
+  }
+
+  if (target.id === "equipmentInfoEffectInput") {
+    equipmentInfoState.draft.effectPerHourDown = target.value;
+  }
+
+  if (target.id === "equipmentInfoDemandFrequencyInput") {
+    equipmentInfoState.draft.demandFrequency = target.value;
+  }
+
+  if (target.id === "equipmentInfoRedundancyModeInput") {
+    equipmentInfoState.draft.redundancyMode = target.value;
+    if (target.value !== "Custom") {
+      equipmentInfoState.draft.redundancyPercent = "";
+    }
+    renderSelectedNodePanel();
+    return;
+  }
+
+  if (target.id === "equipmentInfoRedundancyPercentInput") {
+    equipmentInfoState.draft.redundancyPercent = target.value;
+  }
+
+  if (target.id === "equipmentInfoMaeCategoryInput") {
+    equipmentInfoState.draft.maeCategory = target.value;
+  }
+
+  if (target.id === "equipmentInfoOperatingContextInput") {
+    equipmentInfoState.draft.operatingContext = target.value;
+  }
+
+  if (target.id === "equipmentInfoCriticalityInput") {
+    equipmentInfoState.draft.criticality = target.value;
+  }
+
   const createButton = childCreatorPanel?.querySelector("#createChildButton");
   if (createButton) {
     createButton.disabled = !isChildDraftReady();
+  }
+  const saveButton = childCreatorPanel?.querySelector("#saveEquipmentInfoButton");
+  if (saveButton) {
+    saveButton.disabled = !isEquipmentInfoDraftReady();
   }
 };
 
@@ -2360,6 +2825,41 @@ childCreatorPanel?.addEventListener("click", (event) => {
     return;
   }
 
+  const closeEquipmentInfoButton = event.target.closest("#closeEquipmentInfoButton");
+  if (closeEquipmentInfoButton) {
+    closeEquipmentInfo();
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const editEquipmentInfoButton = event.target.closest("#editEquipmentInfoButton");
+  if (editEquipmentInfoButton) {
+    const nodeInfo = getSelectedNodeInfo();
+    openEquipmentInfoMode(nodeInfo, "edit");
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const cancelEquipmentInfoEditButton = event.target.closest("#cancelEquipmentInfoEditButton");
+  if (cancelEquipmentInfoEditButton) {
+    const nodeInfo = getSelectedNodeInfo();
+    openEquipmentInfoMode(nodeInfo, "view");
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const saveEquipmentInfoButton = event.target.closest("#saveEquipmentInfoButton");
+  if (saveEquipmentInfoButton && isEquipmentInfoDraftReady()) {
+    saveEquipmentInfo(equipmentInfoState.nodeId, equipmentInfoState.draft);
+    return;
+  }
+
   const createButton = event.target.closest("#createChildButton");
   if (!createButton || !isChildDraftReady()) {
     return;
@@ -2373,6 +2873,25 @@ childCreatorPanel?.addEventListener("click", (event) => {
 });
 
 selectedNodeActions?.addEventListener("click", (event) => {
+  const infoMenuButton = event.target.closest("[data-toggle-equipment-info-menu]");
+  if (infoMenuButton) {
+    toggleEquipmentInfoMenu(infoMenuButton.dataset.toggleEquipmentInfoMenu);
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const equipmentInfoButton = event.target.closest("[data-open-equipment-info]");
+  if (equipmentInfoButton) {
+    const nodeInfo = findNodeInfo(state.hierarchy, equipmentInfoButton.dataset.equipmentNode);
+    openEquipmentInfoMode(nodeInfo, equipmentInfoButton.dataset.openEquipmentInfo);
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
   const deleteButton = event.target.closest("[data-delete-node]");
   if (!deleteButton) {
     return;
@@ -2405,15 +2924,31 @@ maintenanceMenuBar?.addEventListener("click", (event) => {
 
 document.addEventListener("click", (event) => {
   if (!maintenanceMenuBar || maintenanceMenuBar.contains(event.target)) {
+  } else {
+    closeMaintenanceMenus();
+  }
+
+  if (!selectedNodeActions || selectedNodeActions.contains(event.target)) {
     return;
   }
 
-  closeMaintenanceMenus();
+  if (equipmentInfoState.menuOpen) {
+    closeEquipmentInfoMenu();
+    renderAll({
+      includeEntryDynamic: false,
+    });
+  }
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeMaintenanceMenus();
+    if (equipmentInfoState.menuOpen) {
+      closeEquipmentInfoMenu();
+      renderAll({
+        includeEntryDynamic: false,
+      });
+    }
   }
 });
 
