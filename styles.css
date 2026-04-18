@@ -5592,10 +5592,10 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .asset-register-row__label {
   min-width: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 400;
   color: #23364d;
-  line-height: 1.25;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5604,13 +5604,14 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .asset-register-row__description {
   justify-content: space-between;
   gap: 10px;
-  padding: 4px 10px;
+  padding: 3px 10px;
 }
 
 .asset-register-row__description > span {
   display: block;
   min-width: 0;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
+  font-weight: 400;
   color: #51677f;
   white-space: nowrap;
   overflow: hidden;

@@ -154,7 +154,7 @@ const defaultChildDraftState = () => ({
   isOpen: false,
   parentId: "",
   childType: "",
-  name: "",
+  codeSegment: "",
   description: "",
   equipmentFunction: "",
   equipmentType: "",
@@ -335,24 +335,83 @@ const removeNodeFromHierarchy = (nodes, nodeId) =>
 
 const isCodeLikeHierarchyValue = (value) => /^[A-Z0-9]+(?:[-_][A-Z0-9]+)*$/.test(String(value || "").trim());
 
-const normalizeHierarchyNode = (node, fallbackType = "subsystem") => {
+const joinInheritedCode = (parentFullCode, childSegment) => {
+  const parentValue = String(parentFullCode || "").trim();
+  const childValue = String(childSegment || "").trim();
+  if (!parentValue) {
+    return childValue;
+  }
+  if (!childValue) {
+    return parentValue;
+  }
+  return `${parentValue}-${childValue}`;
+};
+
+const extractLocalCodeSegment = (value, parentFullCode = "") => {
+  const rawValue = String(value || "").trim();
+  const parentValue = String(parentFullCode || "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  if (!parentValue) {
+    return rawValue;
+  }
+
+  const parentUpper = parentValue.toUpperCase();
+  const rawUpper = rawValue.toUpperCase();
+  if (rawUpper === parentUpper) {
+    return "";
+  }
+
+  const expectedPrefix = `${parentUpper}-`;
+  if (rawUpper.startsWith(expectedPrefix)) {
+    return rawValue.slice(parentValue.length + 1).trim();
+  }
+
+  return rawValue;
+};
+
+const normalizeHierarchyNode = (node, fallbackType = "subsystem", parentFullCode = "") => {
   const type = nodeTypeMeta[node?.type] ? node.type : fallbackType;
   const normalizedCode = typeof node?.code === "string" ? node.code.trim() : "";
   const normalizedName = typeof node?.name === "string" ? node.name.trim() : "";
   const normalizedDescription = typeof node?.description === "string" ? node.description.trim() : "";
-  const shouldPromoteLegacyName =
-    !normalizedDescription && normalizedCode && normalizedName && normalizedCode !== normalizedName;
+  let readableDescription = normalizedDescription;
+  if (!readableDescription && normalizedCode && normalizedName && normalizedCode !== normalizedName) {
+    readableDescription = normalizedName;
+  }
   const shouldSwapReversedFields =
-    normalizedDescription &&
+    readableDescription &&
     normalizedName &&
-    normalizedDescription.toUpperCase() === normalizedCode.toUpperCase() &&
+    readableDescription.toUpperCase() === normalizedCode.toUpperCase() &&
     !isCodeLikeHierarchyValue(normalizedName);
+  if (shouldSwapReversedFields) {
+    readableDescription = normalizedName;
+  }
+
+  const segmentFromCode = extractLocalCodeSegment(normalizedCode, parentFullCode);
+  const segmentFromName =
+    !segmentFromCode && isCodeLikeHierarchyValue(normalizedName)
+      ? extractLocalCodeSegment(normalizedName, parentFullCode)
+      : "";
+  const segmentFromDescription =
+    !segmentFromCode && !segmentFromName && isCodeLikeHierarchyValue(normalizedDescription)
+      ? extractLocalCodeSegment(normalizedDescription, parentFullCode)
+      : "";
+  const localCodeSegment = segmentFromCode || segmentFromName || segmentFromDescription;
+  const fullInheritedCode =
+    joinInheritedCode(parentFullCode, localCodeSegment) ||
+    (isCodeLikeHierarchyValue(normalizedName) ? normalizedName : "") ||
+    normalizedCode ||
+    normalizedName;
+
   return {
     id: typeof node?.id === "string" && node.id ? node.id : createId(type),
     type,
-    code: normalizedCode,
-    name: shouldPromoteLegacyName ? normalizedCode : shouldSwapReversedFields ? normalizedDescription : normalizedName,
-    description: shouldPromoteLegacyName ? normalizedName : shouldSwapReversedFields ? normalizedName : normalizedDescription,
+    code: localCodeSegment,
+    name: fullInheritedCode,
+    description: readableDescription,
     equipmentContext:
       type === "equipment"
         ? {
@@ -361,7 +420,7 @@ const normalizeHierarchyNode = (node, fallbackType = "subsystem") => {
           }
         : null,
     children: Array.isArray(node?.children)
-      ? node.children.map((child) => normalizeHierarchyNode(child, "subsystem"))
+      ? node.children.map((child) => normalizeHierarchyNode(child, "subsystem", fullInheritedCode))
       : [],
   };
 };
@@ -854,15 +913,17 @@ const persistDraftSilently = () => {
 
 const buildInitialHierarchyFromEntry = () => {
   const entry = state.entry;
-  const root = createNode("plant", entry.plantUnit.code.trim(), entry.plantUnit.code.trim(), entry.plantUnit.name.trim());
+  const plantCode = entry.plantUnit.code.trim();
+  const root = createNode("plant", plantCode, plantCode, entry.plantUnit.name.trim());
   let current = root;
   let deepestId = root.id;
 
   if (hasNodeValue(entry.sectionSystem)) {
+    const sectionCode = entry.sectionSystem.code.trim();
     const sectionNode = createNode(
       "section",
-      entry.sectionSystem.code.trim(),
-      entry.sectionSystem.code.trim(),
+      sectionCode,
+      joinInheritedCode(current.name, sectionCode),
       entry.sectionSystem.name.trim()
     );
     current.children.push(sectionNode);
@@ -875,17 +936,24 @@ const buildInitialHierarchyFromEntry = () => {
       return;
     }
 
-    const subsystemNode = createNode("subsystem", subsystem.code.trim(), subsystem.code.trim(), subsystem.name.trim());
+    const subsystemCode = subsystem.code.trim();
+    const subsystemNode = createNode(
+      "subsystem",
+      subsystemCode,
+      joinInheritedCode(current.name, subsystemCode),
+      subsystem.name.trim()
+    );
     current.children.push(subsystemNode);
     current = subsystemNode;
     deepestId = subsystemNode.id;
   });
 
   if (hasNodeValue(entry.equipmentUnit)) {
+    const equipmentCode = entry.equipmentUnit.code.trim();
     const equipmentNode = createNode(
       "equipment",
-      entry.equipmentUnit.code.trim(),
-      entry.equipmentUnit.code.trim(),
+      equipmentCode,
+      joinInheritedCode(current.name, equipmentCode),
       entry.equipmentUnit.name.trim()
     );
     current.children.push(equipmentNode);
@@ -894,7 +962,13 @@ const buildInitialHierarchyFromEntry = () => {
   }
 
   if (entry.hasSubunit && hasNodeValue(entry.subunit)) {
-    const subunitNode = createNode("subunit", entry.subunit.code.trim(), entry.subunit.code.trim(), entry.subunit.name.trim());
+    const subunitCode = entry.subunit.code.trim();
+    const subunitNode = createNode(
+      "subunit",
+      subunitCode,
+      joinInheritedCode(current.name, subunitCode),
+      entry.subunit.name.trim()
+    );
     current.children.push(subunitNode);
     deepestId = subunitNode.id;
   }
@@ -954,8 +1028,8 @@ const getStrategyItemsForNodeInfo = (nodeInfo) => {
       nodeInfo: findNodeInfo(state.hierarchy, item.nodeId),
     }));
 };
-const sanitizeNameToCode = (name, nodeType, siblings = []) => {
-  const rawValue = String(name || "").trim().toUpperCase();
+const sanitizeCodeSegment = (value, nodeType, siblings = []) => {
+  const rawValue = String(value || "").trim().toUpperCase();
   let baseCode = rawValue
     .replace(/[^A-Z0-9]+/g, "-")
     .replace(/-+/g, "-")
@@ -995,7 +1069,7 @@ const getChildActionLabel = (childType) => {
   }
 };
 const isChildDraftReady = () => {
-  if (!childDraftState.name.trim() || !childDraftState.description.trim()) {
+  if (!childDraftState.codeSegment.trim() || !childDraftState.description.trim()) {
     return false;
   }
 
@@ -1016,6 +1090,8 @@ const getNodeDisplayName = (node) =>
   getNodeDescription(node, getNodeNameValue(node, getNodeCodeValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node")));
 const getNodeBrowserDescription = (nodePath, node) =>
   getNodeDescription(node) || getFullCodeFromPath(nodePath) || getNodeLabel(node);
+const getNodeFullCode = (node, path = []) =>
+  getNodeNameValue(node, getFullCodeFromPath(path) || getNodeCodeValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node"));
 const getNodeIcon = (type) => {
   switch (type) {
     case "plant":
@@ -1420,7 +1496,7 @@ const openChildCreator = (parentId, childType = "") => {
     isOpen: true,
     parentId,
     childType: nextChildType,
-    name: "",
+    codeSegment: "",
     description: "",
     equipmentFunction: "",
     equipmentType: "",
@@ -1451,6 +1527,8 @@ const renderChildCreator = (nodeInfo, actions) => {
     ? childDraftState.childType
     : actions[0].type;
   const showEquipmentFields = selectedChildType === "equipment";
+  const parentFullCode = getNodeFullCode(nodeInfo.node, nodeInfo.path);
+  const inheritedPrefix = buildInheritedCodePrefix([parentFullCode]);
   const childTypeControl =
     actions.length > 1
       ? `
@@ -1483,9 +1561,12 @@ const renderChildCreator = (nodeInfo, actions) => {
       <div class="asset-child-creator__row-grid">
         <label class="field">
           <span>${getRequiredFieldLabel("Name")}</span>
-          <input id="childCreatorNameInput" type="text" value="${escapeHtml(
-            childDraftState.name
-          )}" placeholder="Enter code, e.g. MFA-CRUSH" required>
+          <div class="hierarchy-code-field ${inheritedPrefix ? "has-prefix" : ""}">
+            <span class="hierarchy-code-field__prefix">${escapeHtml(inheritedPrefix)}</span>
+            <input id="childCreatorNameInput" type="text" value="${escapeHtml(
+              childDraftState.codeSegment
+            )}" placeholder="Enter code segment" required>
+          </div>
         </label>
         <label class="field">
           <span>${getRequiredFieldLabel("Description")}</span>
@@ -1794,9 +1875,10 @@ const createChildNode = (parentId, childType, draft) => {
     return;
   }
 
-  const name = String(draft?.name || "").trim();
+  const parentFullCode = getNodeFullCode(info.node, info.path);
+  const codeSegment = sanitizeCodeSegment(draft?.codeSegment || "", childType, info.node.children);
+  const fullCode = joinInheritedCode(parentFullCode, codeSegment);
   const description = String(draft?.description || "").trim();
-  const generatedCode = sanitizeNameToCode(name, childType, info.node.children);
   const equipmentContext =
     childType === "equipment"
       ? {
@@ -1812,7 +1894,7 @@ const createChildNode = (parentId, childType, draft) => {
           criticality: String(draft?.criticality || "").trim(),
         }
       : null;
-  const nextNode = createNode(childType, generatedCode, name, description, equipmentContext);
+  const nextNode = createNode(childType, codeSegment, fullCode, description, equipmentContext);
   info.node.children.push(nextNode);
   setNodeCollapsed(parentId, false);
   state.selectedNodeId = nextNode.id;
@@ -2200,7 +2282,7 @@ const syncChildCreatorDraftField = (target) => {
   }
 
   if (target.id === "childCreatorNameInput") {
-    childDraftState.name = target.value;
+    childDraftState.codeSegment = target.value;
   }
 
   if (target.id === "childCreatorDescriptionInput") {
