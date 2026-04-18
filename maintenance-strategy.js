@@ -333,14 +333,26 @@ const removeNodeFromHierarchy = (nodes, nodeId) =>
       children: removeNodeFromHierarchy(node.children, nodeId),
     }));
 
+const isCodeLikeHierarchyValue = (value) => /^[A-Z0-9]+(?:[-_][A-Z0-9]+)*$/.test(String(value || "").trim());
+
 const normalizeHierarchyNode = (node, fallbackType = "subsystem") => {
   const type = nodeTypeMeta[node?.type] ? node.type : fallbackType;
+  const normalizedCode = typeof node?.code === "string" ? node.code.trim() : "";
+  const normalizedName = typeof node?.name === "string" ? node.name.trim() : "";
+  const normalizedDescription = typeof node?.description === "string" ? node.description.trim() : "";
+  const shouldPromoteLegacyName =
+    !normalizedDescription && normalizedCode && normalizedName && normalizedCode !== normalizedName;
+  const shouldSwapReversedFields =
+    normalizedDescription &&
+    normalizedName &&
+    normalizedDescription.toUpperCase() === normalizedCode.toUpperCase() &&
+    !isCodeLikeHierarchyValue(normalizedName);
   return {
     id: typeof node?.id === "string" && node.id ? node.id : createId(type),
     type,
-    code: typeof node?.code === "string" ? node.code : "",
-    name: typeof node?.name === "string" ? node.name : "",
-    description: typeof node?.description === "string" ? node.description : "",
+    code: normalizedCode,
+    name: shouldPromoteLegacyName ? normalizedCode : shouldSwapReversedFields ? normalizedDescription : normalizedName,
+    description: shouldPromoteLegacyName ? normalizedName : shouldSwapReversedFields ? normalizedName : normalizedDescription,
     equipmentContext:
       type === "equipment"
         ? {
@@ -723,7 +735,11 @@ const getFullCodeFromPath = (path) =>
 
 const getFullNameFromPath = (path) =>
   path
-    .map((node) => node.name.trim())
+    .map((node) => {
+      const description = typeof node?.description === "string" ? node.description.trim() : "";
+      const name = typeof node?.name === "string" ? node.name.trim() : "";
+      return description || name;
+    })
     .filter(Boolean)
     .join(" > ");
 
@@ -838,12 +854,17 @@ const persistDraftSilently = () => {
 
 const buildInitialHierarchyFromEntry = () => {
   const entry = state.entry;
-  const root = createNode("plant", entry.plantUnit.code.trim(), entry.plantUnit.name.trim());
+  const root = createNode("plant", entry.plantUnit.code.trim(), entry.plantUnit.code.trim(), entry.plantUnit.name.trim());
   let current = root;
   let deepestId = root.id;
 
   if (hasNodeValue(entry.sectionSystem)) {
-    const sectionNode = createNode("section", entry.sectionSystem.code.trim(), entry.sectionSystem.name.trim());
+    const sectionNode = createNode(
+      "section",
+      entry.sectionSystem.code.trim(),
+      entry.sectionSystem.code.trim(),
+      entry.sectionSystem.name.trim()
+    );
     current.children.push(sectionNode);
     current = sectionNode;
     deepestId = sectionNode.id;
@@ -854,21 +875,26 @@ const buildInitialHierarchyFromEntry = () => {
       return;
     }
 
-    const subsystemNode = createNode("subsystem", subsystem.code.trim(), subsystem.name.trim());
+    const subsystemNode = createNode("subsystem", subsystem.code.trim(), subsystem.code.trim(), subsystem.name.trim());
     current.children.push(subsystemNode);
     current = subsystemNode;
     deepestId = subsystemNode.id;
   });
 
   if (hasNodeValue(entry.equipmentUnit)) {
-    const equipmentNode = createNode("equipment", entry.equipmentUnit.code.trim(), entry.equipmentUnit.name.trim());
+    const equipmentNode = createNode(
+      "equipment",
+      entry.equipmentUnit.code.trim(),
+      entry.equipmentUnit.code.trim(),
+      entry.equipmentUnit.name.trim()
+    );
     current.children.push(equipmentNode);
     current = equipmentNode;
     deepestId = equipmentNode.id;
   }
 
   if (entry.hasSubunit && hasNodeValue(entry.subunit)) {
-    const subunitNode = createNode("subunit", entry.subunit.code.trim(), entry.subunit.name.trim());
+    const subunitNode = createNode("subunit", entry.subunit.code.trim(), entry.subunit.code.trim(), entry.subunit.name.trim());
     current.children.push(subunitNode);
     deepestId = subunitNode.id;
   }
@@ -887,7 +913,8 @@ const getSelectedNodeInfo = () => {
 };
 
 const getNodeLabel = (node) => nodeTypeMeta[node.type]?.label || "Asset node";
-const getNodeTitle = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
+const getNodeTitle = (node) =>
+  getNodeDescription(node, getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node"));
 const isMaintainableTarget = (node) => node.type === "equipment" || node.type === "subunit";
 const getDefaultGeneratedCode = (nodeType) => {
   switch (nodeType) {
@@ -981,9 +1008,12 @@ const isChildDraftReady = () => {
 
 const getRequiredFieldLabel = (label) =>
   `${label} <em class="field-required" aria-hidden="true">*</em><span class="sr-only">required</span>`;
-const getNodeDisplayName = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
+const getNodeBrowserName = (node) =>
+  getNodeNameValue(node, getNodeCodeValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node"));
 const getNodeDescription = (node, fallback = "") =>
   (typeof node?.description === "string" ? node.description.trim() : "") || fallback;
+const getNodeDisplayName = (node) =>
+  getNodeDescription(node, getNodeNameValue(node, getNodeCodeValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node")));
 const getNodeBrowserDescription = (nodePath, node) =>
   getNodeDescription(node) || getFullCodeFromPath(nodePath) || getNodeLabel(node);
 const getNodeIcon = (type) => {
@@ -1228,7 +1258,7 @@ const renderHierarchyNodes = (nodes, depth = 0, parentPath = [], filterValue = "
 const renderRegisterRow = ({ node, path, depth, hasChildren, expanded }) => {
   const isSelected = state.selectedNodeId === node.id;
   const selectedClass = isSelected ? "is-selected" : "";
-  const nodeLabel = getNodeDisplayName(node);
+  const nodeLabel = getNodeBrowserName(node);
   const description = getNodeBrowserDescription(path, node);
   const actions = getChildActions(node.type);
   const showAddButton = isSelected && actions.length;
@@ -1254,7 +1284,7 @@ const renderRegisterRow = ({ node, path, depth, hasChildren, expanded }) => {
             class="asset-register-row__add"
             type="button"
             data-open-child-creator="${node.id}"
-            aria-label="Add child under ${escapeHtml(nodeLabel)}"
+            aria-label="Add child under ${escapeHtml(getNodeTitle(node))}"
             title="Add child"
           >
             +
@@ -1453,11 +1483,15 @@ const renderChildCreator = (nodeInfo, actions) => {
       <div class="asset-child-creator__row-grid">
         <label class="field">
           <span>${getRequiredFieldLabel("Name")}</span>
-          <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name" required>
+          <input id="childCreatorNameInput" type="text" value="${escapeHtml(
+            childDraftState.name
+          )}" placeholder="Enter code, e.g. MFA-CRUSH" required>
         </label>
         <label class="field">
           <span>${getRequiredFieldLabel("Description")}</span>
-          <input id="childCreatorDescriptionInput" type="text" value="${escapeHtml(childDraftState.description)}" placeholder="Enter description" required>
+          <input id="childCreatorDescriptionInput" type="text" value="${escapeHtml(
+            childDraftState.description
+          )}" placeholder="Enter description, e.g. Primary Crusher" required>
         </label>
       </div>
     </section>
