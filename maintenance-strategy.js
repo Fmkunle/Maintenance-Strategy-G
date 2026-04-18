@@ -1547,9 +1547,9 @@ const renderChildCreator = (nodeInfo, actions) => {
             <strong class="asset-child-creator__section-title">Linked References</strong>
             <span class="asset-child-creator__section-note">Connections will activate once FMEA and baseline strategy modules are enabled.</span>
           </header>
-          <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+          <div class="asset-child-creator__references-grid">
             <button class="asset-child-creator__disabled-action" type="button" disabled>Link to FMEA</button>
-            <label class="field">
+            <label class="asset-child-creator__reference-field">
               <span>Baseline Strategy</span>
               <select disabled>
                 <option>Available later</option>
