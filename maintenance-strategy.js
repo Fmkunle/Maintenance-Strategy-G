@@ -2875,6 +2875,7 @@ childCreatorPanel?.addEventListener("click", (event) => {
 selectedNodeActions?.addEventListener("click", (event) => {
   const infoMenuButton = event.target.closest("[data-toggle-equipment-info-menu]");
   if (infoMenuButton) {
+    event.stopPropagation();
     toggleEquipmentInfoMenu(infoMenuButton.dataset.toggleEquipmentInfoMenu);
     renderAll({
       includeEntryDynamic: false,
@@ -2884,6 +2885,7 @@ selectedNodeActions?.addEventListener("click", (event) => {
 
   const equipmentInfoButton = event.target.closest("[data-open-equipment-info]");
   if (equipmentInfoButton) {
+    event.stopPropagation();
     const nodeInfo = findNodeInfo(state.hierarchy, equipmentInfoButton.dataset.equipmentNode);
     openEquipmentInfoMode(nodeInfo, equipmentInfoButton.dataset.openEquipmentInfo);
     renderAll({
@@ -2928,7 +2930,7 @@ document.addEventListener("click", (event) => {
     closeMaintenanceMenus();
   }
 
-  if (!selectedNodeActions || selectedNodeActions.contains(event.target)) {
+  if (event.target instanceof Element && event.target.closest("#selectedNodeActions")) {
     return;
   }
 
