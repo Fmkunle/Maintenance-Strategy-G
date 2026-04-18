@@ -107,15 +107,45 @@ const nodeTypeMeta = {
   },
 };
 
+const effectPerHourDownOptions = [
+  "5K AUD/hr down",
+  "10K AUD/hr down",
+  "15K AUD/hr down",
+  "20K AUD/hr down",
+  "25K AUD/hr down",
+  "30K AUD/hr down",
+  "35K AUD/hr down",
+  "40K AUD/hr down",
+  "45K AUD/hr down",
+  "50K AUD/hr down",
+];
+const demandFrequencyOptions = ["Continuous", "Frequent", "Intermittent", "Occasional", "Rare", "Standby"];
+const redundancyOptions = ["None", "50%", "25%", "Custom"];
+const maeCategoryOptions = ["No", "Yes"];
+const criticalityOptions = ["Extreme", "High", "Medium", "Low"];
+
 const createId = (prefix) =>
   `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
 
-const createNode = (type, code = "", name = "", description = "") => ({
+const defaultEquipmentContext = () => ({
+  equipmentFunction: "",
+  equipmentType: "",
+  effectPerHourDown: "",
+  demandFrequency: "",
+  redundancyMode: "None",
+  redundancyPercent: "",
+  maeCategory: "No",
+  operatingContext: "",
+  criticality: "",
+});
+
+const createNode = (type, code = "", name = "", description = "", equipmentContext = null) => ({
   id: createId(type),
   type,
   code,
   name,
   description,
+  equipmentContext: type === "equipment" ? { ...defaultEquipmentContext(), ...(equipmentContext || {}) } : null,
   children: [],
 });
 
@@ -123,7 +153,17 @@ const defaultChildDraftState = () => ({
   isOpen: false,
   parentId: "",
   childType: "",
-  name: "",
+  location: "",
+  description: "",
+  equipmentFunction: "",
+  equipmentType: "",
+  effectPerHourDown: "",
+  demandFrequency: "",
+  redundancyMode: "None",
+  redundancyPercent: "",
+  maeCategory: "No",
+  operatingContext: "",
+  criticality: "",
 });
 
 const defaultEntryState = () => ({
@@ -290,6 +330,13 @@ const normalizeHierarchyNode = (node, fallbackType = "subsystem") => {
     code: typeof node?.code === "string" ? node.code : "",
     name: typeof node?.name === "string" ? node.name : "",
     description: typeof node?.description === "string" ? node.description : "",
+    equipmentContext:
+      type === "equipment"
+        ? {
+            ...defaultEquipmentContext(),
+            ...(node?.equipmentContext && typeof node.equipmentContext === "object" ? node.equipmentContext : {}),
+          }
+        : null,
     children: Array.isArray(node?.children)
       ? node.children.map((child) => normalizeHierarchyNode(child, "subsystem"))
       : [],
@@ -844,41 +891,6 @@ const getDefaultGeneratedCode = (nodeType) => {
       return "NODE";
   }
 };
-const generateNodeCodeFromName = (name, nodeType, siblings = []) => {
-  const tokens = String(name || "").trim().match(/[A-Za-z0-9]+/g) || [];
-  let baseCode = "";
-
-  if (tokens.length > 1) {
-    baseCode = tokens
-      .slice(0, 4)
-      .map((token) => token[0])
-      .join("")
-      .toUpperCase();
-  } else if (tokens.length === 1) {
-    baseCode = tokens[0].slice(0, 4).toUpperCase();
-  }
-
-  if (!baseCode) {
-    baseCode = getDefaultGeneratedCode(nodeType);
-  }
-
-  const siblingCodes = new Set(
-    siblings
-      .map((entry) => String(entry?.code || "").trim().toUpperCase())
-      .filter(Boolean)
-  );
-
-  if (!siblingCodes.has(baseCode)) {
-    return baseCode;
-  }
-
-  let suffix = 2;
-  while (siblingCodes.has(`${baseCode}${suffix}`)) {
-    suffix += 1;
-  }
-
-  return `${baseCode}${suffix}`;
-};
 const collectNodeAndDescendantIds = (node, ids = new Set()) => {
   if (!node) {
     return ids;
@@ -902,6 +914,57 @@ const getStrategyItemsForNodeInfo = (nodeInfo) => {
       item,
       nodeInfo: findNodeInfo(state.hierarchy, item.nodeId),
     }));
+};
+const sanitizeDescriptionToCode = (description, nodeType, siblings = []) => {
+  const rawValue = String(description || "").trim().toUpperCase();
+  let baseCode = rawValue
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  if (!baseCode) {
+    baseCode = getDefaultGeneratedCode(nodeType);
+  }
+
+  const siblingCodes = new Set(
+    siblings
+      .map((entry) => String(entry?.code || "").trim().toUpperCase())
+      .filter(Boolean)
+  );
+  if (!siblingCodes.has(baseCode)) {
+    return baseCode;
+  }
+
+  let suffix = 2;
+  while (siblingCodes.has(`${baseCode}-${suffix}`)) {
+    suffix += 1;
+  }
+  return `${baseCode}-${suffix}`;
+};
+const getChildActionLabel = (childType) => {
+  switch (childType) {
+    case "subsystem":
+      return "Add Sub-system";
+    case "equipment":
+      return "Add Equipment Unit";
+    case "subunit":
+      return "Add Subunit";
+    case "section":
+      return "Add Section / System";
+    default:
+      return `Add ${getNodeLabel({ type: childType })}`;
+  }
+};
+const isChildDraftReady = () => {
+  if (!childDraftState.location.trim() || !childDraftState.description.trim()) {
+    return false;
+  }
+
+  if (childDraftState.childType === "equipment" && childDraftState.redundancyMode === "Custom") {
+    return Boolean(String(childDraftState.redundancyPercent).trim());
+  }
+
+  return true;
 };
 const getNodeDisplayName = (node) => getNodeNameValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node");
 const getNodeDescription = (node, fallback = "") =>
@@ -1312,11 +1375,19 @@ const openChildCreator = (parentId, childType = "") => {
     isOpen: true,
     parentId,
     childType: nextChildType,
-    name: "",
+    location: "",
+    description: "",
+    equipmentFunction: "",
+    equipmentType: "",
+    effectPerHourDown: "",
+    demandFrequency: "",
+    redundancyMode: "None",
+    redundancyPercent: "",
+    maeCategory: "No",
+    operatingContext: "",
+    criticality: "",
   };
 };
-
-const isChildDraftReady = () => Boolean(childDraftState.name.trim());
 
 const renderChildCreator = (nodeInfo, actions) => {
   if (!childCreatorPanel) {
@@ -1334,44 +1405,141 @@ const renderChildCreator = (nodeInfo, actions) => {
   const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
     ? childDraftState.childType
     : actions[0].type;
+  const showEquipmentFields = selectedChildType === "equipment";
   const childTypeControl =
-    actions.length === 1
+    actions.length > 1
       ? `
-          <input type="hidden" id="childCreatorTypeInput" value="${escapeHtml(selectedChildType)}">
-          <span class="asset-child-creator__static-type">${escapeHtml(getNodeLabel({ type: selectedChildType }))}</span>
-        `
-      : `
-          <select id="childCreatorTypeInput">
+          <div class="asset-child-creator__tabs" role="tablist" aria-label="Child type">
             ${actions
               .map(
                 (action) => `
-                  <option value="${escapeHtml(action.type)}" ${selectedChildType === action.type ? "selected" : ""}>
-                    ${escapeHtml(getNodeLabel({ type: action.type }))}
-                  </option>
+                  <button
+                    class="asset-child-creator__tab ${selectedChildType === action.type ? "is-active" : ""}"
+                    type="button"
+                    role="tab"
+                    aria-selected="${selectedChildType === action.type ? "true" : "false"}"
+                    data-child-type-option="${action.type}"
+                  >
+                    ${escapeHtml(getChildActionLabel(action.type))}
+                  </button>
                 `
               )
               .join("")}
-          </select>
-        `;
+          </div>
+        `
+      : `<input type="hidden" id="childCreatorTypeInput" value="${escapeHtml(selectedChildType)}">`;
+  const equipmentFieldsMarkup = showEquipmentFields
+    ? `
+        <div class="asset-child-creator__row-grid">
+          <label class="field">
+            <span>Equipment Function</span>
+            <input id="childCreatorEquipmentFunctionInput" type="text" value="${escapeHtml(childDraftState.equipmentFunction)}" placeholder="Enter equipment function">
+          </label>
+          <label class="field">
+            <span>Type of Equipment</span>
+            <input id="childCreatorEquipmentTypeInput" type="text" value="${escapeHtml(childDraftState.equipmentType)}" placeholder="Enter equipment type">
+          </label>
+        </div>
+        <div class="asset-child-creator__row-grid">
+          <label class="field">
+            <span>Effect</span>
+            <select id="childCreatorEffectInput">
+              <option value="">Select effect</option>
+              ${effectPerHourDownOptions
+                .map(
+                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.effectPerHourDown === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
+          <label class="field">
+            <span>Demand Frequency</span>
+            <select id="childCreatorDemandFrequencyInput">
+              <option value="">Select demand frequency</option>
+              ${demandFrequencyOptions
+                .map(
+                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.demandFrequency === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
+        </div>
+        <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+          <label class="field">
+            <span>Redundancy</span>
+            <select id="childCreatorRedundancyModeInput">
+              ${redundancyOptions
+                .map(
+                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.redundancyMode === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
+          ${
+            childDraftState.redundancyMode === "Custom"
+              ? `
+                  <label class="field">
+                    <span>Redundancy %</span>
+                    <input id="childCreatorRedundancyPercentInput" type="number" min="0" max="100" step="1" value="${escapeHtml(childDraftState.redundancyPercent)}" placeholder="Enter percent">
+                  </label>
+                `
+              : `<div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
+          }
+          <label class="field">
+            <span>Major Accident Event Category (MAE)</span>
+            <select id="childCreatorMaeCategoryInput">
+              ${maeCategoryOptions
+                .map(
+                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.maeCategory === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
+        </div>
+        <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+          <button class="asset-child-creator__disabled-action" type="button" disabled>Link to FMEA</button>
+          <label class="field">
+            <span>Baseline Strategy</span>
+            <select disabled>
+              <option>Available later</option>
+            </select>
+          </label>
+          <button class="asset-child-creator__disabled-action" type="button" disabled>Attach Manuals</button>
+        </div>
+        <div class="asset-child-creator__row-grid">
+          <label class="field">
+            <span>Criticality</span>
+            <select id="childCreatorCriticalityInput">
+              <option value="">Select criticality</option>
+              ${criticalityOptions
+                .map(
+                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.criticality === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
+        </div>
+        <label class="field field--full">
+          <span>Operating Context</span>
+          <textarea id="childCreatorOperatingContextInput" rows="3" placeholder="Add operating context">${escapeHtml(childDraftState.operatingContext)}</textarea>
+        </label>
+      `
+    : "";
 
   childCreatorPanel.innerHTML = `
     <section class="asset-child-creator__form">
-      <div class="strategy-surface__header">
-        <div>
-          <strong>Add ${escapeHtml(getNodeLabel({ type: selectedChildType }).toLowerCase())}</strong>
-          <span>Under ${escapeHtml(getNodeDisplayName(nodeInfo.node))}</span>
-        </div>
-      </div>
-      <div class="asset-child-creator__compact-grid">
+      ${childTypeControl}
+      <div class="asset-child-creator__row-grid">
         <label class="field">
-          <span>Child type</span>
-          ${childTypeControl}
+          <span>Location</span>
+          <input id="childCreatorLocationInput" type="text" value="${escapeHtml(childDraftState.location)}" placeholder="Enter location">
         </label>
         <label class="field">
-          <span>Name</span>
-          <input id="childCreatorNameInput" type="text" value="${escapeHtml(childDraftState.name)}" placeholder="Enter name">
+          <span>Description</span>
+          <input id="childCreatorDescriptionInput" type="text" value="${escapeHtml(childDraftState.description)}" placeholder="Enter description">
         </label>
       </div>
+      ${equipmentFieldsMarkup}
       <div class="asset-child-creator__actions">
         <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
         <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
@@ -1419,7 +1587,11 @@ const renderStrategyDrafts = (nodeInfo) => {
                 <article class="strategy-draft-card">
                   <span class="strategy-draft-card__eyebrow">Strategy ${index + 1}</span>
                   <strong>${escapeHtml(getDisplayValue(item.name, `Maintainable item ${index + 1}`))}</strong>
-                  <p>${escapeHtml(sourceLabel)}</p>
+                  <p>${escapeHtml(
+                    itemNodeInfo
+                      ? `${getNodeDisplayName(itemNodeInfo.node)} - ${getNodeLabel(itemNodeInfo.node)}`
+                      : "Linked asset"
+                  )}</p>
                   <small>${escapeHtml(sourcePath)}</small>
                 </article>
               `;
@@ -1444,7 +1616,7 @@ const renderStrategyDrafts = (nodeInfo) => {
 const renderSelectedNodePanel = () => {
   const nodeInfo = getSelectedNodeInfo();
   if (!nodeInfo) {
-    selectedNodeTypeLabel.textContent = "Asset node";
+    selectedNodeTypeLabel.textContent = "Strategies";
     backgroundDetailHeading.textContent = "No asset selected";
     backgroundDetailSummary.textContent = "Select a system or asset in the left register to view related strategies.";
     if (childCreatorPanel) {
@@ -1467,7 +1639,7 @@ const renderSelectedNodePanel = () => {
     const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
       ? childDraftState.childType
       : actions[0].type;
-    selectedNodeTypeLabel.textContent = `Add ${getNodeLabel({ type: selectedChildType })}`;
+    selectedNodeTypeLabel.textContent = getChildActionLabel(selectedChildType);
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
     backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
     renderChildCreator(nodeInfo, actions);
@@ -1478,9 +1650,9 @@ const renderSelectedNodePanel = () => {
     return;
   }
 
-  selectedNodeTypeLabel.textContent = getNodeLabel(node);
+  selectedNodeTypeLabel.textContent = "Strategies";
   backgroundDetailHeading.textContent = getNodeDisplayName(node);
-  backgroundDetailSummary.textContent = `${getNodeLabel(node)} · ${getFullCodeFromPath(path) || getNodeCodeValue(node, "Code pending")}`;
+  backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
   if (childCreatorPanel) {
     childCreatorPanel.hidden = true;
     childCreatorPanel.innerHTML = "";
@@ -1514,15 +1686,31 @@ const renderAll = (options = {}) => {
   renderWorkspaceState();
 };
 
-const createChildNode = (parentId, childType, name = "") => {
+const createChildNode = (parentId, childType, draft) => {
   const info = findNodeInfo(state.hierarchy, parentId);
   if (!info) {
     return;
   }
 
-  const trimmedName = name.trim();
-  const generatedCode = generateNodeCodeFromName(trimmedName, childType, info.node.children);
-  const nextNode = createNode(childType, generatedCode, trimmedName, "");
+  const location = String(draft?.location || "").trim();
+  const description = String(draft?.description || "").trim();
+  const generatedCode = sanitizeDescriptionToCode(description, childType, info.node.children);
+  const equipmentContext =
+    childType === "equipment"
+      ? {
+          equipmentFunction: String(draft?.equipmentFunction || "").trim(),
+          equipmentType: String(draft?.equipmentType || "").trim(),
+          effectPerHourDown: String(draft?.effectPerHourDown || "").trim(),
+          demandFrequency: String(draft?.demandFrequency || "").trim(),
+          redundancyMode: String(draft?.redundancyMode || "None").trim() || "None",
+          redundancyPercent:
+            String(draft?.redundancyMode || "") === "Custom" ? String(draft?.redundancyPercent || "").trim() : "",
+          maeCategory: String(draft?.maeCategory || "No").trim() || "No",
+          operatingContext: String(draft?.operatingContext || "").trim(),
+          criticality: String(draft?.criticality || "").trim(),
+        }
+      : null;
+  const nextNode = createNode(childType, generatedCode, location, description, equipmentContext);
   info.node.children.push(nextNode);
   setNodeCollapsed(parentId, false);
   state.selectedNodeId = nextNode.id;
@@ -1857,14 +2045,65 @@ const syncChildCreatorDraftField = (target) => {
     return;
   }
 
-  if (target.id === "childCreatorTypeInput") {
-    childDraftState.childType = target.value;
+  if (target.dataset.childTypeOption) {
+    childDraftState.childType = target.dataset.childTypeOption;
+    childDraftState.redundancyMode = "None";
+    childDraftState.redundancyPercent = "";
     renderSelectedNodePanel();
     return;
   }
 
-  if (target.id === "childCreatorNameInput") {
-    childDraftState.name = target.value;
+  if (target.id === "childCreatorTypeInput") {
+    childDraftState.childType = target.value;
+  }
+
+  if (target.id === "childCreatorLocationInput") {
+    childDraftState.location = target.value;
+  }
+
+  if (target.id === "childCreatorDescriptionInput") {
+    childDraftState.description = target.value;
+  }
+
+  if (target.id === "childCreatorEquipmentFunctionInput") {
+    childDraftState.equipmentFunction = target.value;
+  }
+
+  if (target.id === "childCreatorEquipmentTypeInput") {
+    childDraftState.equipmentType = target.value;
+  }
+
+  if (target.id === "childCreatorEffectInput") {
+    childDraftState.effectPerHourDown = target.value;
+  }
+
+  if (target.id === "childCreatorDemandFrequencyInput") {
+    childDraftState.demandFrequency = target.value;
+  }
+
+  if (target.id === "childCreatorRedundancyModeInput") {
+    childDraftState.redundancyMode = target.value;
+    if (target.value !== "Custom") {
+      childDraftState.redundancyPercent = "";
+    }
+    renderSelectedNodePanel();
+    return;
+  }
+
+  if (target.id === "childCreatorRedundancyPercentInput") {
+    childDraftState.redundancyPercent = target.value;
+  }
+
+  if (target.id === "childCreatorMaeCategoryInput") {
+    childDraftState.maeCategory = target.value;
+  }
+
+  if (target.id === "childCreatorOperatingContextInput") {
+    childDraftState.operatingContext = target.value;
+  }
+
+  if (target.id === "childCreatorCriticalityInput") {
+    childDraftState.criticality = target.value;
   }
 
   const createButton = childCreatorPanel?.querySelector("#createChildButton");
@@ -1882,6 +2121,12 @@ childCreatorPanel?.addEventListener("change", (event) => {
 });
 
 childCreatorPanel?.addEventListener("click", (event) => {
+  const childTypeButton = event.target.closest("[data-child-type-option]");
+  if (childTypeButton) {
+    syncChildCreatorDraftField(childTypeButton);
+    return;
+  }
+
   const cancelButton = event.target.closest("#cancelChildCreatorButton");
   if (cancelButton) {
     closeChildCreator();
@@ -1899,7 +2144,7 @@ childCreatorPanel?.addEventListener("click", (event) => {
   createChildNode(
     childDraftState.parentId,
     childDraftState.childType,
-    childDraftState.name
+    childDraftState
   );
 });
 
