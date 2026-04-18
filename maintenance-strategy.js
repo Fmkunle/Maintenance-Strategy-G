@@ -1409,7 +1409,8 @@ const renderChildCreator = (nodeInfo, actions) => {
   const childTypeControl =
     actions.length > 1
       ? `
-          <div class="asset-child-creator__tabs" role="tablist" aria-label="Child type">
+          <div class="asset-child-creator__modebar">
+            <div class="asset-child-creator__tabs" role="tablist" aria-label="Child type">
             ${actions
               .map(
                 (action) => `
@@ -1425,110 +1426,15 @@ const renderChildCreator = (nodeInfo, actions) => {
                 `
               )
               .join("")}
+            </div>
           </div>
         `
       : `<input type="hidden" id="childCreatorTypeInput" value="${escapeHtml(selectedChildType)}">`;
-  const equipmentFieldsMarkup = showEquipmentFields
-    ? `
-        <div class="asset-child-creator__row-grid">
-          <label class="field">
-            <span>Equipment Function</span>
-            <input id="childCreatorEquipmentFunctionInput" type="text" value="${escapeHtml(childDraftState.equipmentFunction)}" placeholder="Enter equipment function">
-          </label>
-          <label class="field">
-            <span>Type of Equipment</span>
-            <input id="childCreatorEquipmentTypeInput" type="text" value="${escapeHtml(childDraftState.equipmentType)}" placeholder="Enter equipment type">
-          </label>
-        </div>
-        <div class="asset-child-creator__row-grid">
-          <label class="field">
-            <span>Effect</span>
-            <select id="childCreatorEffectInput">
-              <option value="">Select effect</option>
-              ${effectPerHourDownOptions
-                .map(
-                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.effectPerHourDown === option ? "selected" : ""}>${escapeHtml(option)}</option>`
-                )
-                .join("")}
-            </select>
-          </label>
-          <label class="field">
-            <span>Demand Frequency</span>
-            <select id="childCreatorDemandFrequencyInput">
-              <option value="">Select demand frequency</option>
-              ${demandFrequencyOptions
-                .map(
-                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.demandFrequency === option ? "selected" : ""}>${escapeHtml(option)}</option>`
-                )
-                .join("")}
-            </select>
-          </label>
-        </div>
-        <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
-          <label class="field">
-            <span>Redundancy</span>
-            <select id="childCreatorRedundancyModeInput">
-              ${redundancyOptions
-                .map(
-                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.redundancyMode === option ? "selected" : ""}>${escapeHtml(option)}</option>`
-                )
-                .join("")}
-            </select>
-          </label>
-          ${
-            childDraftState.redundancyMode === "Custom"
-              ? `
-                  <label class="field">
-                    <span>Redundancy %</span>
-                    <input id="childCreatorRedundancyPercentInput" type="number" min="0" max="100" step="1" value="${escapeHtml(childDraftState.redundancyPercent)}" placeholder="Enter percent">
-                  </label>
-                `
-              : `<div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
-          }
-          <label class="field">
-            <span>Major Accident Event Category (MAE)</span>
-            <select id="childCreatorMaeCategoryInput">
-              ${maeCategoryOptions
-                .map(
-                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.maeCategory === option ? "selected" : ""}>${escapeHtml(option)}</option>`
-                )
-                .join("")}
-            </select>
-          </label>
-        </div>
-        <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
-          <button class="asset-child-creator__disabled-action" type="button" disabled>Link to FMEA</button>
-          <label class="field">
-            <span>Baseline Strategy</span>
-            <select disabled>
-              <option>Available later</option>
-            </select>
-          </label>
-          <button class="asset-child-creator__disabled-action" type="button" disabled>Attach Manuals</button>
-        </div>
-        <div class="asset-child-creator__row-grid">
-          <label class="field">
-            <span>Criticality</span>
-            <select id="childCreatorCriticalityInput">
-              <option value="">Select criticality</option>
-              ${criticalityOptions
-                .map(
-                  (option) => `<option value="${escapeHtml(option)}" ${childDraftState.criticality === option ? "selected" : ""}>${escapeHtml(option)}</option>`
-                )
-                .join("")}
-            </select>
-          </label>
-        </div>
-        <label class="field field--full">
-          <span>Operating Context</span>
-          <textarea id="childCreatorOperatingContextInput" rows="3" placeholder="Add operating context">${escapeHtml(childDraftState.operatingContext)}</textarea>
-        </label>
-      `
-    : "";
-
-  childCreatorPanel.innerHTML = `
-    <section class="asset-child-creator__form">
-      ${childTypeControl}
+  const definitionSectionMarkup = `
+    <section class="asset-child-creator__section">
+      <header class="asset-child-creator__section-head">
+        <strong class="asset-child-creator__section-title">Definition</strong>
+      </header>
       <div class="asset-child-creator__row-grid">
         <label class="field">
           <span>Location</span>
@@ -1539,6 +1445,126 @@ const renderChildCreator = (nodeInfo, actions) => {
           <input id="childCreatorDescriptionInput" type="text" value="${escapeHtml(childDraftState.description)}" placeholder="Enter description">
         </label>
       </div>
+    </section>
+  `;
+  const equipmentFieldsMarkup = showEquipmentFields
+    ? `
+        <section class="asset-child-creator__section">
+          <header class="asset-child-creator__section-head">
+            <strong class="asset-child-creator__section-title">Equipment Context</strong>
+          </header>
+          <div class="asset-child-creator__row-grid">
+            <label class="field">
+              <span>Equipment Function</span>
+              <input id="childCreatorEquipmentFunctionInput" type="text" value="${escapeHtml(childDraftState.equipmentFunction)}" placeholder="Enter equipment function">
+            </label>
+            <label class="field">
+              <span>Type of Equipment</span>
+              <input id="childCreatorEquipmentTypeInput" type="text" value="${escapeHtml(childDraftState.equipmentType)}" placeholder="Enter equipment type">
+            </label>
+          </div>
+          <label class="field field--full">
+            <span>Operating Context</span>
+            <textarea id="childCreatorOperatingContextInput" rows="3" placeholder="Add operating context">${escapeHtml(childDraftState.operatingContext)}</textarea>
+          </label>
+        </section>
+        <section class="asset-child-creator__section">
+          <header class="asset-child-creator__section-head">
+            <strong class="asset-child-creator__section-title">Consequence</strong>
+          </header>
+          <div class="asset-child-creator__row-grid">
+            <label class="field">
+              <span>Effect</span>
+              <select id="childCreatorEffectInput">
+                <option value="">Select effect</option>
+                ${effectPerHourDownOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${childDraftState.effectPerHourDown === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+            <label class="field">
+              <span>Demand Frequency</span>
+              <select id="childCreatorDemandFrequencyInput">
+                <option value="">Select demand frequency</option>
+                ${demandFrequencyOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${childDraftState.demandFrequency === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+          </div>
+          <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+            <label class="field">
+              <span>Redundancy</span>
+              <select id="childCreatorRedundancyModeInput">
+                ${redundancyOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${childDraftState.redundancyMode === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+            ${
+              childDraftState.redundancyMode === "Custom"
+                ? `
+                    <label class="field">
+                      <span>Redundancy %</span>
+                      <input id="childCreatorRedundancyPercentInput" type="number" min="0" max="100" step="1" value="${escapeHtml(childDraftState.redundancyPercent)}" placeholder="Enter percent">
+                    </label>
+                  `
+                : `<div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
+            }
+            <label class="field">
+              <span>Major Accident Event Category (MAE)</span>
+              <select id="childCreatorMaeCategoryInput">
+                ${maeCategoryOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${childDraftState.maeCategory === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+          </div>
+          <div class="asset-child-creator__row-grid">
+            <label class="field">
+              <span>Criticality</span>
+              <select id="childCreatorCriticalityInput">
+                <option value="">Select criticality</option>
+                ${criticalityOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${childDraftState.criticality === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+          </div>
+        </section>
+        <section class="asset-child-creator__section">
+          <header class="asset-child-creator__section-head">
+            <strong class="asset-child-creator__section-title">Linked References</strong>
+            <span class="asset-child-creator__section-note">Connections will activate once FMEA and baseline strategy modules are enabled.</span>
+          </header>
+          <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+            <button class="asset-child-creator__disabled-action" type="button" disabled>Link to FMEA</button>
+            <label class="field">
+              <span>Baseline Strategy</span>
+              <select disabled>
+                <option>Available later</option>
+              </select>
+            </label>
+            <button class="asset-child-creator__disabled-action" type="button" disabled>Attach Manuals</button>
+          </div>
+        </section>
+      `
+    : "";
+
+  childCreatorPanel.innerHTML = `
+    <section class="asset-child-creator__form">
+      ${childTypeControl}
+      ${definitionSectionMarkup}
       ${equipmentFieldsMarkup}
       <div class="asset-child-creator__actions">
         <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>

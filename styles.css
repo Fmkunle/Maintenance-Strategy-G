@@ -4801,15 +4801,16 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .strategy-surface--flat {
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  border-color: #bcc9d7;
+  background: #fdfefe;
   box-shadow: none;
 }
 
 .strategy-surface__header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 18px 20px 0;
+  gap: 2px;
+  padding: 14px 18px 0;
 }
 
 .strategy-surface__header--spread {
@@ -4822,8 +4823,8 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 .strategy-surface__header strong,
 .strategy-detail h2 {
   margin: 0;
-  font-size: 1rem;
-  letter-spacing: -0.02em;
+  font-size: 1.02rem;
+  letter-spacing: -0.015em;
 }
 
 .strategy-surface__header span,
@@ -4934,8 +4935,9 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .strategy-detail {
   display: grid;
-  gap: 10px;
-  padding: 20px;
+  gap: 6px;
+  padding: 12px 18px 10px;
+  border-bottom: 1px solid #d3dde8;
 }
 
 .strategy-detail__eyebrow {
@@ -5631,25 +5633,13 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .asset-child-creator__form {
   display: grid;
-  gap: 10px;
-  width: min(760px, 100%);
+  gap: 8px;
+  width: min(720px, 100%);
   justify-self: start;
-  padding: 14px;
-  border: 1px solid #c8d2df;
-  border-radius: 6px;
-  background: #f8fafc;
-}
-
-.asset-child-creator__static-type {
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 10px;
-  border: 1px solid #c8d2df;
+  padding: 10px 12px 12px;
+  border: 1px solid #bac8d8;
   border-radius: 4px;
-  background: #ffffff;
-  font-weight: 700;
-  color: var(--text);
+  background: #f7fafc;
 }
 
 .asset-child-creator textarea {
@@ -5657,34 +5647,77 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   resize: vertical;
 }
 
+.asset-child-creator__modebar {
+  display: flex;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
 .asset-child-creator__tabs {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding-bottom: 4px;
+  gap: 0;
+  border: 1px solid #aebfd1;
+  border-radius: 4px;
+  background: #edf3f8;
+  overflow: hidden;
 }
 
 .asset-child-creator__tab {
   min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid #c8d2df;
-  border-radius: 4px;
-  background: #ffffff;
-  color: #5c6f86;
-  font-size: 0.8rem;
+  padding: 0 12px;
+  border: 0;
+  border-right: 1px solid #c6d2e0;
+  border-radius: 0;
+  background: transparent;
+  color: #59708a;
+  font-size: 0.76rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.asset-child-creator__tab:last-child {
+  border-right: 0;
 }
 
 .asset-child-creator__tab.is-active {
-  background: #dde7f2;
-  border-color: #97aac0;
-  color: #22364d;
+  background: #ffffff;
+  color: #18314c;
+  box-shadow: inset 0 -2px 0 #6c86a3;
+}
+
+.asset-child-creator__section {
+  display: grid;
+  gap: 8px;
+  padding: 10px 10px 12px;
+  border: 1px solid #d2dce8;
+  border-radius: 3px;
+  background: #fbfdff;
+}
+
+.asset-child-creator__section-head {
+  display: grid;
+  gap: 2px;
+}
+
+.asset-child-creator__section-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5d7087;
+}
+
+.asset-child-creator__section-note {
+  font-size: 0.73rem;
+  line-height: 1.35;
+  color: #6d7f94;
 }
 
 .asset-child-creator__row-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 14px;
+  gap: 7px 14px;
   align-items: start;
 }
 
@@ -5698,40 +5731,47 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
 
 .asset-child-creator .field {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 138px minmax(0, 1fr);
+  gap: 8px;
   align-items: center;
 }
 
 .asset-child-creator .field--full {
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: 138px minmax(0, 1fr);
 }
 
 .asset-child-creator .field span {
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: #5a6f88;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #485d74;
   line-height: 1.35;
+  letter-spacing: 0.01em;
 }
 
 .asset-child-creator .field input,
 .asset-child-creator .field select,
 .asset-child-creator .field textarea {
   min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #bcc9d8;
   border-radius: 4px;
+  background: #ffffff;
+  color: #20364d;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7);
 }
 
 .asset-child-creator .field textarea {
   min-height: 74px;
+  padding: 8px 10px;
 }
 
 .asset-child-creator__disabled-action {
   min-height: 34px;
   width: 100%;
-  border: 1px solid #d4dde8;
+  border: 1px dashed #c1cedc;
   border-radius: 4px;
-  background: #f3f6fa;
-  color: #93a0b2;
+  background: #f7fafc;
+  color: #7f90a4;
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -5740,6 +5780,7 @@ body.fiori-overview-page[data-theme="dark"] .fiori-analytic-card--link:hover {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  padding-top: 4px;
 }
 
 body.is-resizing-layout {
