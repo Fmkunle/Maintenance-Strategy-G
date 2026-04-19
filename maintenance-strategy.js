@@ -190,19 +190,40 @@ const defaultEquipmentContext = () => ({
   criticality: "",
 });
 
+const defaultCauseFailureConfig = () => ({
+  distribution: "Age related",
+  weibullSet: "",
+  mttf: "",
+  standardDeviation: "",
+  demandFrequency: "",
+  standbyFailurePercent: "",
+  standbyAgeingPercent: "",
+  isDormant: false,
+  eta1: "",
+  beta1: "",
+  gamma1: "",
+  eta2: "",
+  beta2: "",
+  gamma2: "",
+  eta3: "",
+  beta3: "",
+  gamma3: "",
+});
+
 const defaultEntryEquipmentUnit = () => ({
   code: "",
   name: "",
   equipmentContext: defaultEquipmentContext(),
 });
 
-const createNode = (type, code = "", name = "", description = "", equipmentContext = null) => ({
+const createNode = (type, code = "", name = "", description = "", equipmentContext = null, failureConfig = null) => ({
   id: createId(type),
   type,
   code,
   name,
   description,
   equipmentContext: type === "equipment" ? { ...defaultEquipmentContext(), ...(equipmentContext || {}) } : null,
+  failureConfig: type === "cause" ? { ...defaultCauseFailureConfig(), ...(failureConfig || {}) } : null,
   children: [],
 });
 
@@ -221,12 +242,34 @@ const defaultChildDraftState = () => ({
   maeCategory: "No",
   operatingContext: "",
   criticality: "",
+  distribution: "Age related",
+  weibullSet: "",
+  mttf: "",
+  standardDeviation: "",
+  causeDemandFrequency: "",
+  standbyFailurePercent: "",
+  standbyAgeingPercent: "",
+  isDormant: false,
+  eta1: "",
+  beta1: "",
+  gamma1: "",
+  eta2: "",
+  beta2: "",
+  gamma2: "",
+  eta3: "",
+  beta3: "",
+  gamma3: "",
 });
 
 const defaultEquipmentInfoState = () => ({
   mode: "closed",
   nodeId: "",
   menuOpen: false,
+  draft: null,
+});
+
+const defaultCauseConfigState = () => ({
+  nodeId: "",
   draft: null,
 });
 
@@ -272,6 +315,7 @@ const deletableNodeTypes = new Set([
 let workspaceSaveTimer = null;
 let workspaceSaveSequence = Promise.resolve();
 let entryEquipmentInfoState = defaultEntryEquipmentInfoState();
+let causeConfigState = defaultCauseConfigState();
 
 const getLaunchMode = () => {
   const mode = new URLSearchParams(window.location.search).get("mode");
@@ -289,6 +333,12 @@ const normalizeEquipmentEntryNode = (value) => ({
     ...defaultEquipmentContext(),
     ...(value?.equipmentContext && typeof value.equipmentContext === "object" ? value.equipmentContext : {}),
   },
+});
+
+const normalizeCauseFailureConfig = (value) => ({
+  ...defaultCauseFailureConfig(),
+  ...(value && typeof value === "object" ? value : {}),
+  isDormant: Boolean(value?.isDormant),
 });
 
 const normalizeEntryState = (entry) => ({
@@ -508,6 +558,7 @@ const normalizeHierarchyNode = (node, fallbackType = "subsystem", parentFullCode
             ...(node?.equipmentContext && typeof node.equipmentContext === "object" ? node.equipmentContext : {}),
           }
         : null,
+    failureConfig: type === "cause" ? normalizeCauseFailureConfig(node?.failureConfig) : null,
     children: Array.isArray(node?.children)
       ? node.children.map((child) => normalizeHierarchyNode(child, "subsystem", fullInheritedCode))
       : [],
@@ -1309,6 +1360,52 @@ const getChildDescriptionLabel = (childType) => {
   }
 };
 
+const createCauseConfigDraftFromFailureConfig = (description = "", failureConfig = null) => {
+  const config = normalizeCauseFailureConfig(failureConfig);
+  return {
+    description: String(description || ""),
+    distribution: String(config.distribution || "Age related") || "Age related",
+    weibullSet: String(config.weibullSet || ""),
+    mttf: String(config.mttf || ""),
+    standardDeviation: String(config.standardDeviation || ""),
+    causeDemandFrequency: String(config.demandFrequency || ""),
+    standbyFailurePercent: String(config.standbyFailurePercent || ""),
+    standbyAgeingPercent: String(config.standbyAgeingPercent || ""),
+    isDormant: Boolean(config.isDormant),
+    eta1: String(config.eta1 || ""),
+    beta1: String(config.beta1 || ""),
+    gamma1: String(config.gamma1 || ""),
+    eta2: String(config.eta2 || ""),
+    beta2: String(config.beta2 || ""),
+    gamma2: String(config.gamma2 || ""),
+    eta3: String(config.eta3 || ""),
+    beta3: String(config.beta3 || ""),
+    gamma3: String(config.gamma3 || ""),
+  };
+};
+
+const isCauseConfigDraftReady = (draft) => Boolean(String(draft?.description || "").trim());
+
+const buildCauseFailureConfigFromDraft = (draft) => ({
+  distribution: String(draft?.distribution || "Age related") || "Age related",
+  weibullSet: String(draft?.weibullSet || "").trim(),
+  mttf: String(draft?.mttf || "").trim(),
+  standardDeviation: String(draft?.standardDeviation || "").trim(),
+  demandFrequency: String(draft?.causeDemandFrequency || "").trim(),
+  standbyFailurePercent: String(draft?.standbyFailurePercent || "").trim(),
+  standbyAgeingPercent: String(draft?.standbyAgeingPercent || "").trim(),
+  isDormant: Boolean(draft?.isDormant),
+  eta1: String(draft?.eta1 || "").trim(),
+  beta1: String(draft?.beta1 || "").trim(),
+  gamma1: String(draft?.gamma1 || "").trim(),
+  eta2: String(draft?.eta2 || "").trim(),
+  beta2: String(draft?.beta2 || "").trim(),
+  gamma2: String(draft?.gamma2 || "").trim(),
+  eta3: String(draft?.eta3 || "").trim(),
+  beta3: String(draft?.beta3 || "").trim(),
+  gamma3: String(draft?.gamma3 || "").trim(),
+});
+
 const isEquipmentInfoDraftReady = () => {
   if (!equipmentInfoState.draft) {
     return false;
@@ -1355,8 +1452,13 @@ const createEquipmentInfoDraft = (node) => {
     criticality: String(context.criticality || ""),
   };
 };
+const createCauseConfigDraft = (node) =>
+  createCauseConfigDraftFromFailureConfig(getNodeDescription(node), node?.failureConfig || defaultCauseFailureConfig());
 const closeEquipmentInfo = () => {
   equipmentInfoState = defaultEquipmentInfoState();
+};
+const closeCauseConfig = () => {
+  causeConfigState = defaultCauseConfigState();
 };
 const closeEquipmentInfoMenu = () => {
   equipmentInfoState = {
@@ -1384,6 +1486,19 @@ const openEquipmentInfoMode = (nodeInfo, mode) => {
     nodeId: nodeInfo.node.id,
     menuOpen: false,
     draft: mode === "edit" ? createEquipmentInfoDraft(nodeInfo.node) : null,
+  };
+};
+const openCauseConfig = (nodeInfo) => {
+  if (!nodeInfo || nodeInfo.node.type !== "cause") {
+    closeCauseConfig();
+    return;
+  }
+
+  closeChildCreator();
+  closeEquipmentInfo();
+  causeConfigState = {
+    nodeId: nodeInfo.node.id,
+    draft: createCauseConfigDraft(nodeInfo.node),
   };
 };
 const updateInheritedCodesForSubtree = (node, parentFullCode = "") => {
@@ -1992,6 +2107,7 @@ const openChildCreator = (parentId, childType = "") => {
   }
 
   closeEquipmentInfo();
+  closeCauseConfig();
   const nextChildType = actions.some((action) => action.type === childType) ? childType : actions[0].type;
   childDraftState = {
     isOpen: true,
@@ -2045,6 +2161,24 @@ const saveEquipmentInfo = (nodeId, draft) => {
     nodeId,
     menuOpen: false,
     draft: null,
+  };
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
+};
+
+const saveCauseConfig = (nodeId, draft) => {
+  const info = findNodeInfo(state.hierarchy, nodeId);
+  if (!info || info.node.type !== "cause") {
+    return;
+  }
+
+  info.node.description = String(draft?.description || "").trim();
+  info.node.failureConfig = buildCauseFailureConfigFromDraft(draft);
+  causeConfigState = {
+    nodeId,
+    draft: createCauseConfigDraft(info.node),
   };
   persistDraftSilently();
   renderAll({
@@ -2263,10 +2397,158 @@ const renderChildCreator = (nodeInfo, actions) => {
     <section class="asset-child-creator__form">
       ${childTypeControl}
       ${definitionSectionMarkup}
+      ${
+        selectedChildType === "cause"
+          ? renderCauseConfigFields(childDraftState, { idPrefix: "childCreatorCause", isCreateMode: true })
+          : ""
+      }
       ${equipmentFieldsMarkup}
       <div class="asset-child-creator__actions">
         <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
         <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
+      </div>
+    </section>
+  `;
+};
+
+const renderCauseConfigFields = (draft, options = {}) => {
+  const idPrefix = options.idPrefix || "causeConfig";
+  const distributionOptions = ["Age related", "Random (non age related)"];
+  return `
+    <section class="asset-child-creator__section cause-config-panel">
+      <header class="asset-child-creator__section-head">
+        <strong class="asset-child-creator__section-title">Failure Configuration</strong>
+      </header>
+      <div class="cause-config-panel__matrix">
+        <div class="cause-config-panel__column">
+          <label class="field">
+            <span>Distribution</span>
+            <select id="${idPrefix}DistributionInput">
+              ${distributionOptions
+                .map(
+                  (option) =>
+                    `<option value="${escapeHtml(option)}" ${draft.distribution === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
+          <label class="field">
+            <span>Weibull Set</span>
+            <input id="${idPrefix}WeibullSetInput" type="text" value="${escapeHtml(draft.weibullSet)}" placeholder="Enter Weibull set">
+          </label>
+          <label class="field">
+            <span>MTTF</span>
+            <input id="${idPrefix}MttfInput" type="number" min="0" step="any" value="${escapeHtml(draft.mttf)}" placeholder="Enter MTTF">
+          </label>
+          <label class="field">
+            <span>Standard Deviation</span>
+            <input id="${idPrefix}StandardDeviationInput" type="number" min="0" step="any" value="${escapeHtml(
+              draft.standardDeviation
+            )}" placeholder="Enter standard deviation">
+          </label>
+          <label class="field">
+            <span>Demand Frequency</span>
+            <input id="${idPrefix}DemandFrequencyInput" type="number" min="0" step="any" value="${escapeHtml(
+              draft.causeDemandFrequency
+            )}" placeholder="Enter demand frequency">
+          </label>
+          <label class="field">
+            <span>Standby Failure %</span>
+            <input id="${idPrefix}StandbyFailurePercentInput" type="number" min="0" step="any" value="${escapeHtml(
+              draft.standbyFailurePercent
+            )}" placeholder="Enter standby failure percent">
+          </label>
+          <label class="field">
+            <span>Standby Ageing %</span>
+            <input id="${idPrefix}StandbyAgeingPercentInput" type="number" min="0" step="any" value="${escapeHtml(
+              draft.standbyAgeingPercent
+            )}" placeholder="Enter standby ageing percent">
+          </label>
+          <label class="field cause-config-panel__checkbox-field">
+            <span>Is Dormant</span>
+            <input id="${idPrefix}IsDormantInput" type="checkbox" ${draft.isDormant ? "checked" : ""}>
+          </label>
+          <div class="cause-config-panel__load-action">
+            <button class="asset-child-creator__disabled-action" type="button" disabled>Load failure distribution</button>
+          </div>
+        </div>
+        <div class="cause-config-panel__column">
+          <label class="field">
+            <span>Eta 1</span>
+            <input id="${idPrefix}Eta1Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta1)}" placeholder="Enter Eta 1">
+          </label>
+          <label class="field">
+            <span>Beta 1</span>
+            <input id="${idPrefix}Beta1Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta1)}" placeholder="Enter Beta 1">
+          </label>
+          <label class="field">
+            <span>Gamma 1</span>
+            <input id="${idPrefix}Gamma1Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma1)}" placeholder="Enter Gamma 1">
+          </label>
+          <label class="field">
+            <span>Eta 2</span>
+            <input id="${idPrefix}Eta2Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta2)}" placeholder="Enter Eta 2">
+          </label>
+          <label class="field">
+            <span>Beta 2</span>
+            <input id="${idPrefix}Beta2Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta2)}" placeholder="Enter Beta 2">
+          </label>
+          <label class="field">
+            <span>Gamma 2</span>
+            <input id="${idPrefix}Gamma2Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma2)}" placeholder="Enter Gamma 2">
+          </label>
+          <label class="field">
+            <span>Eta 3</span>
+            <input id="${idPrefix}Eta3Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta3)}" placeholder="Enter Eta 3">
+          </label>
+          <label class="field">
+            <span>Beta 3</span>
+            <input id="${idPrefix}Beta3Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta3)}" placeholder="Enter Beta 3">
+          </label>
+          <label class="field">
+            <span>Gamma 3</span>
+            <input id="${idPrefix}Gamma3Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma3)}" placeholder="Enter Gamma 3">
+          </label>
+        </div>
+      </div>
+    </section>
+  `;
+};
+
+const renderCauseConfigEditor = (nodeInfo) => {
+  if (!childCreatorPanel || !causeConfigState.draft) {
+    return;
+  }
+
+  const draft = causeConfigState.draft;
+  childCreatorPanel.hidden = false;
+  childCreatorPanel.innerHTML = `
+    <section class="asset-child-creator__form cause-config-panel__form">
+      <section class="asset-child-creator__section">
+        <header class="asset-child-creator__section-head">
+          <strong class="asset-child-creator__section-title">Definition</strong>
+        </header>
+        <div class="asset-child-creator__preview-grid">
+          <div class="asset-child-creator__preview-item">
+            <span>Name</span>
+            <strong>${escapeHtml(getNodeFullCode(nodeInfo.node, nodeInfo.path))}</strong>
+          </div>
+        </div>
+        <label class="field field--full">
+          <span>${getRequiredFieldLabel("Cause description")}</span>
+          <input
+            id="causeConfigDescriptionInput"
+            type="text"
+            value="${escapeHtml(draft.description)}"
+            placeholder="Enter cause description"
+            required
+          >
+        </label>
+      </section>
+      ${renderCauseConfigFields(draft, { idPrefix: "causeConfig", isCreateMode: false })}
+      <div class="asset-child-creator__actions">
+        <button id="resetCauseConfigButton" class="secondary-button" type="button">Cancel</button>
+        <button id="saveCauseConfigButton" class="primary-button" type="button" ${isCauseConfigDraftReady(draft) ? "" : "disabled"}>Save</button>
       </div>
     </section>
   `;
@@ -2618,6 +2900,7 @@ const renderSelectedNodePanel = () => {
     renderSelectedNodeActions(null, { isAddMode: false, equipmentInfoMode: "closed" });
     closeChildCreator();
     closeEquipmentInfo();
+    closeCauseConfig();
     renderStrategyDrafts(null);
     return;
   }
@@ -2629,6 +2912,9 @@ const renderSelectedNodePanel = () => {
   }
   if (equipmentInfoState.nodeId && equipmentInfoState.nodeId !== node.id) {
     closeEquipmentInfo();
+  }
+  if (causeConfigState.nodeId && causeConfigState.nodeId !== node.id) {
+    closeCauseConfig();
   }
   const isAddMode = childDraftState.isOpen && childDraftState.parentId === node.id && actions.length > 0;
   const equipmentInfoMode =
@@ -2669,6 +2955,25 @@ const renderSelectedNodePanel = () => {
     backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
     renderEquipmentInfoView(nodeInfo);
     renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode });
+    if (strategyList) {
+      strategyList.hidden = true;
+      strategyList.innerHTML = "";
+    }
+    return;
+  }
+
+  if (node.type === "cause") {
+    if (causeConfigState.nodeId !== node.id || !causeConfigState.draft) {
+      causeConfigState = {
+        nodeId: node.id,
+        draft: createCauseConfigDraft(node),
+      };
+    }
+    selectedNodeTypeLabel.textContent = "Failure Configuration";
+    backgroundDetailHeading.textContent = getNodeDisplayName(node);
+    backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
+    renderCauseConfigEditor(nodeInfo);
+    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed" });
     if (strategyList) {
       strategyList.hidden = true;
       strategyList.innerHTML = "";
@@ -2740,7 +3045,8 @@ const createChildNode = (parentId, childType, draft) => {
           criticality: String(draft?.criticality || "").trim(),
         }
       : null;
-  const nextNode = createNode(childType, codeSegment, fullCode, description, equipmentContext);
+  const failureConfig = childType === "cause" ? buildCauseFailureConfigFromDraft(draft) : null;
+  const nextNode = createNode(childType, codeSegment, fullCode, description, equipmentContext, failureConfig);
   info.node.children.push(nextNode);
   setNodeCollapsed(parentId, false);
   state.selectedNodeId = nextNode.id;
@@ -2782,6 +3088,9 @@ const deleteHierarchyNode = (nodeId) => {
   }
   if (equipmentInfoState.nodeId && deletedNodeIds.has(equipmentInfoState.nodeId)) {
     closeEquipmentInfo();
+  }
+  if (causeConfigState.nodeId && deletedNodeIds.has(causeConfigState.nodeId)) {
+    closeCauseConfig();
   }
 
   const fallbackNodeId = info.parent?.id || getFirstNode(state.hierarchy)?.id || "";
@@ -3215,6 +3524,46 @@ assetHierarchyTree?.addEventListener("click", (event) => {
   }
 });
 
+const syncCauseFailureDraftField = (draft, target) => {
+  if (!(target instanceof HTMLElement) || !draft) {
+    return false;
+  }
+
+  const id = target.id || "";
+  const fieldMappings = [
+    ["DistributionInput", "distribution"],
+    ["WeibullSetInput", "weibullSet"],
+    ["MttfInput", "mttf"],
+    ["StandardDeviationInput", "standardDeviation"],
+    ["DemandFrequencyInput", "causeDemandFrequency"],
+    ["StandbyFailurePercentInput", "standbyFailurePercent"],
+    ["StandbyAgeingPercentInput", "standbyAgeingPercent"],
+    ["Eta1Input", "eta1"],
+    ["Beta1Input", "beta1"],
+    ["Gamma1Input", "gamma1"],
+    ["Eta2Input", "eta2"],
+    ["Beta2Input", "beta2"],
+    ["Gamma2Input", "gamma2"],
+    ["Eta3Input", "eta3"],
+    ["Beta3Input", "beta3"],
+    ["Gamma3Input", "gamma3"],
+  ];
+
+  for (const [suffix, field] of fieldMappings) {
+    if (id.endsWith(suffix)) {
+      draft[field] = target.value;
+      return true;
+    }
+  }
+
+  if (id.endsWith("IsDormantInput") && target instanceof HTMLInputElement) {
+    draft.isDormant = target.checked;
+    return true;
+  }
+
+  return false;
+};
+
 const syncChildCreatorDraftField = (target) => {
   if (!(target instanceof HTMLElement)) {
     return;
@@ -3238,6 +3587,26 @@ const syncChildCreatorDraftField = (target) => {
 
   if (target.id === "childCreatorDescriptionInput") {
     childDraftState.description = target.value;
+  }
+
+  if (target.id === "causeConfigDescriptionInput" && causeConfigState.draft) {
+    causeConfigState.draft.description = target.value;
+  }
+
+  if (syncCauseFailureDraftField(childDraftState, target)) {
+    const createButton = childCreatorPanel?.querySelector("#createChildButton");
+    if (createButton) {
+      createButton.disabled = !isChildDraftReady();
+    }
+    return;
+  }
+
+  if (syncCauseFailureDraftField(causeConfigState.draft, target)) {
+    const saveCauseButton = childCreatorPanel?.querySelector("#saveCauseConfigButton");
+    if (saveCauseButton) {
+      saveCauseButton.disabled = !isCauseConfigDraftReady(causeConfigState.draft);
+    }
+    return;
   }
 
   if (target.id === "childCreatorEquipmentFunctionInput") {
@@ -3346,6 +3715,10 @@ const syncChildCreatorDraftField = (target) => {
   if (saveButton) {
     saveButton.disabled = !isEquipmentInfoDraftReady();
   }
+  const saveCauseButton = childCreatorPanel?.querySelector("#saveCauseConfigButton");
+  if (saveCauseButton) {
+    saveCauseButton.disabled = !isCauseConfigDraftReady(causeConfigState.draft);
+  }
 };
 
 childCreatorPanel?.addEventListener("input", (event) => {
@@ -3404,6 +3777,27 @@ childCreatorPanel?.addEventListener("click", (event) => {
   const saveEquipmentInfoButton = event.target.closest("#saveEquipmentInfoButton");
   if (saveEquipmentInfoButton && isEquipmentInfoDraftReady()) {
     saveEquipmentInfo(equipmentInfoState.nodeId, equipmentInfoState.draft);
+    return;
+  }
+
+  const resetCauseConfigButton = event.target.closest("#resetCauseConfigButton");
+  if (resetCauseConfigButton) {
+    const nodeInfo = getSelectedNodeInfo();
+    if (nodeInfo && nodeInfo.node.type === "cause") {
+      causeConfigState = {
+        nodeId: nodeInfo.node.id,
+        draft: createCauseConfigDraft(nodeInfo.node),
+      };
+      renderAll({
+        includeEntryDynamic: false,
+      });
+    }
+    return;
+  }
+
+  const saveCauseConfigButton = event.target.closest("#saveCauseConfigButton");
+  if (saveCauseConfigButton && isCauseConfigDraftReady(causeConfigState.draft)) {
+    saveCauseConfig(causeConfigState.nodeId, causeConfigState.draft);
     return;
   }
 
