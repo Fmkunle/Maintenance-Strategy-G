@@ -6320,6 +6320,75 @@ body[data-theme="dark"] .equipment-info-panel__value.is-empty {
   box-shadow: 0 32px 64px rgba(15, 23, 40, 0.12);
 }
 
+.asset-context-subdialog {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  z-index: 4;
+}
+
+.asset-context-subdialog[hidden] {
+  display: none;
+}
+
+.asset-context-subdialog__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(237, 242, 250, 0.64);
+  backdrop-filter: blur(8px);
+}
+
+.asset-context-subdialog__panel {
+  position: relative;
+  z-index: 1;
+  width: min(720px, calc(100% - 24px));
+  display: grid;
+  gap: 14px;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(191, 203, 218, 0.92);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 28px 60px rgba(15, 23, 40, 0.18);
+}
+
+.asset-context-subdialog__header,
+.asset-context-subdialog__body {
+  display: grid;
+  gap: 10px;
+}
+
+.asset-context-subdialog__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.asset-context-subdialog__header h2,
+.asset-context-subdialog__header p {
+  margin: 0;
+}
+
+.asset-context-subdialog__header h2 {
+  font-size: 1.18rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.asset-context-subdialog__header p {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.asset-context-subdialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .asset-context-modal__header,
 .asset-context-form,
 .asset-context-path {
@@ -6425,6 +6494,34 @@ body[data-theme="dark"] .equipment-info-panel__value.is-empty {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+body[data-theme="dark"] .asset-context-overlay {
+  background: rgba(9, 15, 26, 0.68);
+}
+
+body[data-theme="dark"] .asset-context-modal {
+  border-color: rgba(125, 143, 168, 0.24);
+  background: rgba(16, 26, 44, 0.98);
+  box-shadow: 0 34px 68px rgba(2, 6, 23, 0.44);
+}
+
+body[data-theme="dark"] .asset-context-subdialog__backdrop {
+  background: rgba(7, 12, 22, 0.62);
+}
+
+body[data-theme="dark"] .asset-context-subdialog__panel {
+  border-color: rgba(125, 143, 168, 0.22);
+  background: rgba(16, 26, 44, 0.99);
+  box-shadow: 0 30px 64px rgba(2, 6, 23, 0.5);
+}
+
+body[data-theme="dark"] .asset-context-subdialog__header h2 {
+  color: #edf4ff;
+}
+
+body[data-theme="dark"] .asset-context-subdialog__header p {
+  color: #9fb0c7;
 }
 
 .asset-context-modal .maintenance-notice {
@@ -6612,6 +6709,15 @@ body[data-theme="dark"] .equipment-info-panel__value.is-empty {
     padding: 22px;
   }
 
+  .asset-context-subdialog {
+    padding: 18px 12px;
+  }
+
+  .asset-context-subdialog__panel {
+    width: 100%;
+    padding: 16px;
+  }
+
   .asset-context-row {
     flex-direction: column;
     align-items: stretch;
@@ -6623,6 +6729,15 @@ body[data-theme="dark"] .equipment-info-panel__value.is-empty {
 
   .asset-context-inline-action,
   .asset-context-remove {
+    width: 100%;
+  }
+
+  .asset-context-subdialog__footer {
+    flex-direction: column;
+  }
+
+  .asset-context-subdialog__footer .secondary-button,
+  .asset-context-subdialog__footer .primary-button {
     width: 100%;
   }
 

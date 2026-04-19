@@ -33,6 +33,8 @@ const equipmentUnitCodeField = document.getElementById("equipmentUnitCodeField")
 const equipmentUnitCodePrefix = document.getElementById("equipmentUnitCodePrefix");
 const equipmentUnitCodeInput = document.getElementById("equipmentUnitCodeInput");
 const equipmentUnitNameInput = document.getElementById("equipmentUnitNameInput");
+const equipmentUnitMoreInfoButton = document.getElementById("equipmentUnitMoreInfoButton");
+const equipmentEntryInfoPopup = document.getElementById("equipmentEntryInfoPopup");
 const addSubunitButton = document.getElementById("addSubunitButton");
 const subunitContainer = document.getElementById("subunitContainer");
 const assetPathPreview = document.getElementById("assetPathPreview");
@@ -140,6 +142,12 @@ const defaultEquipmentContext = () => ({
   criticality: "",
 });
 
+const defaultEntryEquipmentUnit = () => ({
+  code: "",
+  name: "",
+  equipmentContext: defaultEquipmentContext(),
+});
+
 const createNode = (type, code = "", name = "", description = "", equipmentContext = null) => ({
   id: createId(type),
   type,
@@ -178,9 +186,14 @@ const defaultEntryState = () => ({
   plantUnit: { code: "", name: "" },
   sectionSystem: { code: "", name: "" },
   subsystems: [],
-  equipmentUnit: { code: "", name: "" },
+  equipmentUnit: defaultEntryEquipmentUnit(),
   hasSubunit: false,
   subunit: { code: "", name: "" },
+});
+
+const defaultEntryEquipmentInfoState = () => ({
+  isOpen: false,
+  draft: defaultEquipmentContext(),
 });
 
 const defaultState = () => ({
@@ -199,6 +212,7 @@ const deletableNodeTypes = new Set(["equipment", "subsystem", "subunit"]);
 
 let workspaceSaveTimer = null;
 let workspaceSaveSequence = Promise.resolve();
+let entryEquipmentInfoState = defaultEntryEquipmentInfoState();
 
 const getLaunchMode = () => {
   const mode = new URLSearchParams(window.location.search).get("mode");
@@ -208,6 +222,14 @@ const getLaunchMode = () => {
 const normalizeEntryNode = (value) => ({
   code: typeof value?.code === "string" ? value.code : "",
   name: typeof value?.name === "string" ? value.name : "",
+});
+
+const normalizeEquipmentEntryNode = (value) => ({
+  ...normalizeEntryNode(value),
+  equipmentContext: {
+    ...defaultEquipmentContext(),
+    ...(value?.equipmentContext && typeof value.equipmentContext === "object" ? value.equipmentContext : {}),
+  },
 });
 
 const normalizeEntryState = (entry) => ({
@@ -220,7 +242,7 @@ const normalizeEntryState = (entry) => ({
         name: typeof item?.name === "string" ? item.name : "",
       }))
     : [],
-  equipmentUnit: normalizeEntryNode(entry?.equipmentUnit),
+  equipmentUnit: normalizeEquipmentEntryNode(entry?.equipmentUnit),
   hasSubunit: Boolean(entry?.hasSubunit),
   subunit: normalizeEntryNode(entry?.subunit),
 });
@@ -759,6 +781,13 @@ const applyTheme = (theme) => {
   }
 };
 
+const resetEntryEquipmentUnit = () => {
+  state.entry.equipmentUnit = defaultEntryEquipmentUnit();
+  state.entry.hasSubunit = false;
+  state.entry.subunit = { code: "", name: "" };
+  closeEntryEquipmentInfoPopup();
+};
+
 const applySidebarState = (isCollapsed) => {
   if (!appShell) {
     return;
@@ -962,7 +991,8 @@ const buildInitialHierarchyFromEntry = () => {
       "equipment",
       equipmentCode,
       joinInheritedCode(current.name, equipmentCode),
-      entry.equipmentUnit.name.trim()
+      entry.equipmentUnit.name.trim(),
+      entry.equipmentUnit.equipmentContext
     );
     current.children.push(equipmentNode);
     current = equipmentNode;
@@ -1313,6 +1343,184 @@ const renderEntrySubunitRow = () => {
   `;
 };
 
+const openEntryEquipmentInfoPopup = () => {
+  if (!hasNodeValue(state.entry.equipmentUnit)) {
+    return;
+  }
+
+  entryEquipmentInfoState = {
+    isOpen: true,
+    draft: {
+      ...defaultEquipmentContext(),
+      ...(state.entry.equipmentUnit.equipmentContext || {}),
+    },
+  };
+};
+
+const closeEntryEquipmentInfoPopup = () => {
+  entryEquipmentInfoState = defaultEntryEquipmentInfoState();
+};
+
+const saveEntryEquipmentInfoPopup = () => {
+  state.entry.equipmentUnit.equipmentContext = {
+    ...defaultEquipmentContext(),
+    ...(entryEquipmentInfoState.draft || {}),
+  };
+  closeEntryEquipmentInfoPopup();
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
+  hideNotice();
+};
+
+const renderEntryEquipmentInfoPopup = () => {
+  if (!equipmentEntryInfoPopup) {
+    return;
+  }
+
+  if (!state.modalVisible || !entryEquipmentInfoState.isOpen) {
+    equipmentEntryInfoPopup.hidden = true;
+    equipmentEntryInfoPopup.innerHTML = "";
+    return;
+  }
+
+  const draft = entryEquipmentInfoState.draft || defaultEquipmentContext();
+  const entry = state.entry.equipmentUnit;
+  const equipmentLabel = [entry.code.trim(), entry.name.trim()].filter(Boolean).join(" | ") || "Equipment Unit";
+
+  equipmentEntryInfoPopup.hidden = false;
+  equipmentEntryInfoPopup.innerHTML = `
+    <div class="asset-context-subdialog__backdrop" aria-hidden="true"></div>
+    <section class="asset-context-subdialog__panel" role="dialog" aria-modal="true" aria-labelledby="equipmentEntryInfoTitle">
+      <header class="asset-context-subdialog__header">
+        <strong class="asset-context-subdialog__eyebrow">Equipment information</strong>
+        <h2 id="equipmentEntryInfoTitle">${escapeHtml(equipmentLabel)}</h2>
+        <p>Capture additional equipment details without crowding the taxonomy form.</p>
+      </header>
+
+      <div class="asset-context-subdialog__body">
+        <section class="asset-child-creator__section">
+          <header class="asset-child-creator__section-head">
+            <strong class="asset-child-creator__section-title">Equipment Context</strong>
+          </header>
+          <div class="asset-child-creator__row-grid">
+            <label class="field">
+              <span>Equipment Function</span>
+              <input id="entryEquipmentInfoFunctionInput" type="text" value="${escapeHtml(draft.equipmentFunction)}" placeholder="Enter equipment function">
+            </label>
+            <label class="field">
+              <span>Type of Equipment</span>
+              <input id="entryEquipmentInfoTypeInput" type="text" value="${escapeHtml(draft.equipmentType)}" placeholder="Enter equipment type">
+            </label>
+          </div>
+          <label class="field field--full">
+            <span>Operating Context</span>
+            <textarea id="entryEquipmentInfoOperatingContextInput" rows="3" placeholder="Add operating context">${escapeHtml(draft.operatingContext)}</textarea>
+          </label>
+        </section>
+
+        <section class="asset-child-creator__section">
+          <header class="asset-child-creator__section-head">
+            <strong class="asset-child-creator__section-title">Consequence</strong>
+          </header>
+          <div class="asset-child-creator__row-grid">
+            <label class="field">
+              <span>Effect</span>
+              <select id="entryEquipmentInfoEffectInput">
+                <option value="">Select effect</option>
+                ${effectPerHourDownOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${draft.effectPerHourDown === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+            <label class="field">
+              <span>Demand Frequency</span>
+              <select id="entryEquipmentInfoDemandFrequencyInput">
+                <option value="">Select demand frequency</option>
+                ${demandFrequencyOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${draft.demandFrequency === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+          </div>
+          <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+            <label class="field">
+              <span>Redundancy</span>
+              <select id="entryEquipmentInfoRedundancyModeInput">
+                ${redundancyOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${draft.redundancyMode === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+            ${
+              draft.redundancyMode === "Custom"
+                ? `
+                    <label class="field">
+                      <span>Redundancy %</span>
+                      <input id="entryEquipmentInfoRedundancyPercentInput" type="number" min="0" max="100" step="1" value="${escapeHtml(draft.redundancyPercent)}" placeholder="Enter percent">
+                    </label>
+                  `
+                : `<div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
+            }
+            <label class="field">
+              <span>Major Accident Event Category (MAE)</span>
+              <select id="entryEquipmentInfoMaeCategoryInput">
+                ${maeCategoryOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${draft.maeCategory === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+          </div>
+          <div class="asset-child-creator__row-grid">
+            <label class="field">
+              <span>Criticality</span>
+              <select id="entryEquipmentInfoCriticalityInput">
+                <option value="">Select criticality</option>
+                ${criticalityOptions
+                  .map(
+                    (option) => `<option value="${escapeHtml(option)}" ${draft.criticality === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="asset-child-creator__section">
+          <header class="asset-child-creator__section-head">
+            <strong class="asset-child-creator__section-title">Linked References</strong>
+            <span class="asset-child-creator__section-note">Connections will activate once FMEA and baseline strategy modules are enabled.</span>
+          </header>
+          <div class="asset-child-creator__references-grid">
+            <button class="asset-child-creator__disabled-action" type="button" disabled>Link to FMEA</button>
+            <label class="asset-child-creator__reference-field">
+              <span>Baseline Strategy</span>
+              <select disabled>
+                <option>Not set</option>
+              </select>
+            </label>
+            <button class="asset-child-creator__disabled-action" type="button" disabled>Attach Manuals</button>
+          </div>
+        </section>
+      </div>
+
+      <footer class="asset-context-subdialog__footer">
+        <button id="cancelEntryEquipmentInfoButton" class="secondary-button" type="button">Cancel</button>
+        <button id="saveEntryEquipmentInfoButton" class="primary-button" type="button">Save information</button>
+      </footer>
+    </section>
+  `;
+};
+
 const renderEntryForm = (options = {}) => {
   if (options.includeDynamic !== false) {
     renderEntrySubsystemRows();
@@ -1343,6 +1551,9 @@ const renderEntryForm = (options = {}) => {
   addSubsystemButton.disabled = !hasNodeValue(entry.sectionSystem) || !entry.subsystems.every((item) => hasNodeValue(item));
   equipmentUnitCodeInput.disabled = !canEditEquipment;
   equipmentUnitNameInput.disabled = !canEditEquipment;
+  if (equipmentUnitMoreInfoButton) {
+    equipmentUnitMoreInfoButton.disabled = !hasNodeValue(entry.equipmentUnit);
+  }
   addSubunitButton.disabled = !hasNodeValue(entry.equipmentUnit) || entry.hasSubunit;
 
   const entrySubunitCodeInput = document.getElementById("entrySubunitCodeInput");
@@ -1359,6 +1570,7 @@ const renderEntryForm = (options = {}) => {
     ? formatFunctionalLocationPreview(entryPath)
     : "Functional location preview updates as you define the hierarchy.";
   continueButton.disabled = !isEntryReady();
+  renderEntryEquipmentInfoPopup();
 };
 
 const renderHierarchyNodes = (nodes, depth = 0, parentPath = [], filterValue = "") =>
@@ -2386,14 +2598,14 @@ assetContextForm?.addEventListener("submit", (event) => {
 
     if (!hasNodeValue(state.entry.sectionSystem)) {
       state.entry.subsystems = [];
-      state.entry.equipmentUnit = { code: "", name: "" };
-      state.entry.hasSubunit = false;
-      state.entry.subunit = { code: "", name: "" };
+      resetEntryEquipmentUnit();
     }
 
     if (!hasNodeValue(state.entry.equipmentUnit)) {
       state.entry.hasSubunit = false;
       state.entry.subunit = { code: "", name: "" };
+      state.entry.equipmentUnit.equipmentContext = defaultEquipmentContext();
+      closeEntryEquipmentInfoPopup();
     }
 
     persistDraftSilently();
@@ -2411,14 +2623,14 @@ plantUnitCodeInput?.addEventListener("input", (event) => {
 
   if (!hasNodeValue(state.entry.sectionSystem)) {
     state.entry.subsystems = [];
-    state.entry.equipmentUnit = { code: "", name: "" };
-    state.entry.hasSubunit = false;
-    state.entry.subunit = { code: "", name: "" };
+    resetEntryEquipmentUnit();
   }
 
   if (!hasNodeValue(state.entry.equipmentUnit)) {
     state.entry.hasSubunit = false;
     state.entry.subunit = { code: "", name: "" };
+    state.entry.equipmentUnit.equipmentContext = defaultEquipmentContext();
+    closeEntryEquipmentInfoPopup();
   }
 
   persistDraftSilently();
@@ -2431,14 +2643,14 @@ sectionSystemCodeInput?.addEventListener("input", (event) => {
 
   if (!hasNodeValue(state.entry.sectionSystem)) {
     state.entry.subsystems = [];
-    state.entry.equipmentUnit = { code: "", name: "" };
-    state.entry.hasSubunit = false;
-    state.entry.subunit = { code: "", name: "" };
+    resetEntryEquipmentUnit();
   }
 
   if (!hasNodeValue(state.entry.equipmentUnit)) {
     state.entry.hasSubunit = false;
     state.entry.subunit = { code: "", name: "" };
+    state.entry.equipmentUnit.equipmentContext = defaultEquipmentContext();
+    closeEntryEquipmentInfoPopup();
   }
 
   persistDraftSilently();
@@ -2452,11 +2664,113 @@ equipmentUnitCodeInput?.addEventListener("input", (event) => {
   if (!hasNodeValue(state.entry.equipmentUnit)) {
     state.entry.hasSubunit = false;
     state.entry.subunit = { code: "", name: "" };
+    state.entry.equipmentUnit.equipmentContext = defaultEquipmentContext();
+    closeEntryEquipmentInfoPopup();
   }
 
   persistDraftSilently();
   renderAll();
   hideNotice();
+});
+
+equipmentUnitMoreInfoButton?.addEventListener("click", () => {
+  openEntryEquipmentInfoPopup();
+  renderAll({
+    includeEntryDynamic: false,
+  });
+});
+
+equipmentEntryInfoPopup?.addEventListener("input", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || !entryEquipmentInfoState.isOpen) {
+    return;
+  }
+
+  if (target.id === "entryEquipmentInfoFunctionInput") {
+    entryEquipmentInfoState.draft.equipmentFunction = target.value;
+  }
+
+  if (target.id === "entryEquipmentInfoTypeInput") {
+    entryEquipmentInfoState.draft.equipmentType = target.value;
+  }
+
+  if (target.id === "entryEquipmentInfoOperatingContextInput") {
+    entryEquipmentInfoState.draft.operatingContext = target.value;
+  }
+
+  if (target.id === "entryEquipmentInfoRedundancyPercentInput") {
+    entryEquipmentInfoState.draft.redundancyPercent = target.value;
+  }
+});
+
+equipmentEntryInfoPopup?.addEventListener("change", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || !entryEquipmentInfoState.isOpen) {
+    return;
+  }
+
+  if (target.id === "entryEquipmentInfoEffectInput") {
+    entryEquipmentInfoState.draft.effectPerHourDown = target.value;
+  }
+
+  if (target.id === "entryEquipmentInfoDemandFrequencyInput") {
+    entryEquipmentInfoState.draft.demandFrequency = target.value;
+  }
+
+  if (target.id === "entryEquipmentInfoRedundancyModeInput") {
+    entryEquipmentInfoState.draft.redundancyMode = target.value;
+    if (target.value !== "Custom") {
+      entryEquipmentInfoState.draft.redundancyPercent = "";
+    }
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  if (target.id === "entryEquipmentInfoMaeCategoryInput") {
+    entryEquipmentInfoState.draft.maeCategory = target.value;
+  }
+
+  if (target.id === "entryEquipmentInfoCriticalityInput") {
+    entryEquipmentInfoState.draft.criticality = target.value;
+  }
+});
+
+equipmentEntryInfoPopup?.addEventListener("click", (event) => {
+  const backdrop = event.target.closest(".asset-context-subdialog__backdrop");
+  if (backdrop) {
+    closeEntryEquipmentInfoPopup();
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const cancelButton = event.target.closest("#cancelEntryEquipmentInfoButton");
+  if (cancelButton) {
+    closeEntryEquipmentInfoPopup();
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const saveButton = event.target.closest("#saveEntryEquipmentInfoButton");
+  if (saveButton) {
+    saveEntryEquipmentInfoPopup();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !entryEquipmentInfoState.isOpen) {
+    return;
+  }
+
+  closeEntryEquipmentInfoPopup();
+  renderAll({
+    includeEntryDynamic: false,
+  });
 });
 
 subsystemList?.addEventListener("input", (event) => {
