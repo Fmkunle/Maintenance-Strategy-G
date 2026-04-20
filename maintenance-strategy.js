@@ -119,8 +119,8 @@ const nodeTypeMeta = {
     childActions: [
       { type: "effect", label: "Add effect" },
       { type: "cm", label: "Add CM" },
-      { type: "ins", label: "Add INS" },
       { type: "pm", label: "Add PM" },
+      { type: "ins", label: "Add INS" },
     ],
   },
   effect: {
@@ -2481,7 +2481,7 @@ const renderChildCreator = (nodeInfo, actions) => {
                     )}" placeholder="Enter CM description" required>
                   </label>
                 </div>
-                <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+                <div class="asset-child-creator__row-grid cm-task-editor__core-grid">
                   <label class="field">
                     <span>${getRequiredFieldLabel("Interval")}</span>
                     <input id="childCreatorCmIntervalHoursInput" type="number" min="0" step="any" value="${escapeHtml(
@@ -2501,7 +2501,7 @@ const renderChildCreator = (nodeInfo, actions) => {
                     )}" readonly>
                   </label>
                 </div>
-                <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
+                <div class="asset-child-creator__row-grid cm-task-editor__core-grid cm-task-editor__core-grid--secondary">
                   <label class="field">
                     <span>Offset</span>
                     <input id="childCreatorCmOffsetInput" type="number" step="any" value="${escapeHtml(
@@ -4175,6 +4175,14 @@ const syncChildCreatorDraftField = (target) => {
     const createButton = childCreatorPanel?.querySelector("#createChildButton");
     if (createButton) {
       createButton.disabled = !isChildDraftReady();
+    }
+    const nextCmStepButton = childCreatorPanel?.querySelector("#nextCmStepButton");
+    if (nextCmStepButton) {
+      nextCmStepButton.disabled = !isCmCoreDraftReady(childDraftState);
+    }
+    const saveCauseButton = childCreatorPanel?.querySelector("#saveCauseConfigButton");
+    if (saveCauseButton) {
+      saveCauseButton.disabled = !isCauseConfigDraftReady(causeConfigState.draft);
     }
     return;
   }
