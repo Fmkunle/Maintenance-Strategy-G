@@ -2432,8 +2432,8 @@ const renderChildCreator = (nodeInfo, actions) => {
             .map(
               (resource, index) => `
                 <div class="cm-task-editor__resource-row">
-                  <label class="field">
-                    <span>Resource type ${index + 1}</span>
+                  <label class="cm-task-editor__resource-field">
+                    <span class="cm-task-editor__label">Resource type ${index + 1}</span>
                     <select data-cm-resource-field="resourceType" data-cm-resource-id="${resource.id}">
                       <option value="">Select resource type</option>
                       ${cmResourceTypeOptions
@@ -2444,8 +2444,8 @@ const renderChildCreator = (nodeInfo, actions) => {
                         .join("")}
                     </select>
                   </label>
-                  <label class="field">
-                    <span>Duration (hours)</span>
+                  <label class="cm-task-editor__resource-field">
+                    <span class="cm-task-editor__label">Duration (hours)</span>
                     <input data-cm-resource-field="durationHours" data-cm-resource-id="${resource.id}" type="number" min="0" step="any" value="${escapeHtml(
                       resource.durationHours
                     )}" placeholder="Enter duration">
@@ -2459,114 +2459,109 @@ const renderChildCreator = (nodeInfo, actions) => {
     childCreatorPanel.innerHTML = `
       <section class="asset-child-creator__form cm-task-editor">
         ${childTypeControl}
-        <section class="asset-child-creator__section">
+        <section class="asset-child-creator__section cm-task-editor__section">
           <header class="asset-child-creator__section-head">
             <strong class="asset-child-creator__section-title">${childDraftState.cmStep === "core" ? "Core" : "Resources"}</strong>
             <span class="asset-child-creator__section-note">Step ${childDraftState.cmStep === "core" ? "1" : "2"} of 2</span>
           </header>
-          <div class="asset-child-creator__preview-grid">
-            <div class="asset-child-creator__preview-item">
-              <span>Name</span>
-              <strong>${escapeHtml(cmCode)}</strong>
+          <div class="cm-task-editor__stack">
+            <div class="cm-task-editor__field cm-task-editor__field--full">
+              <span class="cm-task-editor__label">Name</span>
+              <div class="cm-task-editor__preview">${escapeHtml(cmCode)}</div>
             </div>
-          </div>
           ${
             childDraftState.cmStep === "core"
               ? `
-                <div class="asset-child-creator__row-grid">
-                  <label class="field field--full">
-                    <span>${getRequiredFieldLabel("Description")}</span>
-                    <input id="childCreatorDescriptionInput" type="text" maxlength="40" value="${escapeHtml(
+                <label class="cm-task-editor__field cm-task-editor__field--full">
+                  <span class="cm-task-editor__label">${getRequiredFieldLabel("Description")}</span>
+                  <input class="cm-task-editor__control" id="childCreatorDescriptionInput" type="text" maxlength="40" value="${escapeHtml(
                       childDraftState.description
                     )}" placeholder="Enter CM description" required>
-                  </label>
-                </div>
-                <div class="asset-child-creator__row-grid cm-task-editor__core-grid">
-                  <label class="field">
-                    <span>${getRequiredFieldLabel("Interval")}</span>
-                    <input id="childCreatorCmIntervalHoursInput" type="number" min="0" step="any" value="${escapeHtml(
+                </label>
+                <div class="cm-task-editor__grid">
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">${getRequiredFieldLabel("Interval")}</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmIntervalHoursInput" type="number" min="0" step="any" value="${escapeHtml(
                       childDraftState.cmIntervalHours
                     )}" placeholder="Enter interval hours" required>
                   </label>
-                  <label class="field">
-                    <span>${getRequiredFieldLabel("Duration")}</span>
-                    <input id="childCreatorCmDurationHoursInput" type="number" min="0" step="any" value="${escapeHtml(
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">${getRequiredFieldLabel("Duration")}</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmDurationHoursInput" type="number" min="0" step="any" value="${escapeHtml(
                       childDraftState.cmDurationHours
                     )}" placeholder="Enter duration hours" required>
                   </label>
-                  <label class="field">
-                    <span>Interval Short Description</span>
-                    <input id="childCreatorCmIntervalShortInput" type="text" value="${escapeHtml(
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Interval Short Description</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmIntervalShortInput" type="text" value="${escapeHtml(
                       intervalShortDescription
                     )}" readonly>
                   </label>
                 </div>
-                <div class="asset-child-creator__row-grid cm-task-editor__core-grid cm-task-editor__core-grid--secondary">
-                  <label class="field">
-                    <span>Offset</span>
-                    <input id="childCreatorCmOffsetInput" type="number" step="any" value="${escapeHtml(
+                <div class="cm-task-editor__grid">
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Offset</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmOffsetInput" type="number" step="any" value="${escapeHtml(
                       childDraftState.cmOffset
                     )}" placeholder="Enter offset">
                   </label>
-                  <label class="field">
-                    <span>Ramp time</span>
-                    <input id="childCreatorCmRampTimeInput" type="number" min="0" step="any" value="${escapeHtml(
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Ramp time</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmRampTimeInput" type="number" min="0" step="any" value="${escapeHtml(
                       childDraftState.cmRampTimeHours
                     )}" placeholder="Enter ramp time hours">
                   </label>
-                  <label class="field">
-                    <span>Operation number</span>
-                    <input id="childCreatorCmOperationNumberInput" type="number" min="0" step="1" value="${escapeHtml(
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Operation number</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmOperationNumberInput" type="number" min="0" step="1" value="${escapeHtml(
                       childDraftState.cmOperationNumber
                     )}" placeholder="Enter operation number">
                   </label>
                 </div>
               `
               : `
-                <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
-                  <label class="field cause-config-panel__checkbox-field">
-                    <span>Is enabled</span>
+                <div class="cm-task-editor__flags">
+                  <label class="cm-task-editor__flag">
                     <input id="childCreatorCmIsEnabledInput" type="checkbox" ${childDraftState.cmIsEnabled ? "checked" : ""}>
+                    <span>Is enabled</span>
                   </label>
-                  <label class="field cause-config-panel__checkbox-field">
-                    <span>Is Fixed</span>
+                  <label class="cm-task-editor__flag">
                     <input id="childCreatorCmIsFixedInput" type="checkbox" ${childDraftState.cmIsFixed ? "checked" : ""}>
+                    <span>Is Fixed</span>
                   </label>
-                  <label class="field cause-config-panel__checkbox-field">
-                    <span>Is secondary action</span>
+                  <label class="cm-task-editor__flag">
                     <input id="childCreatorCmIsSecondaryActionInput" type="checkbox" ${
                       childDraftState.cmIsSecondaryAction ? "checked" : ""
                     }>
+                    <span>Is secondary action</span>
                   </label>
                 </div>
-                <div class="asset-child-creator__row-grid asset-child-creator__row-grid--triple">
-                  <label class="field">
-                    <span>External operation cost</span>
-                    <input id="childCreatorCmExternalOperationCostInput" type="number" min="0" step="any" value="${escapeHtml(
+                <div class="cm-task-editor__grid">
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">External operation cost</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmExternalOperationCostInput" type="number" min="0" step="any" value="${escapeHtml(
                       childDraftState.cmExternalOperationCost
                     )}" placeholder="Enter external cost">
                   </label>
-                  <label class="field">
-                    <span>Maintenance Type</span>
-                    <input id="childCreatorCmMaintenanceTypeInput" type="text" maxlength="40" value="${escapeHtml(
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Maintenance Type</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmMaintenanceTypeInput" type="text" maxlength="40" value="${escapeHtml(
                       childDraftState.cmMaintenanceType
                     )}" placeholder="Enter maintenance type">
                   </label>
-                  <label class="field">
-                    <span>Type</span>
-                    <input id="childCreatorCmTaskTypeInput" type="text" maxlength="40" value="${escapeHtml(
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Type</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmTaskTypeInput" type="text" maxlength="40" value="${escapeHtml(
                       childDraftState.cmTaskType
                     )}" placeholder="Enter type">
                   </label>
                 </div>
-                <div class="asset-child-creator__row-grid">
-                  <label class="field">
-                    <span>Labour duration</span>
-                    <input id="childCreatorCmLabourDurationInput" type="number" min="0" step="any" value="${escapeHtml(
+                <label class="cm-task-editor__field cm-task-editor__field--wide">
+                  <span class="cm-task-editor__label">Labour duration</span>
+                  <input class="cm-task-editor__control" id="childCreatorCmLabourDurationInput" type="number" min="0" step="any" value="${escapeHtml(
                       childDraftState.cmLabourDurationHours
                     )}" placeholder="Enter labour duration">
-                  </label>
-                </div>
+                </label>
                 <section class="asset-child-creator__section cm-task-editor__resources">
                   <header class="asset-child-creator__section-head">
                     <strong class="asset-child-creator__section-title">Resources</strong>
@@ -2578,6 +2573,7 @@ const renderChildCreator = (nodeInfo, actions) => {
                 </section>
               `
           }
+          </div>
         </section>
         <div class="asset-child-creator__actions">
           <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
