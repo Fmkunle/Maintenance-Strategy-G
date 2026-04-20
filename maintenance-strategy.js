@@ -259,6 +259,7 @@ const defaultChildDraftState = () => ({
   eta3: "",
   beta3: "",
   gamma3: "",
+  causeAdvancedOpen: false,
 });
 
 const defaultEquipmentInfoState = () => ({
@@ -271,6 +272,7 @@ const defaultEquipmentInfoState = () => ({
 const defaultCauseConfigState = () => ({
   nodeId: "",
   draft: null,
+  advancedOpen: false,
 });
 
 const defaultEntryState = () => ({
@@ -1499,6 +1501,7 @@ const openCauseConfig = (nodeInfo) => {
   causeConfigState = {
     nodeId: nodeInfo.node.id,
     draft: createCauseConfigDraft(nodeInfo.node),
+    advancedOpen: false,
   };
 };
 const updateInheritedCodesForSubtree = (node, parentFullCode = "") => {
@@ -2399,7 +2402,11 @@ const renderChildCreator = (nodeInfo, actions) => {
       ${definitionSectionMarkup}
       ${
         selectedChildType === "cause"
-          ? renderCauseConfigFields(childDraftState, { idPrefix: "childCreatorCause", isCreateMode: true })
+          ? renderCauseConfigFields(childDraftState, {
+              idPrefix: "childCreatorCause",
+              isCreateMode: true,
+              isAdvancedOpen: childDraftState.causeAdvancedOpen,
+            })
           : ""
       }
       ${equipmentFieldsMarkup}
@@ -2413,13 +2420,15 @@ const renderChildCreator = (nodeInfo, actions) => {
 
 const renderCauseConfigFields = (draft, options = {}) => {
   const idPrefix = options.idPrefix || "causeConfig";
+  const isCreateMode = Boolean(options.isCreateMode);
+  const isAdvancedOpen = Boolean(options.isAdvancedOpen);
   const distributionOptions = ["Age related", "Random (non age related)"];
   return `
     <section class="asset-child-creator__section cause-config-panel">
       <header class="asset-child-creator__section-head">
         <strong class="asset-child-creator__section-title">Failure Configuration</strong>
       </header>
-      <div class="cause-config-panel__matrix">
+      <div class="cause-config-panel__matrix cause-config-panel__matrix--simple">
         <div class="cause-config-panel__column">
           <label class="field">
             <span>Distribution</span>
@@ -2428,88 +2437,109 @@ const renderCauseConfigFields = (draft, options = {}) => {
                 .map(
                   (option) =>
                     `<option value="${escapeHtml(option)}" ${draft.distribution === option ? "selected" : ""}>${escapeHtml(option)}</option>`
-                )
+                  )
                 .join("")}
             </select>
-          </label>
-          <label class="field">
-            <span>Weibull Set</span>
-            <input id="${idPrefix}WeibullSetInput" type="text" value="${escapeHtml(draft.weibullSet)}" placeholder="Enter Weibull set">
           </label>
           <label class="field">
             <span>MTTF</span>
             <input id="${idPrefix}MttfInput" type="number" min="0" step="any" value="${escapeHtml(draft.mttf)}" placeholder="Enter MTTF">
           </label>
-          <label class="field">
-            <span>Standard Deviation</span>
-            <input id="${idPrefix}StandardDeviationInput" type="number" min="0" step="any" value="${escapeHtml(
-              draft.standardDeviation
-            )}" placeholder="Enter standard deviation">
-          </label>
-          <label class="field">
-            <span>Demand Frequency</span>
-            <input id="${idPrefix}DemandFrequencyInput" type="number" min="0" step="any" value="${escapeHtml(
-              draft.causeDemandFrequency
-            )}" placeholder="Enter demand frequency">
-          </label>
-          <label class="field">
-            <span>Standby Failure %</span>
-            <input id="${idPrefix}StandbyFailurePercentInput" type="number" min="0" step="any" value="${escapeHtml(
-              draft.standbyFailurePercent
-            )}" placeholder="Enter standby failure percent">
-          </label>
-          <label class="field">
-            <span>Standby Ageing %</span>
-            <input id="${idPrefix}StandbyAgeingPercentInput" type="number" min="0" step="any" value="${escapeHtml(
-              draft.standbyAgeingPercent
-            )}" placeholder="Enter standby ageing percent">
-          </label>
           <label class="field cause-config-panel__checkbox-field">
             <span>Is Dormant</span>
             <input id="${idPrefix}IsDormantInput" type="checkbox" ${draft.isDormant ? "checked" : ""}>
           </label>
-          <div class="cause-config-panel__load-action">
-            <button class="asset-child-creator__disabled-action" type="button" disabled>Load failure distribution</button>
-          </div>
         </div>
-        <div class="cause-config-panel__column">
-          <label class="field">
-            <span>Eta 1</span>
-            <input id="${idPrefix}Eta1Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta1)}" placeholder="Enter Eta 1">
-          </label>
-          <label class="field">
-            <span>Beta 1</span>
-            <input id="${idPrefix}Beta1Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta1)}" placeholder="Enter Beta 1">
-          </label>
-          <label class="field">
-            <span>Gamma 1</span>
-            <input id="${idPrefix}Gamma1Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma1)}" placeholder="Enter Gamma 1">
-          </label>
-          <label class="field">
-            <span>Eta 2</span>
-            <input id="${idPrefix}Eta2Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta2)}" placeholder="Enter Eta 2">
-          </label>
-          <label class="field">
-            <span>Beta 2</span>
-            <input id="${idPrefix}Beta2Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta2)}" placeholder="Enter Beta 2">
-          </label>
-          <label class="field">
-            <span>Gamma 2</span>
-            <input id="${idPrefix}Gamma2Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma2)}" placeholder="Enter Gamma 2">
-          </label>
-          <label class="field">
-            <span>Eta 3</span>
-            <input id="${idPrefix}Eta3Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta3)}" placeholder="Enter Eta 3">
-          </label>
-          <label class="field">
-            <span>Beta 3</span>
-            <input id="${idPrefix}Beta3Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta3)}" placeholder="Enter Beta 3">
-          </label>
-          <label class="field">
-            <span>Gamma 3</span>
-            <input id="${idPrefix}Gamma3Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma3)}" placeholder="Enter Gamma 3">
-          </label>
-        </div>
+      </div>
+      <div class="cause-config-panel__advanced">
+        <button
+          id="${idPrefix}AdvancedToggleButton"
+          class="cause-config-panel__advanced-toggle"
+          type="button"
+          aria-expanded="${isAdvancedOpen ? "true" : "false"}"
+          data-toggle-cause-advanced="${isCreateMode ? "create" : "edit"}"
+        >
+          ${isAdvancedOpen ? "Hide advanced configuration" : "Advanced configuration"}
+        </button>
+        ${
+          isAdvancedOpen
+            ? `
+              <div class="cause-config-panel__matrix">
+                <div class="cause-config-panel__column">
+                  <label class="field">
+                    <span>Weibull Set</span>
+                    <input id="${idPrefix}WeibullSetInput" type="text" value="${escapeHtml(draft.weibullSet)}" placeholder="Enter Weibull set">
+                  </label>
+                  <label class="field">
+                    <span>Standard Deviation</span>
+                    <input id="${idPrefix}StandardDeviationInput" type="number" min="0" step="any" value="${escapeHtml(
+                      draft.standardDeviation
+                    )}" placeholder="Enter standard deviation">
+                  </label>
+                  <label class="field">
+                    <span>Demand Frequency</span>
+                    <input id="${idPrefix}DemandFrequencyInput" type="number" min="0" step="any" value="${escapeHtml(
+                      draft.causeDemandFrequency
+                    )}" placeholder="Enter demand frequency">
+                  </label>
+                  <label class="field">
+                    <span>Standby Failure %</span>
+                    <input id="${idPrefix}StandbyFailurePercentInput" type="number" min="0" step="any" value="${escapeHtml(
+                      draft.standbyFailurePercent
+                    )}" placeholder="Enter standby failure percent">
+                  </label>
+                  <label class="field">
+                    <span>Standby Ageing %</span>
+                    <input id="${idPrefix}StandbyAgeingPercentInput" type="number" min="0" step="any" value="${escapeHtml(
+                      draft.standbyAgeingPercent
+                    )}" placeholder="Enter standby ageing percent">
+                  </label>
+                  <div class="cause-config-panel__load-action">
+                    <button class="asset-child-creator__disabled-action" type="button" disabled>Load failure distribution</button>
+                  </div>
+                </div>
+                <div class="cause-config-panel__column">
+                  <label class="field">
+                    <span>Eta 1</span>
+                    <input id="${idPrefix}Eta1Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta1)}" placeholder="Enter Eta 1">
+                  </label>
+                  <label class="field">
+                    <span>Beta 1</span>
+                    <input id="${idPrefix}Beta1Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta1)}" placeholder="Enter Beta 1">
+                  </label>
+                  <label class="field">
+                    <span>Gamma 1</span>
+                    <input id="${idPrefix}Gamma1Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma1)}" placeholder="Enter Gamma 1">
+                  </label>
+                  <label class="field">
+                    <span>Eta 2</span>
+                    <input id="${idPrefix}Eta2Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta2)}" placeholder="Enter Eta 2">
+                  </label>
+                  <label class="field">
+                    <span>Beta 2</span>
+                    <input id="${idPrefix}Beta2Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta2)}" placeholder="Enter Beta 2">
+                  </label>
+                  <label class="field">
+                    <span>Gamma 2</span>
+                    <input id="${idPrefix}Gamma2Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma2)}" placeholder="Enter Gamma 2">
+                  </label>
+                  <label class="field">
+                    <span>Eta 3</span>
+                    <input id="${idPrefix}Eta3Input" type="number" min="0" step="any" value="${escapeHtml(draft.eta3)}" placeholder="Enter Eta 3">
+                  </label>
+                  <label class="field">
+                    <span>Beta 3</span>
+                    <input id="${idPrefix}Beta3Input" type="number" min="0" step="any" value="${escapeHtml(draft.beta3)}" placeholder="Enter Beta 3">
+                  </label>
+                  <label class="field">
+                    <span>Gamma 3</span>
+                    <input id="${idPrefix}Gamma3Input" type="number" min="0" step="any" value="${escapeHtml(draft.gamma3)}" placeholder="Enter Gamma 3">
+                  </label>
+                </div>
+              </div>
+            `
+            : ""
+        }
       </div>
     </section>
   `;
@@ -2545,7 +2575,11 @@ const renderCauseConfigEditor = (nodeInfo) => {
           >
         </label>
       </section>
-      ${renderCauseConfigFields(draft, { idPrefix: "causeConfig", isCreateMode: false })}
+      ${renderCauseConfigFields(draft, {
+        idPrefix: "causeConfig",
+        isCreateMode: false,
+        isAdvancedOpen: causeConfigState.advancedOpen,
+      })}
       <div class="asset-child-creator__actions">
         <button id="resetCauseConfigButton" class="secondary-button" type="button">Cancel</button>
         <button id="saveCauseConfigButton" class="primary-button" type="button" ${isCauseConfigDraftReady(draft) ? "" : "disabled"}>Save</button>
@@ -2926,7 +2960,7 @@ const renderSelectedNodePanel = () => {
       : actions[0].type;
     selectedNodeTypeLabel.textContent = getChildActionLabel(selectedChildType);
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
-    backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
+    backgroundDetailSummary.textContent = "";
     renderChildCreator(nodeInfo, actions);
     renderSelectedNodeActions(nodeInfo, { isAddMode: true, equipmentInfoMode: "closed" });
     if (strategyList) {
@@ -2939,7 +2973,7 @@ const renderSelectedNodePanel = () => {
   if (equipmentInfoMode === "edit") {
     selectedNodeTypeLabel.textContent = "Edit Equipment Info";
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
-    backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
+    backgroundDetailSummary.textContent = "";
     renderEquipmentInfoEditor(nodeInfo);
     renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode });
     if (strategyList) {
@@ -2952,7 +2986,7 @@ const renderSelectedNodePanel = () => {
   if (equipmentInfoMode === "view") {
     selectedNodeTypeLabel.textContent = "Equipment Info";
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
-    backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
+    backgroundDetailSummary.textContent = "";
     renderEquipmentInfoView(nodeInfo);
     renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode });
     if (strategyList) {
@@ -2967,11 +3001,12 @@ const renderSelectedNodePanel = () => {
       causeConfigState = {
         nodeId: node.id,
         draft: createCauseConfigDraft(node),
+        advancedOpen: false,
       };
     }
     selectedNodeTypeLabel.textContent = "Failure Configuration";
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
-    backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
+    backgroundDetailSummary.textContent = "";
     renderCauseConfigEditor(nodeInfo);
     renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed" });
     if (strategyList) {
@@ -2983,7 +3018,7 @@ const renderSelectedNodePanel = () => {
 
   selectedNodeTypeLabel.textContent = "Strategies";
   backgroundDetailHeading.textContent = getNodeDisplayName(node);
-  backgroundDetailSummary.textContent = `Under ${getFullNameFromPath(path) || getNodeTitle(node)}`;
+  backgroundDetailSummary.textContent = "";
   if (childCreatorPanel) {
     childCreatorPanel.hidden = true;
     childCreatorPanel.innerHTML = "";
@@ -3050,6 +3085,13 @@ const createChildNode = (parentId, childType, draft) => {
   info.node.children.push(nextNode);
   setNodeCollapsed(parentId, false);
   state.selectedNodeId = nextNode.id;
+  if (childType === "cause") {
+    causeConfigState = {
+      nodeId: nextNode.id,
+      draft: createCauseConfigDraft(nextNode),
+      advancedOpen: false,
+    };
+  }
   closeChildCreator();
   persistDraftSilently();
   renderAll();
@@ -3730,6 +3772,21 @@ childCreatorPanel?.addEventListener("change", (event) => {
 });
 
 childCreatorPanel?.addEventListener("click", (event) => {
+  const causeAdvancedToggleButton = event.target.closest("[data-toggle-cause-advanced]");
+  if (causeAdvancedToggleButton) {
+    const mode = causeAdvancedToggleButton.dataset.toggleCauseAdvanced;
+    if (mode === "create") {
+      childDraftState.causeAdvancedOpen = !childDraftState.causeAdvancedOpen;
+    } else {
+      causeConfigState = {
+        ...causeConfigState,
+        advancedOpen: !causeConfigState.advancedOpen,
+      };
+    }
+    renderSelectedNodePanel();
+    return;
+  }
+
   const childTypeButton = event.target.closest("[data-child-type-option]");
   if (childTypeButton) {
     syncChildCreatorDraftField(childTypeButton);
@@ -3787,6 +3844,7 @@ childCreatorPanel?.addEventListener("click", (event) => {
       causeConfigState = {
         nodeId: nodeInfo.node.id,
         draft: createCauseConfigDraft(nodeInfo.node),
+        advancedOpen: false,
       };
       renderAll({
         includeEntryDynamic: false,

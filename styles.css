@@ -4862,21 +4862,22 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar .icon-button:hover {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 14px 18px 0;
+  padding: 10px 16px 0;
 }
 
 .strategy-surface__header--spread {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .strategy-surface__header strong,
 .strategy-detail h2 {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   letter-spacing: -0.015em;
+  line-height: 1.18;
 }
 
 .strategy-surface__header span,
@@ -4987,8 +4988,8 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar .icon-button:hover {
 
 .strategy-detail {
   display: grid;
-  gap: 6px;
-  padding: 12px 18px 10px;
+  gap: 2px;
+  padding: 6px 16px 6px;
   border-bottom: 1px solid #d3dde8;
 }
 
@@ -4998,7 +4999,11 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar .icon-button:hover {
 
 .strategy-detail p {
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.35;
+}
+
+.strategy-detail p:empty {
+  display: none;
 }
 
 .strategy-detail-grid {
@@ -5935,6 +5940,10 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar .icon-button:hover {
   align-items: start;
 }
 
+.cause-config-panel__matrix--simple {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .cause-config-panel__column {
   display: grid;
   gap: 8px;
@@ -5964,6 +5973,29 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar .icon-button:hover {
 .cause-config-panel__load-action .asset-child-creator__disabled-action {
   width: auto;
   min-width: 220px;
+}
+
+.cause-config-panel__advanced {
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.cause-config-panel__advanced-toggle {
+  justify-self: start;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4f6480;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cause-config-panel__advanced-toggle:hover {
+  color: #233a54;
 }
 
 .asset-child-creator__placeholder-cell {
@@ -6303,6 +6335,14 @@ body[data-theme="dark"] .asset-child-creator__preview-item strong {
 body[data-theme="dark"] .cause-config-panel .field input[type="checkbox"] {
   border-color: rgba(148, 163, 184, 0.32);
   background: rgba(17, 28, 49, 0.96);
+}
+
+body[data-theme="dark"] .cause-config-panel__advanced-toggle {
+  color: #9cb0c9;
+}
+
+body[data-theme="dark"] .cause-config-panel__advanced-toggle:hover {
+  color: #e0eaf8;
 }
 
 body[data-theme="dark"] .asset-child-creator .field input,
