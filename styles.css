@@ -6142,6 +6142,44 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   padding-top: 8px;
 }
 
+.cm-task-editor__resources {
+  margin-top: 4px;
+}
+
+.cm-task-editor__resource-list {
+  display: grid;
+  gap: 8px;
+}
+
+.cm-task-editor__resource-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.cm-task-editor__resource-add,
+.cm-task-editor__resource-remove {
+  min-height: 30px;
+  border: 1px solid #a6b7ca;
+  border-radius: 6px;
+  background: #f7fafc;
+  color: #2f4964;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0 10px;
+}
+
+.cm-task-editor__resource-remove {
+  align-self: stretch;
+}
+
+.cm-task-editor__resource-empty {
+  margin: 0;
+  color: #667d95;
+  font-size: 0.8rem;
+}
+
 body.is-resizing-layout {
   cursor: col-resize;
   user-select: none;
@@ -6389,6 +6427,17 @@ body[data-theme="dark"] .asset-child-creator__preview-item {
 
 body[data-theme="dark"] .asset-child-creator__preview-item strong {
   color: #edf2ff;
+}
+
+body[data-theme="dark"] .cm-task-editor__resource-add,
+body[data-theme="dark"] .cm-task-editor__resource-remove {
+  border-color: rgba(132, 150, 178, 0.34);
+  background: rgba(21, 33, 54, 0.94);
+  color: #d9e5f5;
+}
+
+body[data-theme="dark"] .cm-task-editor__resource-empty {
+  color: #8ea4bf;
 }
 
 body[data-theme="dark"] .cause-config-panel .field input[type="checkbox"] {
@@ -6947,6 +6996,10 @@ body[data-theme="dark"] .asset-context-subdialog__header p {
   }
 
   .asset-child-creator__references-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-task-editor__resource-row {
     grid-template-columns: 1fr;
   }
 
