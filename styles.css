@@ -6267,6 +6267,10 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   align-items: end;
 }
 
+.cm-task-editor__resource-row--compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .cm-task-editor__resource-add,
 .cm-task-editor__resource-remove {
   min-height: 30px;
