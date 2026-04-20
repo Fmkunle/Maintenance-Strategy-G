@@ -3611,6 +3611,8 @@ const syncChildCreatorDraftField = (target) => {
     return;
   }
 
+  const targetId = target.id || "";
+
   if (target.dataset.childTypeOption) {
     childDraftState.childType = target.dataset.childTypeOption;
     childDraftState.redundancyMode = "None";
@@ -3635,7 +3637,7 @@ const syncChildCreatorDraftField = (target) => {
     causeConfigState.draft.description = target.value;
   }
 
-  if (syncCauseFailureDraftField(childDraftState, target)) {
+  if (targetId.startsWith("childCreator") && syncCauseFailureDraftField(childDraftState, target)) {
     const createButton = childCreatorPanel?.querySelector("#createChildButton");
     if (createButton) {
       createButton.disabled = !isChildDraftReady();
@@ -3643,7 +3645,7 @@ const syncChildCreatorDraftField = (target) => {
     return;
   }
 
-  if (syncCauseFailureDraftField(causeConfigState.draft, target)) {
+  if (targetId.startsWith("causeConfig") && syncCauseFailureDraftField(causeConfigState.draft, target)) {
     const saveCauseButton = childCreatorPanel?.querySelector("#saveCauseConfigButton");
     if (saveCauseButton) {
       saveCauseButton.disabled = !isCauseConfigDraftReady(causeConfigState.draft);
