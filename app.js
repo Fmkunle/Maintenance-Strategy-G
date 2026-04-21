@@ -15,7 +15,7 @@ const toolDefinitions = {
     action: "Create new strategy",
     secondaryAction: "Open existing",
     actionHref: "maintenance-strategy.html",
-    existingHref: "maintenance-strategy.html?mode=existing",
+    existingHref: "maintenance-strategy-existing.html",
     secondaryAvailable: true,
     available: true,
   },
@@ -88,11 +88,7 @@ const isExistingMaintenanceWorkspaceCandidate = (draft) => {
     return false;
   }
 
-  return Boolean(
-    draft.modalVisible === false &&
-      Array.isArray(draft.hierarchy) &&
-      draft.hierarchy.length > 0
-  );
+  return Boolean(Array.isArray(draft.hierarchy) && draft.hierarchy.length > 0);
 };
 
 const hasExistingMaintenanceWorkspaceLocally = () => {
@@ -110,6 +106,8 @@ const hasExistingMaintenanceWorkspaceLocally = () => {
 };
 
 const hasExistingMaintenanceWorkspace = async () => {
+  const localWorkspaceExists = hasExistingMaintenanceWorkspaceLocally();
+
   try {
     const response = await fetch(maintenanceWorkspaceApiUrl, {
       method: "GET",
@@ -120,7 +118,7 @@ const hasExistingMaintenanceWorkspace = async () => {
     });
 
     if (response.status === 404) {
-      return hasExistingMaintenanceWorkspaceLocally();
+      return localWorkspaceExists;
     }
 
     if (!response.ok) {
@@ -128,9 +126,9 @@ const hasExistingMaintenanceWorkspace = async () => {
     }
 
     const draft = await response.json();
-    return isExistingMaintenanceWorkspaceCandidate(draft);
+    return isExistingMaintenanceWorkspaceCandidate(draft) || localWorkspaceExists;
   } catch {
-    return hasExistingMaintenanceWorkspaceLocally();
+    return localWorkspaceExists;
   }
 };
 

@@ -592,6 +592,9 @@ let pmConfigState = defaultPmConfigState();
 let insConfigState = defaultInsConfigState();
 
 const getLaunchMode = () => {
+  if (window.__maintenanceLaunchMode === "existing" || window.__maintenanceLaunchMode === "new") {
+    return window.__maintenanceLaunchMode;
+  }
   const mode = new URLSearchParams(window.location.search).get("mode");
   return mode === "existing" ? "existing" : "new";
 };
@@ -1313,21 +1316,6 @@ const recoverExistingWorkspaceState = (draftSources = []) => {
     }
   }
 
-  for (const source of rankedSources) {
-    const recoveredState = normalizeWorkspaceModalDraftState(source.draft, source.label);
-    if (recoveredState) {
-      logBootDiagnostic("recovered-modal-draft", {
-        source: source.label,
-        summary: summarizeDraftShape(source.draft),
-      });
-      return {
-        state: recoveredState,
-        source: source.label,
-        mode: "modal",
-      };
-    }
-  }
-
   logBootDiagnostic("no-recoverable-draft", {
     sources: rankedSources.map((source) => ({
       source: source.label,
@@ -1339,7 +1327,10 @@ const recoverExistingWorkspaceState = (draftSources = []) => {
 
 const initializeState = async () => {
   const launchMode = getLaunchMode();
-  logBootDiagnostic("initialize-start", { launchMode });
+  logBootDiagnostic("initialize-start", {
+    launchMode,
+    route: window.location.pathname,
+  });
 
   if (launchMode === "existing") {
     const apiDraft = await loadWorkspaceFromApi();
@@ -1362,12 +1353,18 @@ const initializeState = async () => {
       });
       return;
     }
+    state = createMfaCrushSeedWorkspace();
+    logBootDiagnostic("initialize-fallback-seed", {
+      launchMode,
+      hierarchyCount: state.hierarchy.length,
+    });
+    return;
   }
 
-  state = createMfaCrushSeedWorkspace();
-  logBootDiagnostic("initialize-fallback-seed", {
+  state = defaultState();
+  logBootDiagnostic("initialize-new-route", {
     launchMode,
-    hierarchyCount: state.hierarchy.length,
+    modalVisible: state.modalVisible,
   });
 };
 
@@ -7348,15 +7345,18 @@ document.addEventListener("keydown", (event) => {
 });
 
 const bootApp = async () => {
+  const launchMode = getLaunchMode();
   try {
     await initializeState();
   } catch (error) {
     logBootDiagnostic("boot-error-fallback-seed", {
+      launchMode,
       message: error instanceof Error ? error.message : String(error),
     });
-    state = createMfaCrushSeedWorkspace();
+    state = launchMode === "existing" ? createMfaCrushSeedWorkspace() : defaultState();
   } finally {
     logBootDiagnostic("boot-render", {
+      launchMode,
       modalVisible: state.modalVisible,
       hierarchyCount: Array.isArray(state.hierarchy) ? state.hierarchy.length : 0,
       selectedNodeId: state.selectedNodeId || "",

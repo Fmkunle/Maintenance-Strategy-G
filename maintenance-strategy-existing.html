@@ -3,16 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maintenance Strategy Generator | Asset Taxonomy Workspace</title>
+  <title>Maintenance Strategy Generator | Existing Workspace</title>
   <script>
-    const maintenanceSearchParams = new URLSearchParams(window.location.search);
-    if (maintenanceSearchParams.get("mode") === "existing") {
-      maintenanceSearchParams.delete("mode");
-      const nextSearch = maintenanceSearchParams.toString();
-      const nextHref = `maintenance-strategy-existing.html${nextSearch ? `?${nextSearch}` : ""}${window.location.hash || ""}`;
-      window.location.replace(nextHref);
-    }
-    window.__maintenanceLaunchMode = "new";
+    window.__maintenanceLaunchMode = "existing";
     window.__maintenanceAssetVersion = "maintenance-page-54";
     const maintenanceStylesheet = document.createElement("link");
     maintenanceStylesheet.rel = "stylesheet";
