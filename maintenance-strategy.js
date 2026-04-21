@@ -111,11 +111,11 @@ const nodeTypeMeta = {
   functionalFailure: {
     label: "Functional Failure",
     placeholder: "New functional failure",
-    childActions: [{ type: "cause", label: "Add cause" }],
+    childActions: [{ type: "cause", label: "Add failure mode" }],
   },
   cause: {
-    label: "Cause",
-    placeholder: "New cause",
+    label: "Failure Mode",
+    placeholder: "New failure mode",
     childActions: [
       { type: "effect", label: "Add effect" },
       { type: "cm", label: "Add CM" },
@@ -204,6 +204,7 @@ const defaultEquipmentContext = () => ({
 });
 
 const defaultCauseFailureConfig = () => ({
+  componentName: "",
   distribution: "Age related",
   weibullSet: "",
   mttf: "",
@@ -221,9 +222,33 @@ const defaultCauseFailureConfig = () => ({
   eta3: "",
   beta3: "",
   gamma3: "",
+  alarmIsEnabled: false,
+  alarmDescription: "",
+  alarmPfInterval: "",
+  alarmDetectionProbability: "",
+  dbJson: null,
 });
 
 const defaultCmConfig = () => ({
+  intervalHours: "",
+  durationHours: "",
+  intervalShortDescription: "",
+  offset: "0",
+  rampTimeHours: "",
+  operationNumber: "",
+  isEnabled: true,
+  isFixed: false,
+  isSecondaryAction: false,
+  externalOperationCost: "",
+  maintenanceType: "",
+  type: "",
+  labourDurationHours: "",
+  resources: [],
+  sparePartsRequired: [],
+  toolsRequired: [],
+});
+
+const defaultPmConfig = () => ({
   intervalHours: "",
   durationHours: "",
   intervalShortDescription: "",
@@ -242,10 +267,6 @@ const defaultCmConfig = () => ({
   toolsRequired: [],
 });
 
-const defaultPmConfig = () => ({
-  ...defaultCmConfig(),
-});
-
 const defaultInsConfig = () => ({
   inspectionType: "Routine",
   scheduledTaskType: "",
@@ -257,6 +278,8 @@ const defaultInsConfig = () => ({
   detectionProbability: "",
   duration: "",
   laborLabor: "",
+  resources: [],
+  toolsRequired: [],
 });
 
 const cmResourceTypeOptions = [
@@ -286,6 +309,17 @@ const createCmSparePartAssignment = (part = "") => ({
 
 const createCmToolAssignment = (tool = "") => ({
   id: createId("cm-tool"),
+  tool,
+});
+
+const createInsResourceAssignment = (resourceType = "", durationHours = "") => ({
+  id: createId("ins-resource"),
+  resourceType,
+  durationHours,
+});
+
+const createInsToolAssignment = (tool = "") => ({
+  id: createId("ins-tool"),
   tool,
 });
 
@@ -372,6 +406,19 @@ const createNode = (
           ...(insConfig || {}),
           isEnabled: insConfig?.isEnabled !== undefined ? Boolean(insConfig.isEnabled) : true,
           doNotDeliver: Boolean(insConfig?.doNotDeliver),
+          resources: Array.isArray(insConfig?.resources)
+            ? insConfig.resources.map((resource) => ({
+                id: typeof resource?.id === "string" && resource.id ? resource.id : createId("ins-resource"),
+                resourceType: typeof resource?.resourceType === "string" ? resource.resourceType : "",
+                durationHours: typeof resource?.durationHours === "string" ? resource.durationHours : "",
+              }))
+            : [],
+          toolsRequired: Array.isArray(insConfig?.toolsRequired)
+            ? insConfig.toolsRequired.map((tool) => ({
+                id: typeof tool?.id === "string" && tool.id ? tool.id : createId("ins-tool"),
+                tool: typeof tool?.tool === "string" ? tool.tool : "",
+              }))
+            : [],
         }
       : null,
   children: [],
@@ -380,6 +427,7 @@ const createNode = (
 const defaultChildDraftState = () => ({
   isOpen: false,
   parentId: "",
+  editNodeId: "",
   childType: "",
   codeSegment: "",
   description: "",
@@ -395,6 +443,7 @@ const defaultChildDraftState = () => ({
   distribution: "Age related",
   weibullSet: "",
   mttf: "",
+  componentName: "",
   standardDeviation: "",
   causeDemandFrequency: "",
   standbyFailurePercent: "",
@@ -410,6 +459,11 @@ const defaultChildDraftState = () => ({
   beta3: "",
   gamma3: "",
   causeAdvancedOpen: false,
+  causeAlarmOpen: false,
+  alarmIsEnabled: false,
+  alarmDescription: "",
+  alarmPfInterval: "",
+  alarmDetectionProbability: "",
   cmStep: "core",
   cmName: "",
   cmIntervalHours: "",
@@ -440,6 +494,8 @@ const defaultChildDraftState = () => ({
   insDetectionProbability: "",
   insDuration: "",
   insLaborLabor: "",
+  insResources: [],
+  insToolsRequired: [],
 });
 
 const defaultEquipmentInfoState = () => ({
@@ -453,6 +509,18 @@ const defaultCauseConfigState = () => ({
   nodeId: "",
   draft: null,
   advancedOpen: false,
+  alarmOpen: false,
+});
+
+const defaultPmConfigState = () => ({
+  nodeId: "",
+  draft: null,
+  step: "core",
+});
+
+const defaultInsConfigState = () => ({
+  nodeId: "",
+  draft: null,
 });
 
 const defaultEntryState = () => ({
@@ -498,6 +566,8 @@ let workspaceSaveTimer = null;
 let workspaceSaveSequence = Promise.resolve();
 let entryEquipmentInfoState = defaultEntryEquipmentInfoState();
 let causeConfigState = defaultCauseConfigState();
+let pmConfigState = defaultPmConfigState();
+let insConfigState = defaultInsConfigState();
 
 const getLaunchMode = () => {
   const mode = new URLSearchParams(window.location.search).get("mode");
@@ -521,6 +591,8 @@ const normalizeCauseFailureConfig = (value) => ({
   ...defaultCauseFailureConfig(),
   ...(value && typeof value === "object" ? value : {}),
   isDormant: Boolean(value?.isDormant),
+  alarmIsEnabled: Boolean(value?.alarmIsEnabled),
+  dbJson: value?.dbJson && typeof value.dbJson === "object" ? value.dbJson : null,
 });
 
 const normalizeCmConfig = (value) => ({
@@ -583,6 +655,19 @@ const normalizeInsConfig = (value) => ({
   inspectionType: String(value?.inspectionType || "Routine") || "Routine",
   isEnabled: value?.isEnabled !== undefined ? Boolean(value.isEnabled) : true,
   doNotDeliver: Boolean(value?.doNotDeliver),
+  resources: Array.isArray(value?.resources)
+    ? value.resources.map((resource, index) => ({
+        id: typeof resource?.id === "string" && resource.id ? resource.id : createId(`ins-resource-${index}`),
+        resourceType: typeof resource?.resourceType === "string" ? resource.resourceType : "",
+        durationHours: typeof resource?.durationHours === "string" ? resource.durationHours : "",
+      }))
+    : [],
+  toolsRequired: Array.isArray(value?.toolsRequired)
+    ? value.toolsRequired.map((tool, index) => ({
+        id: typeof tool?.id === "string" && tool.id ? tool.id : createId(`ins-tool-${index}`),
+        tool: typeof tool?.tool === "string" ? tool.tool : "",
+      }))
+    : [],
 });
 
 const normalizeEntryState = (entry) => ({
@@ -846,6 +931,7 @@ const normalizeWorkspaceState = (draft) => {
   if (!hierarchy.length) {
     return null;
   }
+  refreshFailureModeDbJsonForHierarchy(hierarchy);
 
   const firstNode = getFirstNode(hierarchy);
   const selectedNodeId =
@@ -1062,7 +1148,7 @@ const initializeState = async () => {
     }
   }
 
-  state = defaultState();
+  state = createMfaCrushSeedWorkspace();
 };
 
 let state = defaultState();
@@ -1350,7 +1436,24 @@ const isCmNameAvailableForParent = (parentId, value) => {
   return !getNormalizedCmSiblingCodes((parentInfo.node.children || []).filter((child) => child.type === "cm")).has(normalizedCode);
 };
 
-const isCmDraftNameValid = (draft) => Boolean(draft?.parentId) && isCmNameAvailableForParent(draft.parentId, draft?.cmName || "");
+const isCmDraftNameValid = (draft) => {
+  if (!draft?.parentId) {
+    return false;
+  }
+
+  const normalizedCode = normalizeCmCodeInput(draft?.cmName || "");
+  if (!normalizedCode) {
+    return false;
+  }
+
+  const parentInfo = findNodeInfo(state.hierarchy, draft.parentId);
+  if (!parentInfo) {
+    return false;
+  }
+
+  const siblings = (parentInfo.node.children || []).filter((child) => child.type === "cm" && child.id !== draft.editNodeId);
+  return !getNormalizedCmSiblingCodes(siblings).has(normalizedCode);
+};
 const isPmNameAvailableForParent = (parentId, value) => {
   const normalizedCode = normalizePmCodeInput(value);
   if (!normalizedCode) {
@@ -1364,7 +1467,24 @@ const isPmNameAvailableForParent = (parentId, value) => {
 
   return !getNormalizedPmSiblingCodes((parentInfo.node.children || []).filter((child) => child.type === "pm")).has(normalizedCode);
 };
-const isPmDraftNameValid = (draft) => Boolean(draft?.parentId) && isPmNameAvailableForParent(draft.parentId, draft?.cmName || "");
+const isPmDraftNameValid = (draft) => {
+  if (!draft?.parentId) {
+    return false;
+  }
+
+  const normalizedCode = normalizePmCodeInput(draft?.cmName || "");
+  if (!normalizedCode) {
+    return false;
+  }
+
+  const parentInfo = findNodeInfo(state.hierarchy, draft.parentId);
+  if (!parentInfo) {
+    return false;
+  }
+
+  const siblings = (parentInfo.node.children || []).filter((child) => child.type === "pm" && child.id !== draft.editNodeId);
+  return !getNormalizedPmSiblingCodes(siblings).has(normalizedCode);
+};
 const isInsNameAvailableForParent = (parentId, value) => {
   const normalizedCode = normalizeInsCodeInput(value);
   if (!normalizedCode) {
@@ -1378,7 +1498,24 @@ const isInsNameAvailableForParent = (parentId, value) => {
 
   return !getNormalizedInsSiblingCodes((parentInfo.node.children || []).filter((child) => child.type === "ins")).has(normalizedCode);
 };
-const isInsDraftNameValid = (draft) => Boolean(draft?.parentId) && isInsNameAvailableForParent(draft.parentId, draft?.insName || "");
+const isInsDraftNameValid = (draft) => {
+  if (!draft?.parentId) {
+    return false;
+  }
+
+  const normalizedCode = normalizeInsCodeInput(draft?.insName || "");
+  if (!normalizedCode) {
+    return false;
+  }
+
+  const parentInfo = findNodeInfo(state.hierarchy, draft.parentId);
+  if (!parentInfo) {
+    return false;
+  }
+
+  const siblings = (parentInfo.node.children || []).filter((child) => child.type === "ins" && child.id !== draft.editNodeId);
+  return !getNormalizedInsSiblingCodes(siblings).has(normalizedCode);
+};
 
 const getGeneratedChildDefinition = (nodeInfo, childType) => {
   const parentFullCode = getNodeFullCode(nodeInfo.node, nodeInfo.path);
@@ -1417,6 +1554,7 @@ const hideNotice = () => {
 };
 
 const persistDraft = (message = "") => {
+  refreshDerivedFailureModeJson();
   state = {
     ...state,
     savedAt: new Date().toISOString(),
@@ -1432,6 +1570,7 @@ const persistDraft = (message = "") => {
 };
 
 const persistDraftSilently = () => {
+  refreshDerivedFailureModeJson();
   state = {
     ...state,
     savedAt: new Date().toISOString(),
@@ -1507,6 +1646,333 @@ const buildInitialHierarchyFromEntry = () => {
   return {
     hierarchy: [root],
     selectedNodeId: deepestId,
+  };
+};
+
+const createSeedChildNode = (parentNode, type, code, description, extra = {}) => {
+  const name = shortCodeHierarchyTypes.has(type) ? code : joinInheritedCode(parentNode.name, code, type);
+  const node = createNode(
+    type,
+    code,
+    name,
+    description,
+    extra.equipmentContext || null,
+    extra.failureConfig || null,
+    extra.cmConfig || null,
+    extra.pmConfig || null,
+    extra.insConfig || null
+  );
+  parentNode.children.push(node);
+  return node;
+};
+
+const createSeedMaintenanceTaskConfig = ({
+  intervalHours,
+  durationHours,
+  offset = "0",
+  rampTimeHours = "",
+  operationNumber = "",
+  isEnabled = true,
+  isFixed = false,
+  isSecondaryAction = false,
+  externalOperationCost = "",
+  maintenanceType = "",
+  type = "",
+  labourDurationHours = "",
+  resources = [],
+  sparePartsRequired = [],
+  toolsRequired = [],
+}) => ({
+  intervalHours: String(intervalHours || ""),
+  durationHours: String(durationHours || ""),
+  intervalShortDescription: deriveCmIntervalShortDescription(intervalHours),
+  offset: String(offset),
+  rampTimeHours: String(rampTimeHours || ""),
+  operationNumber: String(operationNumber || ""),
+  isEnabled: Boolean(isEnabled),
+  isFixed: Boolean(isFixed),
+  isSecondaryAction: Boolean(isSecondaryAction),
+  externalOperationCost: String(externalOperationCost || ""),
+  maintenanceType: String(maintenanceType || ""),
+  type: String(type || ""),
+  labourDurationHours: String(labourDurationHours || ""),
+  resources: resources.map((resource) => createCmResourceAssignment(resource.resourceType, resource.durationHours)),
+  sparePartsRequired: sparePartsRequired.map((part) => createCmSparePartAssignment(part)),
+  toolsRequired: toolsRequired.map((tool) => createCmToolAssignment(tool)),
+});
+
+const createSeedInsConfig = ({
+  inspectionType,
+  scheduledTaskType,
+  isEnabled = true,
+  doNotDeliver = false,
+  interval,
+  pfInterval = "",
+  detectionProbability = "",
+  duration,
+  laborLabor = "",
+  resources = [],
+  toolsRequired = [],
+}) => ({
+  inspectionType,
+  scheduledTaskType,
+  isEnabled,
+  doNotDeliver,
+  interval: String(interval || ""),
+  intervalShortDescription: deriveCmIntervalShortDescription(interval),
+  pfInterval: String(pfInterval || ""),
+  detectionProbability: String(detectionProbability || ""),
+  duration: String(duration || ""),
+  laborLabor: String(laborLabor || ""),
+  resources: resources.map((resource) => createInsResourceAssignment(resource.resourceType, resource.durationHours)),
+  toolsRequired: toolsRequired.map((tool) => createInsToolAssignment(tool)),
+});
+
+const seedEffectPairs = [
+  ["C1", "F1"],
+  ["S1", "E1"],
+  ["C2", "S2"],
+  ["F2", "E2"],
+  ["C3", "F3"],
+];
+
+const createMfaCrushSeedWorkspace = () => {
+  const root = createNode("plant", "MFA", "MFA", "Mfamosing");
+  const section = createSeedChildNode(root, "section", "CRUSH", "Crushing");
+  const equipmentTemplates = [
+    {
+      code: "CV01",
+      description: "Primary feed conveyor",
+      equipmentContext: {
+        equipmentFunction: "Convey ore from ROM hopper to crusher",
+        equipmentType: "Conveyor",
+        effectPerHourDown: "20K AUD/hr down",
+        demandFrequency: "Continuous",
+        redundancyMode: "None",
+        redundancyPercent: "",
+        maeCategory: "No",
+        operatingContext: "Dusty transfer point with intermittent rocks and fines carryback.",
+        criticality: "High",
+      },
+      functionDescription: "Convey ore from ROM hopper to jaw crusher",
+      failureDescription: "Unable to convey ore from ROM hopper to jaw crusher",
+      failureModes: [
+        { componentName: "Conveyor motor", description: "Conveyor motor failed due to overheating" },
+        { componentName: "Head pulley lagging", description: "Pulley lagging worn causing belt slip" },
+        { componentName: "Take-up", description: "Take-up seized and belt tension lost" },
+        { componentName: "Belt scraper", description: "Carryback caused material build-up on return idlers" },
+        { componentName: "Speed switch", description: "Speed switch failed to detect low belt speed" },
+      ],
+    },
+    {
+      code: "FE01",
+      description: "ROM belt feeder",
+      equipmentContext: {
+        equipmentFunction: "Meter ore feed from hopper to the primary conveyor",
+        equipmentType: "Belt Feeder",
+        effectPerHourDown: "15K AUD/hr down",
+        demandFrequency: "Intermittent",
+        redundancyMode: "None",
+        redundancyPercent: "",
+        maeCategory: "No",
+        operatingContext: "Variable load from coarse ore surge hopper with dust ingress.",
+        criticality: "High",
+      },
+      functionDescription: "Meter ore from hopper onto primary conveyor",
+      failureDescription: "Unable to meter ore from hopper onto primary conveyor",
+      failureModes: [
+        { componentName: "Feeder gearbox", description: "Gearbox oil loss caused feeder seizure" },
+        { componentName: "Skirt liner", description: "Skirt liner wear caused spillage at feeder discharge" },
+        { componentName: "VSD", description: "VSD trip prevented feeder speed control" },
+        { componentName: "Tail pulley", description: "Tail pulley bearings failed under high load" },
+        { componentName: "Belt", description: "Feeder belt mistracked and damaged the edge" },
+      ],
+    },
+    {
+      code: "CR01",
+      description: "Primary jaw crusher",
+      equipmentContext: {
+        equipmentFunction: "Reduce ROM ore size to downstream screening specification",
+        equipmentType: "Jaw Crusher",
+        effectPerHourDown: "35K AUD/hr down",
+        demandFrequency: "Continuous",
+        redundancyMode: "None",
+        redundancyPercent: "",
+        maeCategory: "No",
+        operatingContext: "High-load crushing duty with shock loading and abrasive ore.",
+        criticality: "High",
+      },
+      functionDescription: "Crush ROM ore to downstream product size",
+      failureDescription: "Unable to reduce ore size to downstream product size",
+      failureModes: [
+        { componentName: "Swing jaw", description: "Jaw plates worn beyond effective crushing profile" },
+        { componentName: "Hydraulic relief", description: "Hydraulic relief system failed during tramp event" },
+        { componentName: "Main bearings", description: "Main bearing temperature rose above safe limit" },
+        { componentName: "Drive motor", description: "Crusher drive motor protection tripped under load" },
+        { componentName: "Toggle plate", description: "Toggle plate fractured during uncrushable event" },
+      ],
+    },
+    {
+      code: "SC01",
+      description: "Sizing screen",
+      equipmentContext: {
+        equipmentFunction: "Separate crushed ore into compliant and oversize streams",
+        equipmentType: "Vibrating Screen",
+        effectPerHourDown: "18K AUD/hr down",
+        demandFrequency: "Continuous",
+        redundancyMode: "Custom",
+        redundancyPercent: "50",
+        maeCategory: "No",
+        operatingContext: "High vibration duty with wet fines blinding risk.",
+        criticality: "Medium",
+      },
+      functionDescription: "Screen crushed ore into product and recirculating streams",
+      failureDescription: "Unable to separate crushed ore into intended size fractions",
+      failureModes: [
+        { componentName: "Exciter", description: "Exciter bearing wear reduced screen vibration amplitude" },
+        { componentName: "Screen media", description: "Screen panels blinded and restricted throughput" },
+        { componentName: "Springs", description: "Isolation springs collapsed and caused poor motion" },
+        { componentName: "Motor coupling", description: "Motor coupling failed and stopped exciters" },
+        { componentName: "Support frame", description: "Frame cracking reduced structural integrity" },
+      ],
+    },
+    {
+      code: "PU01",
+      description: "Crusher lubrication pump",
+      equipmentContext: {
+        equipmentFunction: "Supply pressurised lubrication oil to the primary crusher",
+        equipmentType: "Pump",
+        effectPerHourDown: "12K AUD/hr down",
+        demandFrequency: "Continuous",
+        redundancyMode: "Standby",
+        redundancyPercent: "",
+        maeCategory: "No",
+        operatingContext: "Warm oily environment with contamination risk in lube circuit.",
+        criticality: "High",
+      },
+      functionDescription: "Deliver lubrication oil to crusher bearings and moving parts",
+      failureDescription: "Unable to supply lubrication oil at required pressure",
+      failureModes: [
+        { componentName: "Pump motor", description: "Pump motor starter fault prevented duty pump start" },
+        { componentName: "Mechanical seal", description: "Seal failure caused oil leakage and low header pressure" },
+        { componentName: "Suction strainer", description: "Blocked suction strainer starved pump of oil" },
+        { componentName: "Pressure switch", description: "Pressure switch drifted and gave false low-pressure trip" },
+        { componentName: "Standby auto-changeover", description: "Duty-standby changeover failed during low-pressure event" },
+      ],
+    },
+  ];
+
+  equipmentTemplates.forEach((template, equipmentIndex) => {
+    const equipment = createSeedChildNode(section, "equipment", template.code, template.description, {
+      equipmentContext: template.equipmentContext,
+    });
+    const fnNode = createSeedChildNode(equipment, "function", "1", template.functionDescription);
+    const ffNode = createSeedChildNode(fnNode, "functionalFailure", "A", template.failureDescription);
+
+    template.failureModes.forEach((failureMode, failureIndex) => {
+      const causeCode = String(failureIndex + 1);
+      const causeNode = createSeedChildNode(ffNode, "cause", causeCode, failureMode.description, {
+        failureConfig: {
+          componentName: failureMode.componentName,
+          distribution: failureIndex % 2 === 0 ? "Age related" : "Random (non age related)",
+          mttf: String(12000 + equipmentIndex * 1800 + failureIndex * 950),
+          demandFrequency: equipment.type === "equipment" ? template.equipmentContext.demandFrequency : "",
+          isDormant: false,
+          eta1: String(9000 + failureIndex * 500),
+          beta1: failureIndex % 2 === 0 ? "2.1" : "1.6",
+          gamma1: "0",
+          alarmIsEnabled: failureIndex % 2 === 0,
+          alarmDescription: failureIndex % 2 === 0 ? `${failureMode.componentName} alarm` : "",
+          alarmPfInterval: failureIndex % 2 === 0 ? "720" : "",
+          alarmDetectionProbability: failureIndex % 2 === 0 ? "85" : "",
+        },
+      });
+
+      const [effectA, effectB] = seedEffectPairs[(equipmentIndex + failureIndex) % seedEffectPairs.length];
+      [effectA, effectB].forEach((effectCode) => {
+        const option = getEffectCatalogOption(effectCode);
+        if (option) {
+          createSeedChildNode(causeNode, "effect", option.code, option.description);
+        }
+      });
+
+      createSeedChildNode(causeNode, "cm", "CM#01", `Replace ${failureMode.componentName.toLowerCase()}`, {
+        cmConfig: createSeedMaintenanceTaskConfig({
+          intervalHours: "",
+          durationHours: "6",
+          offset: "0",
+          rampTimeHours: "2",
+          operationNumber: "1010",
+          isEnabled: true,
+          type: "Corrective maintenance",
+          labourDurationHours: "3",
+          resources: [{ resourceType: "MECH TECH", durationHours: "3" }],
+          sparePartsRequired: ["Motor", "Bearing"],
+          toolsRequired: ["Spanner set", "Torque wrench"],
+        }),
+      });
+
+      createSeedChildNode(causeNode, "pm", "PM#01", `Replace ${failureMode.componentName.toLowerCase()} at set interval`, {
+        pmConfig: createSeedMaintenanceTaskConfig({
+          intervalHours: String(4320 + failureIndex * 720),
+          durationHours: "4",
+          offset: "0",
+          rampTimeHours: "1",
+          operationNumber: "1110",
+          isEnabled: true,
+          isFixed: true,
+          isSecondaryAction: false,
+          externalOperationCost: "200",
+          maintenanceType: "Routine replacement",
+          type: "Preventive maintenance",
+          labourDurationHours: "2",
+          resources: [{ resourceType: "MECH TECH", durationHours: "2" }],
+          sparePartsRequired: ["Seal kit"],
+          toolsRequired: ["Spanner set"],
+        }),
+      });
+
+      createSeedChildNode(causeNode, "ins", "INS#01", `Inspect ${failureMode.componentName.toLowerCase()} condition`, {
+        insConfig: createSeedInsConfig({
+          inspectionType: "Routine",
+          scheduledTaskType: "Routine inspection",
+          isEnabled: true,
+          doNotDeliver: false,
+          interval: "720",
+          pfInterval: "168",
+          detectionProbability: "70",
+          duration: "1",
+          laborLabor: "1",
+          resources: [{ resourceType: "MECH TECH", durationHours: "1" }],
+          toolsRequired: ["Spanner set"],
+        }),
+      });
+
+      createSeedChildNode(causeNode, "ins", "INS#02", `Monitor ${failureMode.componentName.toLowerCase()} performance trend`, {
+        insConfig: createSeedInsConfig({
+          inspectionType: "Condition monitoring",
+          scheduledTaskType: "Condition monitoring",
+          isEnabled: true,
+          doNotDeliver: false,
+          interval: "336",
+          pfInterval: "168",
+          detectionProbability: "82",
+          duration: "1.5",
+          laborLabor: "1.5",
+          resources: [{ resourceType: "AUTOMA.", durationHours: "1.5" }],
+          toolsRequired: ["Multimeter"],
+        }),
+      });
+    });
+  });
+
+  const hierarchy = [root];
+  refreshFailureModeDbJsonForHierarchy(hierarchy);
+  return {
+    ...defaultState(),
+    hierarchy,
+    selectedNodeId: root.id,
+    modalVisible: false,
   };
 };
 
@@ -1612,7 +2078,7 @@ const getChildActionLabel = (childType) => {
     case "functionalFailure":
       return "Add Functional Failure";
     case "cause":
-      return "Add Cause";
+      return "Add Failure Mode";
     case "effect":
       return "Add Effect";
     case "cm":
@@ -1762,7 +2228,9 @@ const isInsDraftReady = (draft) =>
       String(draft?.description || "").trim() &&
       String(draft?.insScheduledTaskType || "").trim() &&
       String(draft?.insInterval || "").trim() &&
-      String(draft?.insDuration || "").trim()
+      String(draft?.insDuration || "").trim() &&
+      areCmResourcesValid(draft?.insResources) &&
+      areCmSimpleAssignmentsValid(draft?.insToolsRequired, "tool")
   );
 const buildCmConfigFromDraft = (draft) => ({
   intervalHours: String(draft?.cmIntervalHours || "").trim(),
@@ -1818,6 +2286,23 @@ const buildInsConfigFromDraft = (draft) => ({
   detectionProbability: String(draft?.insDetectionProbability || "").trim(),
   duration: String(draft?.insDuration || "").trim(),
   laborLabor: String(draft?.insLaborLabor || "").trim(),
+  resources: Array.isArray(draft?.insResources)
+    ? draft.insResources
+        .filter((resource) => String(resource?.resourceType || "").trim() || String(resource?.durationHours || "").trim())
+        .map((resource) => ({
+          id: typeof resource?.id === "string" && resource.id ? resource.id : createId("ins-resource"),
+          resourceType: String(resource?.resourceType || "").trim(),
+          durationHours: String(resource?.durationHours || "").trim(),
+        }))
+    : [],
+  toolsRequired: Array.isArray(draft?.insToolsRequired)
+    ? draft.insToolsRequired
+        .filter((tool) => String(tool?.tool || "").trim())
+        .map((tool) => ({
+          id: typeof tool?.id === "string" && tool.id ? tool.id : createId("ins-tool"),
+          tool: String(tool?.tool || "").trim(),
+        }))
+    : [],
 });
 const isChildDraftReady = () => {
   if (childDraftState.childType === "cm") {
@@ -1840,6 +2325,10 @@ const isChildDraftReady = () => {
 
   if (childDraftState.childType === "ins") {
     return isInsDraftReady(childDraftState);
+  }
+
+  if (childDraftState.childType === "cause") {
+    return isCauseConfigDraftReady(childDraftState);
   }
 
   if (!childDraftState.description.trim()) {
@@ -1878,7 +2367,7 @@ const getChildDescriptionLabel = (childType) => {
     case "functionalFailure":
       return "Functional failure description";
     case "cause":
-      return "Cause description";
+      return "Failure Mode Description";
     case "effect":
       return "Effect description";
     case "cm":
@@ -1896,6 +2385,7 @@ const createCauseConfigDraftFromFailureConfig = (description = "", failureConfig
   const config = normalizeCauseFailureConfig(failureConfig);
   return {
     description: String(description || ""),
+    componentName: String(config.componentName || ""),
     distribution: String(config.distribution || "Age related") || "Age related",
     weibullSet: String(config.weibullSet || ""),
     mttf: String(config.mttf || ""),
@@ -1913,12 +2403,18 @@ const createCauseConfigDraftFromFailureConfig = (description = "", failureConfig
     eta3: String(config.eta3 || ""),
     beta3: String(config.beta3 || ""),
     gamma3: String(config.gamma3 || ""),
+    alarmIsEnabled: Boolean(config.alarmIsEnabled),
+    alarmDescription: String(config.alarmDescription || ""),
+    alarmPfInterval: String(config.alarmPfInterval || ""),
+    alarmDetectionProbability: String(config.alarmDetectionProbability || ""),
   };
 };
 
-const isCauseConfigDraftReady = (draft) => Boolean(String(draft?.description || "").trim());
+const isCauseConfigDraftReady = (draft) =>
+  Boolean(String(draft?.description || "").trim() && String(draft?.componentName || "").trim());
 
 const buildCauseFailureConfigFromDraft = (draft) => ({
+  componentName: String(draft?.componentName || "").trim(),
   distribution: String(draft?.distribution || "Age related") || "Age related",
   weibullSet: String(draft?.weibullSet || "").trim(),
   mttf: String(draft?.mttf || "").trim(),
@@ -1936,6 +2432,11 @@ const buildCauseFailureConfigFromDraft = (draft) => ({
   eta3: String(draft?.eta3 || "").trim(),
   beta3: String(draft?.beta3 || "").trim(),
   gamma3: String(draft?.gamma3 || "").trim(),
+  alarmIsEnabled: Boolean(draft?.alarmIsEnabled),
+  alarmDescription: String(draft?.alarmDescription || "").trim(),
+  alarmPfInterval: String(draft?.alarmPfInterval || "").trim(),
+  alarmDetectionProbability: String(draft?.alarmDetectionProbability || "").trim(),
+  dbJson: draft?.dbJson && typeof draft.dbJson === "object" ? draft.dbJson : null,
 });
 
 const isEquipmentInfoDraftReady = () => {
@@ -1968,6 +2469,120 @@ const getNodeFullCode = (node, path = []) =>
   getNodeNameValue(node, getFullCodeFromPath(path) || getNodeCodeValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node"));
 const getParentPath = (path) => (Array.isArray(path) && path.length > 1 ? path.slice(0, -1) : []);
 const getParentFullCodeFromPath = (path) => getFullCodeFromPath(getParentPath(path));
+const getNearestAncestorNodeFromPath = (path, type) =>
+  Array.isArray(path) ? [...path].reverse().find((node) => node.type === type) || null : null;
+const getFailureModeRedundancyFactor = (equipmentNode) => {
+  if (!equipmentNode?.equipmentContext) {
+    return "";
+  }
+
+  const { redundancyMode = "", redundancyPercent = "" } = equipmentNode.equipmentContext;
+  if (String(redundancyMode || "").trim() === "Custom" && String(redundancyPercent || "").trim()) {
+    return `${redundancyPercent}%`;
+  }
+
+  return String(redundancyMode || "").trim();
+};
+const buildFailureModeDbJson = (causeNode, path = []) => {
+  const failureConfig = normalizeCauseFailureConfig(causeNode?.failureConfig);
+  const equipmentNode = getNearestAncestorNodeFromPath(path, "equipment");
+  const equipmentPath =
+    equipmentNode && Array.isArray(path)
+      ? path.slice(0, path.findIndex((node) => node.id === equipmentNode.id) + 1)
+      : [];
+  const effectRows = (causeNode?.children || [])
+    .filter((child) => child.type === "effect")
+    .map((effectNode) => ({
+      "Failure Mode Effect Effect": getNodeDescription(effectNode),
+      "Failure Mode Effect Redundancy Factor": getFailureModeRedundancyFactor(equipmentNode),
+    }));
+  const taskRows = (causeNode?.children || [])
+    .filter((child) => ["cm", "pm", "ins"].includes(child.type))
+    .map((taskNode) => {
+      if (taskNode.type === "ins") {
+        const config = normalizeInsConfig(taskNode.insConfig);
+        return {
+          "Task Name": getNodeCodeValue(taskNode),
+          "Task Strategy": "INS",
+          "Scheduled Task Type": String(config.scheduledTaskType || "").trim(),
+          "Scheduled Task Is Enabled": Boolean(config.isEnabled),
+          "Scheduled Task Do Not Deliver": Boolean(config.doNotDeliver),
+          "Scheduled Task Description": getNodeDescription(taskNode),
+          "Scheduled Task Interval": String(config.interval || "").trim(),
+          "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
+          "Scheduled Task PF Interval": String(config.pfInterval || "").trim(),
+          "Scheduled Task Detection Probability": String(config.detectionProbability || "").trim(),
+          "Scheduled Task Duration": String(config.duration || "").trim(),
+          "Scheduled Task Labor Labor": String(config.laborLabor || "").trim(),
+        };
+      }
+
+      const config = taskNode.type === "pm" ? normalizePmConfig(taskNode.pmConfig) : normalizeCmConfig(taskNode.cmConfig);
+      return {
+        "Task Name": getNodeCodeValue(taskNode),
+        "Task Strategy": taskNode.type.toUpperCase(),
+        "Scheduled Task Type": String(config.type || "").trim(),
+        "Scheduled Task Is Enabled": Boolean(config.isEnabled),
+        "Scheduled Task Do Not Deliver": "",
+        "Scheduled Task Description": getNodeDescription(taskNode),
+        "Scheduled Task Interval": String(config.intervalHours || "").trim(),
+        "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
+        "Scheduled Task PF Interval": "",
+        "Scheduled Task Detection Probability": "",
+        "Scheduled Task Duration": String(config.durationHours || "").trim(),
+        "Scheduled Task Labor Labor": String(config.labourDurationHours || "").trim(),
+      };
+    });
+
+  return {
+    "Physical Asset Name": equipmentNode ? getNodeFullCode(equipmentNode, equipmentPath) : "",
+    "Physical Asset Description": equipmentNode ? getNodeDescription(equipmentNode) : "",
+    "Component Name": String(failureConfig.componentName || "").trim(),
+    "Failure Mode Name": getNodeFullCode(causeNode, path),
+    "Failure Mode Description": getNodeDescription(causeNode),
+    "Failure Mode Is Dormant": Boolean(failureConfig.isDormant),
+    "Failure Mode Demand Frequency": String(failureConfig.demandFrequency || "").trim(),
+    "Failure Mode Distribution": String(failureConfig.distribution || "").trim(),
+    "Failure Mode MTTF": String(failureConfig.mttf || "").trim(),
+    "Failure Mode Eta 1": String(failureConfig.eta1 || "").trim(),
+    "Failure Mode Beta 1": String(failureConfig.beta1 || "").trim(),
+    "Failure Mode Gamma 1": String(failureConfig.gamma1 || "").trim(),
+    "Failure Mode Alarm Is Enabled": Boolean(failureConfig.alarmIsEnabled),
+    "Failure Mode Alarm Description": String(failureConfig.alarmDescription || "").trim(),
+    "Failure Mode Alarm PF Interval": String(failureConfig.alarmPfInterval || "").trim(),
+    "Failure Mode Alarm Detection Probability": String(failureConfig.alarmDetectionProbability || "").trim(),
+    "Failure Mode Cost Benefit Ratio": "",
+    "Failure Mode Total Cost": "",
+    "Failure Mode Effect Cost": "",
+    "Failure Mode Corrective Down Time": "",
+    "Failure Mode Corrective Event Count": "",
+    "Failure Mode Corrective Cost": "",
+    "Failure Mode Planned Cost": "",
+    "Failure Mode Secondary Action Cost": "",
+    "Failure Mode Inspection Cost": "",
+    "Failure Mode Failure Rate": "",
+    "Failure Mode Availability": "",
+    effects: effectRows,
+    tasks: taskRows,
+  };
+};
+const refreshFailureModeDbJsonForHierarchy = (nodes, parentPath = []) => {
+  nodes.forEach((node) => {
+    const path = [...parentPath, node];
+    if (node.type === "cause") {
+      node.failureConfig = {
+        ...normalizeCauseFailureConfig(node.failureConfig),
+        dbJson: buildFailureModeDbJson(node, path),
+      };
+    }
+    if (Array.isArray(node.children) && node.children.length) {
+      refreshFailureModeDbJsonForHierarchy(node.children, path);
+    }
+  });
+};
+const refreshDerivedFailureModeJson = () => {
+  refreshFailureModeDbJsonForHierarchy(state.hierarchy);
+};
 const createEquipmentInfoDraft = (node) => {
   const context = node?.equipmentContext && typeof node.equipmentContext === "object" ? node.equipmentContext : defaultEquipmentContext();
   return {
@@ -1986,11 +2601,104 @@ const createEquipmentInfoDraft = (node) => {
 };
 const createCauseConfigDraft = (node) =>
   createCauseConfigDraftFromFailureConfig(getNodeDescription(node), node?.failureConfig || defaultCauseFailureConfig());
+const createCmConfigDraft = (node) => {
+  const config = normalizeCmConfig(node?.cmConfig);
+  return {
+    ...defaultChildDraftState(),
+    childType: "cm",
+    cmStep: "core",
+    cmName: getNodeCodeValue(node),
+    description: getNodeDescription(node),
+    cmIntervalHours: String(config.intervalHours || ""),
+    cmDurationHours: String(config.durationHours || ""),
+    cmIntervalShortDescription: String(config.intervalShortDescription || ""),
+    cmOffset: String(config.offset || "0"),
+    cmRampTimeHours: String(config.rampTimeHours || ""),
+    cmOperationNumber: String(config.operationNumber || ""),
+    cmIsEnabled: Boolean(config.isEnabled),
+    cmIsFixed: Boolean(config.isFixed),
+    cmIsSecondaryAction: Boolean(config.isSecondaryAction),
+    cmExternalOperationCost: String(config.externalOperationCost || ""),
+    cmMaintenanceType: String(config.maintenanceType || ""),
+    cmTaskType: String(config.type || ""),
+    cmLabourDurationHours: String(config.labourDurationHours || ""),
+    cmResources: Array.isArray(config.resources)
+      ? config.resources.map((resource) => createCmResourceAssignment(resource.resourceType, resource.durationHours))
+      : [],
+    cmSparePartsRequired: Array.isArray(config.sparePartsRequired)
+      ? config.sparePartsRequired.map((part) => createCmSparePartAssignment(part.part))
+      : [],
+    cmToolsRequired: Array.isArray(config.toolsRequired)
+      ? config.toolsRequired.map((tool) => createCmToolAssignment(tool.tool))
+      : [],
+  };
+};
+const createPmConfigDraft = (node) => {
+  const config = normalizePmConfig(node?.pmConfig);
+  return {
+    ...defaultChildDraftState(),
+    cmStep: "core",
+    cmName: getNodeCodeValue(node),
+    description: getNodeDescription(node),
+    cmIntervalHours: String(config.intervalHours || ""),
+    cmDurationHours: String(config.durationHours || ""),
+    cmIntervalShortDescription: String(config.intervalShortDescription || ""),
+    cmOffset: String(config.offset || "0"),
+    cmRampTimeHours: String(config.rampTimeHours || ""),
+    cmOperationNumber: String(config.operationNumber || ""),
+    cmIsEnabled: Boolean(config.isEnabled),
+    cmIsFixed: Boolean(config.isFixed),
+    cmIsSecondaryAction: Boolean(config.isSecondaryAction),
+    cmExternalOperationCost: String(config.externalOperationCost || ""),
+    cmMaintenanceType: String(config.maintenanceType || ""),
+    cmTaskType: String(config.type || ""),
+    cmLabourDurationHours: String(config.labourDurationHours || ""),
+    cmResources: Array.isArray(config.resources)
+      ? config.resources.map((resource) => createCmResourceAssignment(resource.resourceType, resource.durationHours))
+      : [],
+    cmSparePartsRequired: Array.isArray(config.sparePartsRequired)
+      ? config.sparePartsRequired.map((part) => createCmSparePartAssignment(part.part))
+      : [],
+    cmToolsRequired: Array.isArray(config.toolsRequired)
+      ? config.toolsRequired.map((tool) => createCmToolAssignment(tool.tool))
+      : [],
+  };
+};
+const createInsConfigDraft = (node) => {
+  const config = normalizeInsConfig(node?.insConfig);
+  return {
+    ...defaultChildDraftState(),
+    insName: getNodeCodeValue(node),
+    description: getNodeDescription(node),
+    insInspectionType: String(config.inspectionType || "Routine") || "Routine",
+    insScheduledTaskType: String(config.scheduledTaskType || ""),
+    insIsEnabled: Boolean(config.isEnabled),
+    insDoNotDeliver: Boolean(config.doNotDeliver),
+    insInterval: String(config.interval || ""),
+    insIntervalShortDescription: String(config.intervalShortDescription || ""),
+    insPfInterval: String(config.pfInterval || ""),
+    insDetectionProbability: String(config.detectionProbability || ""),
+    insDuration: String(config.duration || ""),
+    insLaborLabor: String(config.laborLabor || ""),
+    insResources: Array.isArray(config.resources)
+      ? config.resources.map((resource) => createInsResourceAssignment(resource.resourceType, resource.durationHours))
+      : [],
+    insToolsRequired: Array.isArray(config.toolsRequired)
+      ? config.toolsRequired.map((tool) => createInsToolAssignment(tool.tool))
+      : [],
+  };
+};
 const closeEquipmentInfo = () => {
   equipmentInfoState = defaultEquipmentInfoState();
 };
 const closeCauseConfig = () => {
   causeConfigState = defaultCauseConfigState();
+};
+const closePmConfig = () => {
+  pmConfigState = defaultPmConfigState();
+};
+const closeInsConfig = () => {
+  insConfigState = defaultInsConfigState();
 };
 const closeEquipmentInfoMenu = () => {
   equipmentInfoState = {
@@ -2028,10 +2736,50 @@ const openCauseConfig = (nodeInfo) => {
 
   closeChildCreator();
   closeEquipmentInfo();
+  closePmConfig();
+  closeInsConfig();
   causeConfigState = {
     nodeId: nodeInfo.node.id,
     draft: createCauseConfigDraft(nodeInfo.node),
     advancedOpen: false,
+    alarmOpen: false,
+  };
+};
+const openExistingTaskEditor = (nodeInfo) => {
+  if (!nodeInfo || !["cm", "pm", "ins"].includes(nodeInfo.node.type) || !nodeInfo.parent) {
+    closeChildCreator();
+    return;
+  }
+
+  closeEquipmentInfo();
+  closeCauseConfig();
+  if (nodeInfo.node.type === "cm") {
+    childDraftState = {
+      ...createCmConfigDraft(nodeInfo.node),
+      isOpen: true,
+      parentId: nodeInfo.parent.id,
+      editNodeId: nodeInfo.node.id,
+    };
+    return;
+  }
+
+  if (nodeInfo.node.type === "pm") {
+    childDraftState = {
+      ...createPmConfigDraft(nodeInfo.node),
+      isOpen: true,
+      parentId: nodeInfo.parent.id,
+      childType: "pm",
+      editNodeId: nodeInfo.node.id,
+    };
+    return;
+  }
+
+  childDraftState = {
+    ...createInsConfigDraft(nodeInfo.node),
+    isOpen: true,
+    parentId: nodeInfo.parent.id,
+    childType: "ins",
+    editNodeId: nodeInfo.node.id,
   };
 };
 const updateInheritedCodesForSubtree = (node, parentFullCode = "") => {
@@ -2641,6 +3389,8 @@ const openChildCreator = (parentId, childType = "") => {
 
   closeEquipmentInfo();
   closeCauseConfig();
+  closePmConfig();
+  closeInsConfig();
   const nextChildType = actions.some((action) => action.type === childType) ? childType : actions[0].type;
   const nextDraft = defaultChildDraftState();
   childDraftState = {
@@ -2705,6 +3455,8 @@ const saveCauseConfig = (nodeId, draft) => {
   causeConfigState = {
     nodeId,
     draft: createCauseConfigDraft(info.node),
+    advancedOpen: false,
+    alarmOpen: false,
   };
   persistDraftSilently();
   renderAll({
@@ -2728,6 +3480,7 @@ const renderChildCreator = (nodeInfo, actions) => {
   const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
     ? childDraftState.childType
     : actions[0].type;
+  const isEditingExistingTask = Boolean(childDraftState.editNodeId);
   const showEquipmentFields = selectedChildType === "equipment";
   const showEffectCatalogSelector = selectedChildType === "effect";
   const showMaintenanceTaskEditor = maintenanceTaskChildTypes.has(selectedChildType);
@@ -2738,7 +3491,9 @@ const renderChildCreator = (nodeInfo, actions) => {
   const generatedDefinition = isAutoGeneratedChild ? getGeneratedChildDefinition(nodeInfo, selectedChildType) : null;
   const usedEffectCodes = showEffectCatalogSelector ? getUsedEffectCodesForParent(nodeInfo.node) : new Set();
   const childTypeControl =
-    actions.length > 1
+    isEditingExistingTask
+      ? ""
+      : actions.length > 1
       ? `
           <div class="asset-child-creator__modebar">
             <div class="asset-child-creator__tabs" role="tablist" aria-label="Child type">
@@ -2918,36 +3673,49 @@ const renderChildCreator = (nodeInfo, actions) => {
                     <input id="childCreatorCmIsEnabledInput" type="checkbox" ${childDraftState.cmIsEnabled ? "checked" : ""}>
                     <span>Is enabled</span>
                   </label>
-                  <label class="cm-task-editor__flag">
-                    <input id="childCreatorCmIsFixedInput" type="checkbox" ${childDraftState.cmIsFixed ? "checked" : ""}>
-                    <span>Is Fixed</span>
-                  </label>
-                  <label class="cm-task-editor__flag">
-                    <input id="childCreatorCmIsSecondaryActionInput" type="checkbox" ${
-                      childDraftState.cmIsSecondaryAction ? "checked" : ""
-                    }>
-                    <span>Is secondary action</span>
-                  </label>
+                  ${
+                    selectedChildType === "pm"
+                      ? `
+                        <label class="cm-task-editor__flag">
+                          <input id="childCreatorCmIsFixedInput" type="checkbox" ${childDraftState.cmIsFixed ? "checked" : ""}>
+                          <span>Is Fixed</span>
+                        </label>
+                        <label class="cm-task-editor__flag">
+                          <input id="childCreatorCmIsSecondaryActionInput" type="checkbox" ${
+                            childDraftState.cmIsSecondaryAction ? "checked" : ""
+                          }>
+                          <span>Is secondary action</span>
+                        </label>
+                      `
+                      : ""
+                  }
                 </div>
                 <div class="cm-task-editor__grid">
-                  <label class="cm-task-editor__field">
-                    <span class="cm-task-editor__label">External operation cost</span>
-                    <input class="cm-task-editor__control" id="childCreatorCmExternalOperationCostInput" type="number" min="0" step="any" value="${escapeHtml(
-                      childDraftState.cmExternalOperationCost
-                    )}" placeholder="Enter external cost">
-                  </label>
-                  <label class="cm-task-editor__field">
-                    <span class="cm-task-editor__label">Maintenance Type</span>
-                    <input class="cm-task-editor__control" id="childCreatorCmMaintenanceTypeInput" type="text" maxlength="40" value="${escapeHtml(
-                      childDraftState.cmMaintenanceType
-                    )}" placeholder="Enter maintenance type">
-                  </label>
                   <label class="cm-task-editor__field">
                     <span class="cm-task-editor__label">Type</span>
                     <input class="cm-task-editor__control" id="childCreatorCmTaskTypeInput" type="text" maxlength="40" value="${escapeHtml(
                       childDraftState.cmTaskType
                     )}" placeholder="Enter type">
                   </label>
+                  ${
+                    selectedChildType === "pm"
+                      ? `
+                        <label class="cm-task-editor__field">
+                          <span class="cm-task-editor__label">External operation cost</span>
+                          <input class="cm-task-editor__control" id="childCreatorCmExternalOperationCostInput" type="number" min="0" step="any" value="${escapeHtml(
+                            childDraftState.cmExternalOperationCost
+                          )}" placeholder="Enter external cost">
+                        </label>
+                        <label class="cm-task-editor__field">
+                          <span class="cm-task-editor__label">Maintenance Type</span>
+                          <input class="cm-task-editor__control" id="childCreatorCmMaintenanceTypeInput" type="text" maxlength="40" value="${escapeHtml(
+                            childDraftState.cmMaintenanceType
+                          )}" placeholder="Enter maintenance type">
+                        </label>
+                      `
+                      : `<div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>
+                         <div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
+                  }
                 </div>
                 <label class="cm-task-editor__field cm-task-editor__field--wide">
                   <span class="cm-task-editor__label">Labour duration</span>
@@ -2983,7 +3751,7 @@ const renderChildCreator = (nodeInfo, actions) => {
                   </div>
                 </section>
                 ${
-                  selectedChildType === "cm"
+                  selectedChildType === "cm" && !isEditingExistingTask
                     ? `
                       <div class="cm-task-editor__flags cm-task-editor__flags--footer">
                         <label class="cm-task-editor__flag">
@@ -3008,7 +3776,7 @@ const renderChildCreator = (nodeInfo, actions) => {
               : `<button id="backCmStepButton" class="secondary-button" type="button">Back</button>
                  <button id="createChildButton" class="primary-button" type="button" ${
                    isChildDraftReady() ? "" : "disabled"
-                 }>Create</button>`
+                 }>${isEditingExistingTask ? "Save" : "Create"}</button>`
           }
         </div>
       </section>
@@ -3018,6 +3786,59 @@ const renderChildCreator = (nodeInfo, actions) => {
   if (showInsTaskEditor) {
     const insCode = getNextAutoGeneratedCode(nodeInfo.node, "ins");
     const intervalShortDescription = deriveCmIntervalShortDescription(childDraftState.insInterval);
+    const insResourceRows =
+      childDraftState.insResources.length > 0
+        ? childDraftState.insResources
+            .map(
+              (resource, index) => `
+                <div class="cm-task-editor__resource-row">
+                  <label class="cm-task-editor__resource-field">
+                    <span class="cm-task-editor__label">Resource type ${index + 1}</span>
+                    <select data-ins-resource-field="resourceType" data-ins-resource-id="${resource.id}">
+                      <option value="">Select resource type</option>
+                      ${cmResourceTypeOptions
+                        .map(
+                          (option) =>
+                            `<option value="${escapeHtml(option)}" ${resource.resourceType === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                        )
+                        .join("")}
+                    </select>
+                  </label>
+                  <label class="cm-task-editor__resource-field">
+                    <span class="cm-task-editor__label">Duration (hours)</span>
+                    <input data-ins-resource-field="durationHours" data-ins-resource-id="${resource.id}" type="number" min="0" step="any" value="${escapeHtml(
+                      resource.durationHours
+                    )}" placeholder="Enter duration">
+                  </label>
+                  <button class="cm-task-editor__resource-remove" type="button" data-remove-ins-resource="${resource.id}">Remove</button>
+                </div>
+              `
+            )
+            .join("")
+        : `<p class="cm-task-editor__resource-empty">No resources added yet.</p>`;
+    const insToolRows =
+      childDraftState.insToolsRequired.length > 0
+        ? childDraftState.insToolsRequired
+            .map(
+              (tool, index) => `
+                <div class="cm-task-editor__resource-row cm-task-editor__resource-row--compact">
+                  <label class="cm-task-editor__resource-field">
+                    <span class="cm-task-editor__label">Tool ${index + 1}</span>
+                    <select data-ins-tool-field="tool" data-ins-tool-id="${tool.id}">
+                      <option value="">Select tool</option>
+                      ${cmToolOptions
+                        .map(
+                          (option) => `<option value="${escapeHtml(option)}" ${tool.tool === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+                        )
+                        .join("")}
+                    </select>
+                  </label>
+                  <button class="cm-task-editor__resource-remove" type="button" data-remove-ins-tool="${tool.id}">Remove</button>
+                </div>
+              `
+            )
+            .join("")
+        : `<p class="cm-task-editor__resource-empty">No tools added yet.</p>`;
     childCreatorPanel.innerHTML = `
       <section class="asset-child-creator__form cm-task-editor">
         ${childTypeControl}
@@ -3051,43 +3872,43 @@ const renderChildCreator = (nodeInfo, actions) => {
                 </select>
               </label>
               <label class="cm-task-editor__field">
-                <span class="cm-task-editor__label">${getRequiredFieldLabel("Scheduled Task Type")}</span>
+                <span class="cm-task-editor__label">${getRequiredFieldLabel("Task Type")}</span>
                 <input class="cm-task-editor__control" id="childCreatorInsScheduledTaskTypeInput" type="text" value="${escapeHtml(
                   childDraftState.insScheduledTaskType
-                )}" placeholder="Enter scheduled task type" required>
+                )}" placeholder="Enter task type" required>
               </label>
               <label class="cm-task-editor__field cm-task-editor__field--full">
-                <span class="cm-task-editor__label">${getRequiredFieldLabel("Scheduled Task Description")}</span>
+                <span class="cm-task-editor__label">${getRequiredFieldLabel("Task Description")}</span>
                 <input class="cm-task-editor__control" id="childCreatorDescriptionInput" type="text" maxlength="80" value="${escapeHtml(
                   childDraftState.description
-                )}" placeholder="Enter scheduled task description" required>
+                )}" placeholder="Enter task description" required>
               </label>
             </div>
             <div class="cm-task-editor__flags">
               <label class="cm-task-editor__flag">
                 <input id="childCreatorInsIsEnabledInput" type="checkbox" ${childDraftState.insIsEnabled ? "checked" : ""}>
-                <span>Scheduled Task Is Enabled</span>
+                <span>Task Is Enabled</span>
               </label>
               <label class="cm-task-editor__flag">
                 <input id="childCreatorInsDoNotDeliverInput" type="checkbox" ${childDraftState.insDoNotDeliver ? "checked" : ""}>
-                <span>Scheduled Task Do Not Deliver</span>
+                <span>Task Do Not Deliver</span>
               </label>
             </div>
             <div class="cm-task-editor__grid">
               <label class="cm-task-editor__field">
-                <span class="cm-task-editor__label">${getRequiredFieldLabel("Scheduled Task Interval")}</span>
+                <span class="cm-task-editor__label">${getRequiredFieldLabel("Task Interval")}</span>
                 <input class="cm-task-editor__control" id="childCreatorInsIntervalInput" type="number" min="0" step="any" value="${escapeHtml(
                   childDraftState.insInterval
                 )}" placeholder="Enter interval" required>
               </label>
               <label class="cm-task-editor__field">
-                <span class="cm-task-editor__label">Scheduled Task Interval Short Description</span>
+                <span class="cm-task-editor__label">Task Interval Short Description</span>
                 <input class="cm-task-editor__control" id="childCreatorInsIntervalShortInput" type="text" value="${escapeHtml(
                   intervalShortDescription
                 )}" readonly>
               </label>
               <label class="cm-task-editor__field">
-                <span class="cm-task-editor__label">Scheduled Task PF Interval</span>
+                <span class="cm-task-editor__label">Task PF Interval</span>
                 <input class="cm-task-editor__control" id="childCreatorInsPfIntervalInput" type="number" min="0" step="any" value="${escapeHtml(
                   childDraftState.insPfInterval
                 )}" placeholder="Enter PF interval">
@@ -3095,29 +3916,47 @@ const renderChildCreator = (nodeInfo, actions) => {
             </div>
             <div class="cm-task-editor__grid">
               <label class="cm-task-editor__field">
-                <span class="cm-task-editor__label">Scheduled Task Detection Probability</span>
+                <span class="cm-task-editor__label">Task Detection Probability</span>
                 <input class="cm-task-editor__control" id="childCreatorInsDetectionProbabilityInput" type="number" min="0" max="100" step="any" value="${escapeHtml(
                   childDraftState.insDetectionProbability
                 )}" placeholder="Enter detection probability">
               </label>
               <label class="cm-task-editor__field">
-                <span class="cm-task-editor__label">${getRequiredFieldLabel("Scheduled Task Duration")}</span>
+                <span class="cm-task-editor__label">${getRequiredFieldLabel("Task Duration")}</span>
                 <input class="cm-task-editor__control" id="childCreatorInsDurationInput" type="number" min="0" step="any" value="${escapeHtml(
                   childDraftState.insDuration
                 )}" placeholder="Enter duration" required>
               </label>
               <label class="cm-task-editor__field">
-                <span class="cm-task-editor__label">Scheduled Task Labor Labor</span>
+                <span class="cm-task-editor__label">Task Labor Labor</span>
                 <input class="cm-task-editor__control" id="childCreatorInsLaborLaborInput" type="number" min="0" step="any" value="${escapeHtml(
                   childDraftState.insLaborLabor
                 )}" placeholder="Enter labour">
               </label>
             </div>
+            <section class="asset-child-creator__section cm-task-editor__resources">
+              <header class="asset-child-creator__section-head">
+                <strong class="asset-child-creator__section-title">Labour Resources</strong>
+                <button class="cm-task-editor__resource-add" type="button" id="addInsResourceButton">Add resource</button>
+              </header>
+              <div class="cm-task-editor__resource-list">
+                ${insResourceRows}
+              </div>
+            </section>
+            <section class="asset-child-creator__section cm-task-editor__resources">
+              <header class="asset-child-creator__section-head">
+                <strong class="asset-child-creator__section-title">Tools Required</strong>
+                <button class="cm-task-editor__resource-add" type="button" id="addInsToolButton">Add tool</button>
+              </header>
+              <div class="cm-task-editor__resource-list">
+                ${insToolRows}
+              </div>
+            </section>
           </div>
         </section>
         <div class="asset-child-creator__actions">
           <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
-          <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
+          <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>${isEditingExistingTask ? "Save" : "Create"}</button>
         </div>
       </section>
     `;
@@ -3158,6 +3997,22 @@ const renderChildCreator = (nodeInfo, actions) => {
               <strong>${escapeHtml(generatedDefinition?.fullCode || parentFullCode)}</strong>
             </div>
           </div>
+          ${
+            selectedChildType === "cause"
+              ? `
+                <label class="field field--full">
+                  <span>${getRequiredFieldLabel("Component Name")}</span>
+                  <input
+                    id="childCreatorComponentNameInput"
+                    type="text"
+                    value="${escapeHtml(childDraftState.componentName)}"
+                    placeholder="Enter component name"
+                    required
+                  >
+                </label>
+              `
+              : ""
+          }
           <label class="field field--full">
             <span>${getRequiredFieldLabel(getChildDescriptionLabel(selectedChildType))}</span>
             <input
@@ -3318,13 +4173,14 @@ const renderChildCreator = (nodeInfo, actions) => {
               idPrefix: "childCreatorCause",
               isCreateMode: true,
               isAdvancedOpen: childDraftState.causeAdvancedOpen,
+              isAlarmOpen: childDraftState.causeAlarmOpen,
             })
           : ""
       }
       ${equipmentFieldsMarkup}
       <div class="asset-child-creator__actions">
         <button id="cancelChildCreatorButton" class="secondary-button" type="button">Cancel</button>
-        <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>Create</button>
+        <button id="createChildButton" class="primary-button" type="button" ${isChildDraftReady() ? "" : "disabled"}>${isEditingExistingTask ? "Save" : "Create"}</button>
       </div>
     </section>
   `;
@@ -3334,11 +4190,12 @@ const renderCauseConfigFields = (draft, options = {}) => {
   const idPrefix = options.idPrefix || "causeConfig";
   const isCreateMode = Boolean(options.isCreateMode);
   const isAdvancedOpen = Boolean(options.isAdvancedOpen);
+  const isAlarmOpen = Boolean(options.isAlarmOpen);
   const distributionOptions = ["Age related", "Random (non age related)"];
   return `
     <section class="asset-child-creator__section cause-config-panel">
       <header class="asset-child-creator__section-head">
-        <strong class="asset-child-creator__section-title">Failure Configuration</strong>
+        <strong class="asset-child-creator__section-title">Failure Mode Configuration</strong>
       </header>
       <div class="cause-config-panel__matrix cause-config-panel__matrix--simple">
         <div class="cause-config-panel__column">
@@ -3453,6 +4310,49 @@ const renderCauseConfigFields = (draft, options = {}) => {
             : ""
         }
       </div>
+      <div class="cause-config-panel__advanced">
+        <button
+          id="${idPrefix}AlarmToggleButton"
+          class="cause-config-panel__advanced-toggle"
+          type="button"
+          aria-expanded="${isAlarmOpen ? "true" : "false"}"
+          data-toggle-cause-alarm="${isCreateMode ? "create" : "edit"}"
+        >
+          ${isAlarmOpen ? "Hide alarm configuration" : "Alarm configuration"}
+        </button>
+        ${
+          isAlarmOpen
+            ? `
+              <div class="cause-config-panel__matrix cause-config-panel__matrix--simple">
+                <div class="cause-config-panel__column">
+                  <label class="field cause-config-panel__checkbox-field">
+                    <span>Alarm Is Enabled</span>
+                    <input id="${idPrefix}AlarmIsEnabledInput" type="checkbox" ${draft.alarmIsEnabled ? "checked" : ""}>
+                  </label>
+                  <label class="field">
+                    <span>Alarm Description</span>
+                    <input id="${idPrefix}AlarmDescriptionInput" type="text" maxlength="40" value="${escapeHtml(
+                      draft.alarmDescription
+                    )}" placeholder="Enter alarm description">
+                  </label>
+                  <label class="field">
+                    <span>Alarm PF Interval</span>
+                    <input id="${idPrefix}AlarmPfIntervalInput" type="number" min="0" step="any" value="${escapeHtml(
+                      draft.alarmPfInterval
+                    )}" placeholder="Enter alarm PF interval">
+                  </label>
+                  <label class="field">
+                    <span>Alarm Detection Probability</span>
+                    <input id="${idPrefix}AlarmDetectionProbabilityInput" type="number" min="0" max="100" step="any" value="${escapeHtml(
+                      draft.alarmDetectionProbability
+                    )}" placeholder="Enter alarm detection probability">
+                  </label>
+                </div>
+              </div>
+            `
+            : ""
+        }
+      </div>
     </section>
   `;
 };
@@ -3477,12 +4377,22 @@ const renderCauseConfigEditor = (nodeInfo) => {
           </div>
         </div>
         <label class="field field--full">
-          <span>${getRequiredFieldLabel("Cause description")}</span>
+          <span>${getRequiredFieldLabel("Component Name")}</span>
+          <input
+            id="causeConfigComponentNameInput"
+            type="text"
+            value="${escapeHtml(draft.componentName)}"
+            placeholder="Enter component name"
+            required
+          >
+        </label>
+        <label class="field field--full">
+          <span>${getRequiredFieldLabel("Failure Mode Description")}</span>
           <input
             id="causeConfigDescriptionInput"
             type="text"
             value="${escapeHtml(draft.description)}"
-            placeholder="Enter cause description"
+            placeholder="Enter failure mode description"
             required
           >
         </label>
@@ -3491,6 +4401,7 @@ const renderCauseConfigEditor = (nodeInfo) => {
         idPrefix: "causeConfig",
         isCreateMode: false,
         isAdvancedOpen: causeConfigState.advancedOpen,
+        isAlarmOpen: causeConfigState.alarmOpen,
       })}
       <div class="asset-child-creator__actions">
         <button id="resetCauseConfigButton" class="secondary-button" type="button">Cancel</button>
@@ -3853,7 +4764,8 @@ const renderSelectedNodePanel = () => {
 
   const { node, path } = nodeInfo;
   const actions = getChildActions(node.type);
-  if (childDraftState.parentId && childDraftState.parentId !== node.id) {
+  const isEditingSelectedTask = Boolean(childDraftState.editNodeId) && childDraftState.editNodeId === node.id;
+  if (childDraftState.parentId && childDraftState.parentId !== node.id && !isEditingSelectedTask) {
     closeChildCreator();
   }
   if (equipmentInfoState.nodeId && equipmentInfoState.nodeId !== node.id) {
@@ -3861,6 +4773,9 @@ const renderSelectedNodePanel = () => {
   }
   if (causeConfigState.nodeId && causeConfigState.nodeId !== node.id) {
     closeCauseConfig();
+  }
+  if (["cm", "pm", "ins"].includes(node.type) && (!childDraftState.editNodeId || childDraftState.editNodeId !== node.id)) {
+    openExistingTaskEditor(nodeInfo);
   }
   const isAddMode = childDraftState.isOpen && childDraftState.parentId === node.id && actions.length > 0;
   const equipmentInfoMode =
@@ -3914,12 +4829,27 @@ const renderSelectedNodePanel = () => {
         nodeId: node.id,
         draft: createCauseConfigDraft(node),
         advancedOpen: false,
+        alarmOpen: false,
       };
     }
-    selectedNodeTypeLabel.textContent = "Failure Configuration";
+    selectedNodeTypeLabel.textContent = "Failure Mode Configuration";
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
     backgroundDetailSummary.textContent = "";
     renderCauseConfigEditor(nodeInfo);
+    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed" });
+    if (strategyList) {
+      strategyList.hidden = true;
+      strategyList.innerHTML = "";
+    }
+    return;
+  }
+
+  if (["cm", "pm", "ins"].includes(node.type) && nodeInfo.parent) {
+    const parentActions = getChildActions(nodeInfo.parent.type);
+    selectedNodeTypeLabel.textContent = node.type === "cm" ? "CM" : node.type === "pm" ? "PM" : "INS";
+    backgroundDetailHeading.textContent = getNodeDisplayName(node);
+    backgroundDetailSummary.textContent = "";
+    renderChildCreator(nodeInfo.parent ? findNodeInfo(state.hierarchy, nodeInfo.parent.id) : nodeInfo, parentActions);
     renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed" });
     if (strategyList) {
       strategyList.hidden = true;
@@ -3963,6 +4893,54 @@ const renderAll = (options = {}) => {
     includeDynamic: options.includeEntryDynamic !== false,
   });
   renderWorkspaceState();
+};
+
+const saveExistingTaskNode = (nodeId, draft) => {
+  const info = findNodeInfo(state.hierarchy, nodeId);
+  if (!info || !["cm", "pm", "ins"].includes(info.node.type)) {
+    return;
+  }
+
+  if (info.node.type === "cm") {
+    const normalizedCode = normalizeCmCodeInput(draft?.cmName || "");
+    const siblings = (info.parent?.children || []).filter((child) => child.type === "cm" && child.id !== nodeId);
+    if (!normalizedCode || getNormalizedCmSiblingCodes(siblings).has(normalizedCode)) {
+      return;
+    }
+    info.node.code = normalizedCode;
+    info.node.name = normalizedCode;
+    info.node.description = String(draft?.description || "").trim();
+    info.node.cmConfig = buildCmConfigFromDraft(draft);
+  } else if (info.node.type === "pm") {
+    const normalizedCode = normalizePmCodeInput(draft?.cmName || "");
+    const siblings = (info.parent?.children || []).filter((child) => child.type === "pm" && child.id !== nodeId);
+    if (!normalizedCode || getNormalizedPmSiblingCodes(siblings).has(normalizedCode)) {
+      return;
+    }
+    info.node.code = normalizedCode;
+    info.node.name = normalizedCode;
+    info.node.description = String(draft?.description || "").trim();
+    info.node.pmConfig = buildPmConfigFromDraft(draft);
+  } else {
+    const normalizedCode = normalizeInsCodeInput(draft?.insName || "");
+    const siblings = (info.parent?.children || []).filter((child) => child.type === "ins" && child.id !== nodeId);
+    if (!normalizedCode || getNormalizedInsSiblingCodes(siblings).has(normalizedCode)) {
+      return;
+    }
+    info.node.code = normalizedCode;
+    info.node.name = normalizedCode;
+    info.node.description = String(draft?.description || "").trim();
+    info.node.insConfig = buildInsConfigFromDraft(draft);
+  }
+
+  childDraftState = {
+    ...childDraftState,
+    editNodeId: nodeId,
+  };
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
 };
 
 const createChildNode = (parentId, childType, draft) => {
@@ -4053,6 +5031,7 @@ const createChildNode = (parentId, childType, draft) => {
       nodeId: nextNode.id,
       draft: createCauseConfigDraft(nextNode),
       advancedOpen: false,
+      alarmOpen: false,
     };
   }
   closeChildCreator();
@@ -4536,6 +5515,7 @@ const syncCauseFailureDraftField = (draft, target) => {
 
   const id = target.id || "";
   const fieldMappings = [
+    ["ComponentNameInput", "componentName"],
     ["DistributionInput", "distribution"],
     ["WeibullSetInput", "weibullSet"],
     ["MttfInput", "mttf"],
@@ -4552,6 +5532,9 @@ const syncCauseFailureDraftField = (draft, target) => {
     ["Eta3Input", "eta3"],
     ["Beta3Input", "beta3"],
     ["Gamma3Input", "gamma3"],
+    ["AlarmDescriptionInput", "alarmDescription"],
+    ["AlarmPfIntervalInput", "alarmPfInterval"],
+    ["AlarmDetectionProbabilityInput", "alarmDetectionProbability"],
   ];
 
   for (const [suffix, field] of fieldMappings) {
@@ -4563,6 +5546,11 @@ const syncCauseFailureDraftField = (draft, target) => {
 
   if (id.endsWith("IsDormantInput") && target instanceof HTMLInputElement) {
     draft.isDormant = target.checked;
+    return true;
+  }
+
+  if (id.endsWith("AlarmIsEnabledInput") && target instanceof HTMLInputElement) {
+    draft.alarmIsEnabled = target.checked;
     return true;
   }
 
@@ -4710,6 +5698,28 @@ const syncChildCreatorDraftField = (target) => {
 
   if (target.id === "childCreatorInsLaborLaborInput") {
     childDraftState.insLaborLabor = target.value;
+  }
+
+  if (target instanceof HTMLElement && target.dataset.insResourceId && target.dataset.insResourceField) {
+    childDraftState.insResources = childDraftState.insResources.map((resource) =>
+      resource.id === target.dataset.insResourceId
+        ? {
+            ...resource,
+            [target.dataset.insResourceField]: target.value,
+          }
+        : resource
+    );
+  }
+
+  if (target instanceof HTMLElement && target.dataset.insToolId && target.dataset.insToolField) {
+    childDraftState.insToolsRequired = childDraftState.insToolsRequired.map((tool) =>
+      tool.id === target.dataset.insToolId
+        ? {
+            ...tool,
+            [target.dataset.insToolField]: target.value,
+          }
+        : tool
+    );
   }
 
   if (target instanceof HTMLElement && target.dataset.cmResourceId && target.dataset.cmResourceField) {
@@ -4919,6 +5929,21 @@ childCreatorPanel?.addEventListener("click", (event) => {
     return;
   }
 
+  const causeAlarmToggleButton = event.target.closest("[data-toggle-cause-alarm]");
+  if (causeAlarmToggleButton) {
+    const mode = causeAlarmToggleButton.dataset.toggleCauseAlarm;
+    if (mode === "create") {
+      childDraftState.causeAlarmOpen = !childDraftState.causeAlarmOpen;
+    } else {
+      causeConfigState = {
+        ...causeConfigState,
+        alarmOpen: !causeConfigState.alarmOpen,
+      };
+    }
+    renderSelectedNodePanel();
+    return;
+  }
+
   const childTypeButton = event.target.closest("[data-child-type-option]");
   if (childTypeButton) {
     syncChildCreatorDraftField(childTypeButton);
@@ -4964,6 +5989,20 @@ childCreatorPanel?.addEventListener("click", (event) => {
     return;
   }
 
+  const addInsResourceButton = event.target.closest("#addInsResourceButton");
+  if (addInsResourceButton) {
+    childDraftState.insResources = [...childDraftState.insResources, createInsResourceAssignment()];
+    renderSelectedNodePanel();
+    return;
+  }
+
+  const addInsToolButton = event.target.closest("#addInsToolButton");
+  if (addInsToolButton) {
+    childDraftState.insToolsRequired = [...childDraftState.insToolsRequired, createInsToolAssignment()];
+    renderSelectedNodePanel();
+    return;
+  }
+
   const removeCmResourceButton = event.target.closest("[data-remove-cm-resource]");
   if (removeCmResourceButton) {
     childDraftState.cmResources = childDraftState.cmResources.filter(
@@ -4991,8 +6030,34 @@ childCreatorPanel?.addEventListener("click", (event) => {
     return;
   }
 
+  const removeInsResourceButton = event.target.closest("[data-remove-ins-resource]");
+  if (removeInsResourceButton) {
+    childDraftState.insResources = childDraftState.insResources.filter(
+      (resource) => resource.id !== removeInsResourceButton.dataset.removeInsResource
+    );
+    renderSelectedNodePanel();
+    return;
+  }
+
+  const removeInsToolButton = event.target.closest("[data-remove-ins-tool]");
+  if (removeInsToolButton) {
+    childDraftState.insToolsRequired = childDraftState.insToolsRequired.filter(
+      (tool) => tool.id !== removeInsToolButton.dataset.removeInsTool
+    );
+    renderSelectedNodePanel();
+    return;
+  }
+
   const cancelButton = event.target.closest("#cancelChildCreatorButton");
   if (cancelButton) {
+    if (childDraftState.editNodeId) {
+      const nodeInfo = getSelectedNodeInfo();
+      openExistingTaskEditor(nodeInfo);
+      renderAll({
+        includeEntryDynamic: false,
+      });
+      return;
+    }
     closeChildCreator();
     renderAll({
       includeEntryDynamic: false,
@@ -5043,6 +6108,7 @@ childCreatorPanel?.addEventListener("click", (event) => {
         nodeId: nodeInfo.node.id,
         draft: createCauseConfigDraft(nodeInfo.node),
         advancedOpen: false,
+        alarmOpen: false,
       };
       renderAll({
         includeEntryDynamic: false,
@@ -5059,6 +6125,11 @@ childCreatorPanel?.addEventListener("click", (event) => {
 
   const createButton = event.target.closest("#createChildButton");
   if (!createButton || !isChildDraftReady()) {
+    return;
+  }
+
+  if (childDraftState.editNodeId) {
+    saveExistingTaskNode(childDraftState.editNodeId, childDraftState);
     return;
   }
 
