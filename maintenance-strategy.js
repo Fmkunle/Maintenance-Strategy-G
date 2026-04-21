@@ -553,6 +553,7 @@ const defaultState = () => ({
   selectedNodeId: "",
   collapsedNodeIds: [],
   hierarchyFilter: "",
+  strategyTable: defaultStrategyTableState(),
   layout: { ...layoutDefaults },
   modalVisible: true,
   savedAt: "",
@@ -1014,6 +1015,7 @@ const normalizeWorkspaceState = (draft) => {
       ? draft.collapsedNodeIds.filter((nodeId) => validNodeIds.has(nodeId))
       : [],
     hierarchyFilter: typeof draft?.hierarchyFilter === "string" ? draft.hierarchyFilter : "",
+    strategyTable: normalizeStrategyTableState(draft?.strategyTable),
     layout: normalizeLayoutState(draft?.layout),
     modalVisible: false,
     savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
@@ -1064,6 +1066,7 @@ const createPersistableWorkspace = (draft) => ({
   selectedNodeId: draft.selectedNodeId,
   collapsedNodeIds: draft.collapsedNodeIds,
   hierarchyFilter: draft.hierarchyFilter,
+  strategyTable: createPersistableStrategyTableState(draft.strategyTable),
   layout: draft.layout,
   modalVisible: draft.modalVisible,
   savedAt: draft.savedAt,
@@ -2583,9 +2586,59 @@ const strategyTableColumns = [
   { key: "failureModeFailureRate", label: "Failure Mode Failure Rate" },
   { key: "failureModeAvailability", label: "Failure Mode Availability" },
 ];
+const defaultVisibleStrategyTableColumnKeys = [
+  "physicalAssetName",
+  "physicalAssetDescription",
+  "componentName",
+  "failureModeName",
+  "failureModeDescription",
+  "failureModeEffectEffect",
+  "scheduledTaskType",
+  "scheduledTaskDescription",
+  "scheduledTaskInterval",
+  "scheduledTaskIntervalShortDescription",
+  "scheduledTaskDuration",
+  "scheduledTaskIsEnabled",
+];
+const strategyTypeFilterOptions = ["All", "CM", "PM", "INS"];
 const strategyTableEditableColumnKeys = new Set(
   strategyTableColumns.filter((column) => column.editable).map((column) => column.key)
 );
+const allStrategyTableColumnKeys = strategyTableColumns.map((column) => column.key);
+const defaultStrategyTableState = () => ({
+  searchQuery: "",
+  strategyTypeFilter: "All",
+  columnOrder: [...allStrategyTableColumnKeys],
+  visibleColumnKeys: [...defaultVisibleStrategyTableColumnKeys],
+  optionsOpen: false,
+  rowMenuTaskNodeId: "",
+});
+const normalizeStrategyTableState = (value) => {
+  const rawOrder = Array.isArray(value?.columnOrder) ? value.columnOrder.filter((key) => allStrategyTableColumnKeys.includes(key)) : [];
+  const orderedKeys = [...new Set([...rawOrder, ...allStrategyTableColumnKeys])];
+  const rawVisible = Array.isArray(value?.visibleColumnKeys)
+    ? value.visibleColumnKeys.filter((key) => allStrategyTableColumnKeys.includes(key))
+    : [...defaultVisibleStrategyTableColumnKeys];
+  const visibleColumnKeys = rawVisible.length ? [...new Set(rawVisible)] : [...defaultVisibleStrategyTableColumnKeys];
+
+  return {
+    searchQuery: typeof value?.searchQuery === "string" ? value.searchQuery : "",
+    strategyTypeFilter: strategyTypeFilterOptions.includes(value?.strategyTypeFilter) ? value.strategyTypeFilter : "All",
+    columnOrder: orderedKeys,
+    visibleColumnKeys,
+    optionsOpen: false,
+    rowMenuTaskNodeId: "",
+  };
+};
+const createPersistableStrategyTableState = (strategyTable) => {
+  const normalized = normalizeStrategyTableState(strategyTable);
+  return {
+    searchQuery: normalized.searchQuery,
+    strategyTypeFilter: normalized.strategyTypeFilter,
+    columnOrder: normalized.columnOrder,
+    visibleColumnKeys: normalized.visibleColumnKeys,
+  };
+};
 const getEffectJsonEntryForNode = (path = [], node = null) => {
   const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
   const dbJson = getFailureModeJsonForPath(path);
@@ -2725,6 +2778,146 @@ const getStrategyTableRowsForSelection = (nodeInfo) =>
   getStrategyTaskNodeInfosForSelection(nodeInfo)
     .map((taskNodeInfo) => buildStrategyTableRow(taskNodeInfo))
     .sort((left, right) => left.taskCode.localeCompare(right.taskCode, undefined, { numeric: true, sensitivity: "base" }));
+const getOrderedStrategyTableColumns = () => {
+  const orderLookup = new Map(strategyTableColumns.map((column) => [column.key, column]));
+  return state.strategyTable.columnOrder.map((key) => orderLookup.get(key)).filter(Boolean);
+};
+const getVisibleStrategyTableColumns = () => {
+  const visibleKeys = new Set(state.strategyTable.visibleColumnKeys);
+  return getOrderedStrategyTableColumns().filter((column) => visibleKeys.has(column.key));
+};
+const rowMatchesStrategyTableFilter = (row, query) => {
+  const normalizedQuery = String(query || "").trim().toLowerCase();
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  const haystack = [
+    row.taskCode,
+    row.scheduledTaskDescription,
+    row.failureModeDescription,
+    row.failureModeName,
+    row.physicalAssetName,
+    row.physicalAssetDescription,
+    row.componentName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return haystack.includes(normalizedQuery);
+};
+const getFilteredStrategyTableRows = (rows = []) =>
+  rows.filter((row) => {
+    const matchesType =
+      state.strategyTable.strategyTypeFilter === "All" ||
+      String(row.taskNodeType || "").trim().toUpperCase() === state.strategyTable.strategyTypeFilter;
+    return matchesType && rowMatchesStrategyTableFilter(row, state.strategyTable.searchQuery);
+  });
+const syncStrategyTableScrollbars = () => {
+  if (!strategyList) {
+    return;
+  }
+
+  const viewport = strategyList.querySelector(".strategy-grid__viewport");
+  const table = strategyList.querySelector(".strategy-grid");
+  const scrollbar = strategyList.querySelector(".strategy-grid__scrollbar");
+  const scrollbarInner = strategyList.querySelector(".strategy-grid__scrollbar-inner");
+  if (!(viewport instanceof HTMLElement) || !(table instanceof HTMLElement) || !(scrollbar instanceof HTMLElement) || !(scrollbarInner instanceof HTMLElement)) {
+    return;
+  }
+
+  scrollbarInner.style.width = `${table.scrollWidth}px`;
+  const syncFromViewport = () => {
+    if (scrollbar.scrollLeft !== viewport.scrollLeft) {
+      scrollbar.scrollLeft = viewport.scrollLeft;
+    }
+  };
+  const syncFromScrollbar = () => {
+    if (viewport.scrollLeft !== scrollbar.scrollLeft) {
+      viewport.scrollLeft = scrollbar.scrollLeft;
+    }
+  };
+  viewport.onscroll = syncFromViewport;
+  scrollbar.onscroll = syncFromScrollbar;
+  syncFromViewport();
+};
+const closeStrategyTableMenus = () => {
+  state.strategyTable = {
+    ...state.strategyTable,
+    optionsOpen: false,
+    rowMenuTaskNodeId: "",
+  };
+};
+const toggleStrategyRowMenu = (taskNodeId) => {
+  state.strategyTable = {
+    ...state.strategyTable,
+    optionsOpen: false,
+    rowMenuTaskNodeId: state.strategyTable.rowMenuTaskNodeId === taskNodeId ? "" : taskNodeId,
+  };
+};
+const toggleStrategyTableOptions = () => {
+  state.strategyTable = {
+    ...state.strategyTable,
+    optionsOpen: !state.strategyTable.optionsOpen,
+    rowMenuTaskNodeId: "",
+  };
+};
+const moveStrategyTableColumn = (columnKey, direction) => {
+  const currentOrder = [...state.strategyTable.columnOrder];
+  const currentIndex = currentOrder.indexOf(columnKey);
+  if (currentIndex < 0) {
+    return;
+  }
+
+  const targetIndex = direction === "left" ? currentIndex - 1 : currentIndex + 1;
+  if (targetIndex < 0 || targetIndex >= currentOrder.length) {
+    return;
+  }
+
+  [currentOrder[currentIndex], currentOrder[targetIndex]] = [currentOrder[targetIndex], currentOrder[currentIndex]];
+  state.strategyTable = {
+    ...state.strategyTable,
+    columnOrder: currentOrder,
+  };
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
+};
+const setStrategyTableColumnVisibility = (columnKey, isVisible) => {
+  const nextVisibleKeys = isVisible
+    ? [...new Set([...state.strategyTable.visibleColumnKeys, columnKey])]
+    : state.strategyTable.visibleColumnKeys.filter((key) => key !== columnKey);
+  if (!nextVisibleKeys.length) {
+    return;
+  }
+
+  state.strategyTable = {
+    ...state.strategyTable,
+    visibleColumnKeys: nextVisibleKeys,
+  };
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
+};
+const resetStrategyTablePreferences = () => {
+  const defaults = defaultStrategyTableState();
+  state.strategyTable = {
+    ...state.strategyTable,
+    searchQuery: defaults.searchQuery,
+    strategyTypeFilter: defaults.strategyTypeFilter,
+    columnOrder: defaults.columnOrder,
+    visibleColumnKeys: defaults.visibleColumnKeys,
+    optionsOpen: true,
+    rowMenuTaskNodeId: "",
+  };
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
+};
 const getLeftPanelRowName = (node, path = []) => {
   if (node.type === "effect") {
     const effectJson = getEffectJsonEntryForNode(path, node);
@@ -5082,6 +5275,125 @@ const renderStrategyTableCell = (row, column) => {
   `;
 };
 
+const renderStrategyTableToolbar = (rows, filteredRows) => `
+  <div class="strategy-table-toolbar">
+    <label class="strategy-table-toolbar__search">
+      <span>Search</span>
+      <input
+        id="strategyTableSearchInput"
+        type="search"
+        value="${escapeHtml(state.strategyTable.searchQuery)}"
+        placeholder="Filter by asset, failure mode, component, or task"
+      >
+    </label>
+    <label class="strategy-table-toolbar__filter">
+      <span>Strategy type</span>
+      <select id="strategyTableTypeFilterInput">
+        ${strategyTypeFilterOptions
+          .map(
+            (option) => `<option value="${escapeHtml(option)}" ${state.strategyTable.strategyTypeFilter === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+          )
+          .join("")}
+      </select>
+    </label>
+    <div class="strategy-table-toolbar__summary">
+      <strong>${filteredRows.length}</strong>
+      <span>of ${rows.length} rows</span>
+    </div>
+    <div class="strategy-table-toolbar__options">
+      <button
+        id="strategyTableOptionsButton"
+        class="secondary-button strategy-table-toolbar__button"
+        type="button"
+        aria-expanded="${state.strategyTable.optionsOpen ? "true" : "false"}"
+      >
+        Table options
+      </button>
+      ${
+        state.strategyTable.optionsOpen
+          ? `
+            <div class="strategy-table-options" role="dialog" aria-label="Table options">
+              <div class="strategy-table-options__header">
+                <strong>Columns</strong>
+                <button id="strategyTableResetColumnsButton" class="secondary-button strategy-table-options__reset" type="button">
+                  Reset
+                </button>
+              </div>
+              <div class="strategy-table-options__list">
+                ${getOrderedStrategyTableColumns()
+                  .map((column, index, columns) => {
+                    const isVisible = state.strategyTable.visibleColumnKeys.includes(column.key);
+                    return `
+                      <div class="strategy-table-options__row">
+                        <label class="strategy-table-options__toggle">
+                          <input
+                            type="checkbox"
+                            data-strategy-column-visibility="${escapeHtml(column.key)}"
+                            ${isVisible ? "checked" : ""}
+                          >
+                          <span>${escapeHtml(column.label)}</span>
+                        </label>
+                        <div class="strategy-table-options__move">
+                          <button
+                            class="secondary-button strategy-table-options__move-button"
+                            type="button"
+                            data-strategy-column-move="${escapeHtml(column.key)}"
+                            data-direction="left"
+                            ${index === 0 ? "disabled" : ""}
+                          >
+                            ←
+                          </button>
+                          <button
+                            class="secondary-button strategy-table-options__move-button"
+                            type="button"
+                            data-strategy-column-move="${escapeHtml(column.key)}"
+                            data-direction="right"
+                            ${index === columns.length - 1 ? "disabled" : ""}
+                          >
+                            →
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </div>
+          `
+          : ""
+      }
+    </div>
+  </div>
+`;
+
+const renderStrategyRowActions = (row) => `
+  <div class="strategy-row-menu">
+    <button
+      class="secondary-button strategy-row-menu__trigger"
+      type="button"
+      aria-label="Row actions"
+      aria-expanded="${state.strategyTable.rowMenuTaskNodeId === row.taskNodeId ? "true" : "false"}"
+      data-strategy-row-menu="${escapeHtml(row.taskNodeId)}"
+    >
+      ⋯
+    </button>
+    ${
+      state.strategyTable.rowMenuTaskNodeId === row.taskNodeId
+        ? `
+          <div class="strategy-row-menu__popover" role="menu" aria-label="Strategy row actions">
+            <button class="strategy-row-menu__item" type="button" role="menuitem" data-open-task-editor="${escapeHtml(row.taskNodeId)}">
+              Edit task
+            </button>
+            <button class="strategy-row-menu__item" type="button" role="menuitem" data-open-failure-mode-config="${escapeHtml(row.failureModeNodeId)}">
+              Edit failure mode
+            </button>
+          </div>
+        `
+        : ""
+    }
+  </div>
+`;
+
 const renderStrategyDrafts = (nodeInfo) => {
   if (!strategyList) {
     return;
@@ -5099,54 +5411,57 @@ const renderStrategyDrafts = (nodeInfo) => {
   }
 
   const strategyRows = getStrategyTableRowsForSelection(nodeInfo);
+  const filteredRows = getFilteredStrategyTableRows(strategyRows);
+  const visibleColumns = getVisibleStrategyTableColumns();
   strategyList.hidden = false;
   strategyList.innerHTML = strategyRows.length
     ? `
         <section class="strategy-draft-list__section strategy-draft-list__section--table">
+          ${renderStrategyTableToolbar(strategyRows, filteredRows)}
           <div class="strategy-surface__header strategy-surface__header--spread">
             <div>
               <strong>Strategies</strong>
-              <span>${strategyRows.length} task row${strategyRows.length === 1 ? "" : "s"} | Saves on change</span>
+              <span>${filteredRows.length} visible row${filteredRows.length === 1 ? "" : "s"} | Saves on change</span>
             </div>
           </div>
           <div class="strategy-grid__viewport">
             <table class="strategy-grid" aria-label="Strategy table">
               <thead>
                 <tr>
-                  ${strategyTableColumns
+                  ${visibleColumns
                     .map((column) => `<th scope="col" class="strategy-grid__head">${escapeHtml(column.label)}</th>`)
                     .join("")}
                   <th scope="col" class="strategy-grid__head strategy-grid__head--actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                ${strategyRows
-                  .map(
-                    (row) => `
-                      <tr class="strategy-grid__row">
-                        ${strategyTableColumns.map((column) => renderStrategyTableCell(row, column)).join("")}
-                        <td class="strategy-grid__cell strategy-grid__cell--actions">
-                          <button
-                            class="secondary-button strategy-grid__action"
-                            type="button"
-                            data-open-task-editor="${escapeHtml(row.taskNodeId)}"
-                          >
-                            Edit task
-                          </button>
-                          <button
-                            class="secondary-button strategy-grid__action"
-                            type="button"
-                            data-open-failure-mode-config="${escapeHtml(row.failureModeNodeId)}"
-                          >
-                            Edit failure mode
-                          </button>
-                        </td>
-                      </tr>
-                    `
-                  )
-                  .join("")}
+                ${
+                  filteredRows.length
+                    ? filteredRows
+                        .map(
+                          (row) => `
+                            <tr class="strategy-grid__row">
+                              ${visibleColumns.map((column) => renderStrategyTableCell(row, column)).join("")}
+                              <td class="strategy-grid__cell strategy-grid__cell--actions">
+                                ${renderStrategyRowActions(row)}
+                              </td>
+                            </tr>
+                          `
+                        )
+                        .join("")
+                    : `
+                        <tr class="strategy-grid__empty-row">
+                          <td class="strategy-grid__empty-cell" colspan="${visibleColumns.length + 1}">
+                            No rows match the current strategy filters.
+                          </td>
+                        </tr>
+                      `
+                }
               </tbody>
             </table>
+          </div>
+          <div class="strategy-grid__scrollbar" aria-hidden="true">
+            <div class="strategy-grid__scrollbar-inner"></div>
           </div>
         </section>
       `
@@ -5162,6 +5477,9 @@ const renderStrategyDrafts = (nodeInfo) => {
           </article>
         </section>
       `;
+  if (strategyRows.length) {
+    syncStrategyTableScrollbars();
+  }
 };
 
 const renderSelectedNodePanel = () => {
@@ -5274,7 +5592,10 @@ const renderSelectedNodePanel = () => {
 
   selectedNodeTypeLabel.textContent = "Strategies";
   backgroundDetailHeading.textContent = getNodeDisplayName(node);
-  backgroundDetailSummary.textContent = getStrategyTableSelectionSummary(nodeInfo, getStrategyTableRowsForSelection(nodeInfo).length);
+  backgroundDetailSummary.textContent = getStrategyTableSelectionSummary(
+    nodeInfo,
+    getFilteredStrategyTableRows(getStrategyTableRowsForSelection(nodeInfo)).length
+  );
   if (childCreatorPanel) {
     childCreatorPanel.hidden = true;
     childCreatorPanel.innerHTML = "";
@@ -6684,6 +7005,31 @@ selectedNodeActions?.addEventListener("click", (event) => {
   deleteHierarchyNode(deleteButton.dataset.deleteNode);
 });
 
+strategyList?.addEventListener("input", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  if (target.id === "strategyTableSearchInput") {
+    const searchValue = target.value;
+    state.strategyTable = {
+      ...state.strategyTable,
+      searchQuery: searchValue,
+    };
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    window.requestAnimationFrame(() => {
+      const nextSearchInput = strategyList?.querySelector("#strategyTableSearchInput");
+      if (nextSearchInput instanceof HTMLInputElement) {
+        nextSearchInput.focus();
+        nextSearchInput.setSelectionRange(searchValue.length, searchValue.length);
+      }
+    });
+  }
+});
+
 strategyList?.addEventListener("change", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) {
@@ -6694,15 +7040,62 @@ strategyList?.addEventListener("change", (event) => {
   if (tableField) {
     const nextValue = tableField instanceof HTMLInputElement && tableField.type === "checkbox" ? tableField.checked : tableField.value;
     updateStrategyTableTaskField(tableField.dataset.strategyTaskNode, tableField.dataset.strategyColumn, nextValue);
+    return;
+  }
+
+  if (target.id === "strategyTableTypeFilterInput") {
+    state.strategyTable = {
+      ...state.strategyTable,
+      strategyTypeFilter: target.value,
+    };
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.dataset.strategyColumnVisibility) {
+    setStrategyTableColumnVisibility(target.dataset.strategyColumnVisibility, target.checked);
   }
 });
 
 strategyList?.addEventListener("click", (event) => {
+  const optionsButton = event.target.closest("#strategyTableOptionsButton");
+  if (optionsButton) {
+    toggleStrategyTableOptions();
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const resetColumnsButton = event.target.closest("#strategyTableResetColumnsButton");
+  if (resetColumnsButton) {
+    resetStrategyTablePreferences();
+    return;
+  }
+
+  const moveColumnButton = event.target.closest("[data-strategy-column-move]");
+  if (moveColumnButton) {
+    moveStrategyTableColumn(moveColumnButton.dataset.strategyColumnMove, moveColumnButton.dataset.direction);
+    return;
+  }
+
+  const rowMenuButton = event.target.closest("[data-strategy-row-menu]");
+  if (rowMenuButton) {
+    toggleStrategyRowMenu(rowMenuButton.dataset.strategyRowMenu);
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
   const failureModeButton = event.target.closest("[data-open-failure-mode-config]");
   if (failureModeButton) {
     const nodeInfo = findNodeInfo(state.hierarchy, failureModeButton.dataset.openFailureModeConfig);
     if (nodeInfo) {
       state.selectedNodeId = nodeInfo.node.id;
+      closeStrategyTableMenus();
       openCauseConfig(nodeInfo);
       renderAll({
         includeEntryDynamic: false,
@@ -6716,6 +7109,7 @@ strategyList?.addEventListener("click", (event) => {
     const nodeInfo = findNodeInfo(state.hierarchy, taskEditorButton.dataset.openTaskEditor);
     if (nodeInfo) {
       state.selectedNodeId = nodeInfo.node.id;
+      closeStrategyTableMenus();
       openExistingTaskEditor(nodeInfo);
       renderAll({
         includeEntryDynamic: false,
@@ -6731,6 +7125,7 @@ window.addEventListener("resize", () => {
 
   state.layout = normalizeLayoutState(state.layout);
   applyWorkspaceLayoutStyles();
+  syncStrategyTableScrollbars();
 });
 
 maintenanceMenuBar?.addEventListener("click", (event) => {
@@ -6756,6 +7151,15 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (event.target instanceof Element && event.target.closest("#strategyList")) {
+  } else if (state.strategyTable.optionsOpen || state.strategyTable.rowMenuTaskNodeId) {
+    closeStrategyTableMenus();
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
   if (equipmentInfoState.menuOpen) {
     closeEquipmentInfoMenu();
     renderAll({
@@ -6767,6 +7171,13 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeMaintenanceMenus();
+    if (state.strategyTable.optionsOpen || state.strategyTable.rowMenuTaskNodeId) {
+      closeStrategyTableMenus();
+      renderAll({
+        includeEntryDynamic: false,
+      });
+      return;
+    }
     if (equipmentInfoState.menuOpen) {
       closeEquipmentInfoMenu();
       renderAll({
