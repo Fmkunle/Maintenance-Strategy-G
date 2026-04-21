@@ -3226,6 +3226,45 @@ const setSelectedStrategyTaskNode = (taskNodeId) => {
     selectedTaskNodeId: String(taskNodeId || ""),
   };
 };
+const getSelectedStrategyTaskNodeInfoForSelection = (nodeInfo, filteredRows = null) => {
+  if (!nodeInfo || !state.strategyTable.selectedTaskNodeId) {
+    return null;
+  }
+
+  const strategyRows = Array.isArray(filteredRows)
+    ? filteredRows
+    : getFilteredStrategyTableRows(getStrategyTableRowsForSelection(nodeInfo));
+  const selectedStrategyRow = strategyRows.find((row) => row.taskNodeId === state.strategyTable.selectedTaskNodeId) || null;
+  return selectedStrategyRow ? findNodeInfo(state.hierarchy, selectedStrategyRow.taskNodeId) : null;
+};
+const refreshStrategyTableRowSelectionUi = () => {
+  if (!strategyList) {
+    return;
+  }
+
+  const nodeInfo = getSelectedNodeInfo();
+  const filteredRows = nodeInfo ? getFilteredStrategyTableRows(getStrategyTableRowsForSelection(nodeInfo)) : [];
+  const selectedTaskNodeInfo = getSelectedStrategyTaskNodeInfoForSelection(nodeInfo, filteredRows);
+  if (state.strategyTable.selectedTaskNodeId && !selectedTaskNodeInfo) {
+    setSelectedStrategyTaskNode("");
+  }
+
+  const activeTaskNodeId = selectedTaskNodeInfo?.node?.id || "";
+  strategyList.querySelectorAll("[data-strategy-task-row]").forEach((rowElement) => {
+    rowElement.classList.toggle("is-selected", rowElement.dataset.strategyTaskRow === activeTaskNodeId);
+  });
+
+  if (!nodeInfo) {
+    renderSelectedNodeActions(null, { isAddMode: false, equipmentInfoMode: "closed" });
+    return;
+  }
+
+  renderSelectedNodeActions(nodeInfo, {
+    isAddMode: false,
+    equipmentInfoMode: "closed",
+    selectedTaskNodeInfo,
+  });
+};
 const setStrategyColumnFilter = (columnKey, filterValue) => {
   const normalizedValue = String(filterValue ?? "").trim();
   const nextColumnFilters = { ...state.strategyTable.columnFilters };
@@ -7570,9 +7609,7 @@ strategyList?.addEventListener("click", (event) => {
       return;
     }
     setSelectedStrategyTaskNode(taskRow.dataset.strategyTaskRow);
-    renderAll({
-      includeEntryDynamic: false,
-    });
+    refreshStrategyTableRowSelectionUi();
   }
 });
 
