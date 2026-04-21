@@ -752,17 +752,44 @@ const normalizeLayoutState = (layout, workspaceWidth = getAssetWorkspaceWidth())
   };
 };
 
-const isExistingWorkspaceCandidate = (draft) => {
-  if (!draft || typeof draft !== "object") {
+const hasHierarchyDraftData = (draft) =>
+  Boolean(draft && typeof draft === "object" && Array.isArray(draft.hierarchy) && draft.hierarchy.length > 0);
+
+const entryDraftHasRecoverableData = (entry) => {
+  if (!entry || typeof entry !== "object") {
     return false;
   }
 
+  const hasTextValue = (value) => Boolean(typeof value === "string" && value.trim());
+  const hasNodeData = (node) => Boolean(node && typeof node === "object" && (hasTextValue(node.code) || hasTextValue(node.name)));
+  const hasEquipmentContextData = (context) =>
+    Boolean(
+      context &&
+        typeof context === "object" &&
+        Object.entries(defaultEquipmentContext()).some(([key, defaultValue]) => {
+          const nextValue = context[key];
+          if (typeof defaultValue === "string") {
+            return hasTextValue(nextValue);
+          }
+          return nextValue !== defaultValue;
+        })
+    );
+
   return Boolean(
-    draft.modalVisible === false &&
-      Array.isArray(draft.hierarchy) &&
-      draft.hierarchy.length > 0
+    hasNodeData(entry.plantUnit) ||
+      hasNodeData(entry.sectionSystem) ||
+      (Array.isArray(entry.subsystems) && entry.subsystems.some((item) => hasNodeData(item))) ||
+      hasNodeData(entry.equipmentUnit) ||
+      hasEquipmentContextData(entry.equipmentUnit?.equipmentContext) ||
+      Boolean(entry.hasSubunit) ||
+      hasNodeData(entry.subunit)
   );
 };
+
+const isSavedModalDraftCandidate = (draft) =>
+  Boolean(draft && typeof draft === "object" && !hasHierarchyDraftData(draft) && entryDraftHasRecoverableData(draft.entry));
+
+const isExistingWorkspaceCandidate = (draft) => hasHierarchyDraftData(draft);
 
 const escapeHtml = (value) =>
   String(value)
@@ -987,40 +1014,71 @@ const backfillMfaCrushHierarchy = (hierarchy) => {
   return hierarchy;
 };
 
-const normalizeWorkspaceState = (draft) => {
-  if (!isExistingWorkspaceCandidate(draft)) {
+const normalizeWorkspaceHierarchyState = (draft) => {
+  if (!hasHierarchyDraftData(draft)) {
     return null;
   }
 
-  const hierarchy = backfillMfaCrushHierarchy(draft.hierarchy.map((node) => normalizeHierarchyNode(node, "plant")));
-  if (!hierarchy.length) {
+  try {
+    const hierarchy = backfillMfaCrushHierarchy(draft.hierarchy.map((node) => normalizeHierarchyNode(node, "plant")));
+    if (!hierarchy.length) {
+      return null;
+    }
+    refreshFailureModeDbJsonForHierarchy(hierarchy);
+
+    const firstNode = getFirstNode(hierarchy);
+    const selectedNodeId =
+      typeof draft?.selectedNodeId === "string" && findNodeInfo(hierarchy, draft.selectedNodeId)
+        ? draft.selectedNodeId
+        : firstNode?.id || "";
+    const validNodeIds = collectHierarchyNodeIds(hierarchy);
+
+    return {
+      ...defaultState(),
+      entry: normalizeEntryState(draft?.entry),
+      hierarchy,
+      maintainableItems: normalizeMaintainableItems(draft?.maintainableItems, hierarchy),
+      selectedNodeId,
+      collapsedNodeIds: Array.isArray(draft?.collapsedNodeIds)
+        ? draft.collapsedNodeIds.filter((nodeId) => validNodeIds.has(nodeId))
+        : [],
+      hierarchyFilter: typeof draft?.hierarchyFilter === "string" ? draft.hierarchyFilter : "",
+      strategyTable: normalizeStrategyTableStateSafely(draft?.strategyTable),
+      layout: normalizeLayoutState(draft?.layout),
+      modalVisible: false,
+      savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
+    };
+  } catch {
     return null;
   }
-  refreshFailureModeDbJsonForHierarchy(hierarchy);
-
-  const firstNode = getFirstNode(hierarchy);
-  const selectedNodeId =
-    typeof draft?.selectedNodeId === "string" && findNodeInfo(hierarchy, draft.selectedNodeId)
-      ? draft.selectedNodeId
-      : firstNode?.id || "";
-  const validNodeIds = collectHierarchyNodeIds(hierarchy);
-
-  return {
-    ...defaultState(),
-    entry: normalizeEntryState(draft?.entry),
-    hierarchy,
-    maintainableItems: normalizeMaintainableItems(draft?.maintainableItems, hierarchy),
-    selectedNodeId,
-    collapsedNodeIds: Array.isArray(draft?.collapsedNodeIds)
-      ? draft.collapsedNodeIds.filter((nodeId) => validNodeIds.has(nodeId))
-      : [],
-    hierarchyFilter: typeof draft?.hierarchyFilter === "string" ? draft.hierarchyFilter : "",
-    strategyTable: normalizeStrategyTableState(draft?.strategyTable),
-    layout: normalizeLayoutState(draft?.layout),
-    modalVisible: false,
-    savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
-  };
 };
+
+const normalizeWorkspaceModalDraftState = (draft) => {
+  if (!isSavedModalDraftCandidate(draft)) {
+    return null;
+  }
+
+  try {
+    return {
+      ...defaultState(),
+      entry: normalizeEntryState(draft?.entry),
+      hierarchy: [],
+      maintainableItems: [],
+      selectedNodeId: "",
+      collapsedNodeIds: [],
+      hierarchyFilter: "",
+      strategyTable: normalizeStrategyTableStateSafely(draft?.strategyTable),
+      layout: normalizeLayoutState(draft?.layout),
+      modalVisible: true,
+      savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
+    };
+  } catch {
+    return null;
+  }
+};
+
+const normalizeWorkspaceState = (draft) =>
+  normalizeWorkspaceHierarchyState(draft) || normalizeWorkspaceModalDraftState(draft);
 
 const loadExistingWorkspaceFromLocalStorage = () => {
   try {
@@ -1029,7 +1087,7 @@ const loadExistingWorkspaceFromLocalStorage = () => {
       return null;
     }
 
-    return normalizeWorkspaceState(JSON.parse(rawDraft));
+    return JSON.parse(rawDraft);
   } catch {
     return null;
   }
@@ -1053,7 +1111,7 @@ const loadWorkspaceFromApi = async () => {
       throw new Error(`Unable to load workspace: ${response.status}`);
     }
 
-    return normalizeWorkspaceState(await response.json());
+    return await response.json();
   } catch {
     return null;
   }
@@ -1206,9 +1264,25 @@ const beginLayoutResize = (type, pointerStartX) => {
   window.addEventListener("pointercancel", finishResize);
 };
 
+const recoverExistingWorkspaceState = (...drafts) => {
+  const hierarchyDraft = drafts.map((draft) => normalizeWorkspaceHierarchyState(draft)).find(Boolean);
+  if (hierarchyDraft) {
+    return hierarchyDraft;
+  }
+
+  const modalDraft = drafts.map((draft) => normalizeWorkspaceModalDraftState(draft)).find(Boolean);
+  if (modalDraft) {
+    return modalDraft;
+  }
+
+  return null;
+};
+
 const initializeState = async () => {
   if (getLaunchMode() === "existing") {
-    const existingWorkspace = (await loadWorkspaceFromApi()) || loadExistingWorkspaceFromLocalStorage();
+    const apiDraft = await loadWorkspaceFromApi();
+    const localDraft = loadExistingWorkspaceFromLocalStorage();
+    const existingWorkspace = recoverExistingWorkspaceState(apiDraft, localDraft);
     if (existingWorkspace) {
       state = existingWorkspace;
       return;
@@ -2638,6 +2712,13 @@ const createPersistableStrategyTableState = (strategyTable) => {
     columnOrder: normalized.columnOrder,
     visibleColumnKeys: normalized.visibleColumnKeys,
   };
+};
+const normalizeStrategyTableStateSafely = (value) => {
+  try {
+    return normalizeStrategyTableState(value);
+  } catch {
+    return defaultStrategyTableState();
+  }
 };
 const getEffectJsonEntryForNode = (path = [], node = null) => {
   const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
@@ -7190,6 +7271,8 @@ document.addEventListener("keydown", (event) => {
 const bootApp = async () => {
   try {
     await initializeState();
+  } catch {
+    state = createMfaCrushSeedWorkspace();
   } finally {
     renderAll();
     if (maintenanceWorkspace) {
