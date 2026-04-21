@@ -6234,6 +6234,11 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   padding: 2px 0 2px;
 }
 
+.cm-task-editor__flags--footer {
+  padding-top: 4px;
+  border-top: 1px solid rgba(188, 201, 216, 0.58);
+}
+
 .cm-task-editor__flag {
   display: inline-flex;
   align-items: center;
@@ -6589,6 +6594,10 @@ body[data-theme="dark"] .cm-task-editor__preview {
 
 body[data-theme="dark"] .cm-task-editor__flag input[type="checkbox"] {
   accent-color: #d5e3f8;
+}
+
+body[data-theme="dark"] .cm-task-editor__flags--footer {
+  border-top-color: rgba(148, 163, 184, 0.18);
 }
 
 body[data-theme="dark"] .cm-task-editor__resource-empty {
