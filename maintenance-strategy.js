@@ -237,11 +237,14 @@ const defaultCmConfig = () => ({
   rampTimeHours: "",
   operationNumber: "",
   isEnabled: true,
+  doNotDeliver: false,
   isFixed: false,
   isSecondaryAction: false,
   externalOperationCost: "",
   maintenanceType: "",
   type: "",
+  pfInterval: "",
+  detectionProbability: "",
   labourDurationHours: "",
   resources: [],
   sparePartsRequired: [],
@@ -256,11 +259,14 @@ const defaultPmConfig = () => ({
   rampTimeHours: "",
   operationNumber: "",
   isEnabled: true,
+  doNotDeliver: false,
   isFixed: true,
   isSecondaryAction: true,
   externalOperationCost: "",
   maintenanceType: "",
   type: "",
+  pfInterval: "",
+  detectionProbability: "",
   labourDurationHours: "",
   resources: [],
   sparePartsRequired: [],
@@ -473,11 +479,14 @@ const defaultChildDraftState = () => ({
   cmRampTimeHours: "",
   cmOperationNumber: "",
   cmIsEnabled: true,
+  cmDoNotDeliver: false,
   cmIsFixed: true,
   cmIsSecondaryAction: true,
   cmExternalOperationCost: "",
   cmMaintenanceType: "",
   cmTaskType: "",
+  cmPfInterval: "",
+  cmDetectionProbability: "",
   cmLabourDurationHours: "",
   cmResources: [],
   cmSparePartsRequired: [],
@@ -599,6 +608,7 @@ const normalizeCmConfig = (value) => ({
   ...defaultCmConfig(),
   ...(value && typeof value === "object" ? value : {}),
   isEnabled: value?.isEnabled !== undefined ? Boolean(value.isEnabled) : true,
+  doNotDeliver: Boolean(value?.doNotDeliver),
   isFixed: value?.isFixed !== undefined ? Boolean(value.isFixed) : true,
   isSecondaryAction: value?.isSecondaryAction !== undefined ? Boolean(value.isSecondaryAction) : true,
   resources: Array.isArray(value?.resources)
@@ -626,6 +636,7 @@ const normalizePmConfig = (value) => ({
   ...defaultPmConfig(),
   ...(value && typeof value === "object" ? value : {}),
   isEnabled: value?.isEnabled !== undefined ? Boolean(value.isEnabled) : true,
+  doNotDeliver: Boolean(value?.doNotDeliver),
   isFixed: value?.isFixed !== undefined ? Boolean(value.isFixed) : true,
   isSecondaryAction: value?.isSecondaryAction !== undefined ? Boolean(value.isSecondaryAction) : true,
   resources: Array.isArray(value?.resources)
@@ -2293,11 +2304,14 @@ const buildCmConfigFromDraft = (draft) => ({
   rampTimeHours: String(draft?.cmRampTimeHours || "").trim(),
   operationNumber: String(draft?.cmOperationNumber || "").trim(),
   isEnabled: Boolean(draft?.cmIsEnabled),
+  doNotDeliver: Boolean(draft?.cmDoNotDeliver),
   isFixed: Boolean(draft?.cmIsFixed),
   isSecondaryAction: Boolean(draft?.cmIsSecondaryAction),
   externalOperationCost: String(draft?.cmExternalOperationCost || "").trim(),
   maintenanceType: String(draft?.cmMaintenanceType || "").trim(),
   type: String(draft?.cmTaskType || "").trim(),
+  pfInterval: String(draft?.cmPfInterval || "").trim(),
+  detectionProbability: String(draft?.cmDetectionProbability || "").trim(),
   labourDurationHours: String(draft?.cmLabourDurationHours || "").trim(),
   resources: Array.isArray(draft?.cmResources)
     ? draft.cmResources
@@ -2528,6 +2542,50 @@ const getFailureModeJsonForPath = (path = []) => {
     ? failureModeNode.failureConfig.dbJson
     : null;
 };
+const strategyTableColumns = [
+  { key: "physicalAssetName", label: "Physical Asset Name" },
+  { key: "physicalAssetDescription", label: "Physical Asset Description" },
+  { key: "componentName", label: "Component Name" },
+  { key: "failureModeName", label: "Failure Mode Name" },
+  { key: "failureModeDescription", label: "Failure Mode Description" },
+  { key: "failureModeEffectEffect", label: "Failure Mode Effect Effect" },
+  { key: "failureModeEffectRedundancyFactor", label: "Failure Mode Effect Redundancy Factor" },
+  { key: "failureModeIsDormant", label: "Failure Mode Is Dormant" },
+  { key: "failureModeDemandFrequency", label: "Failure Mode Demand Frequency" },
+  { key: "failureModeDistribution", label: "Failure Mode Distribution" },
+  { key: "failureModeMttf", label: "Failure Mode MTTF" },
+  { key: "failureModeEta1", label: "Failure Mode Eta 1" },
+  { key: "failureModeBeta1", label: "Failure Mode Beta 1" },
+  { key: "failureModeGamma1", label: "Failure Mode Gamma 1" },
+  { key: "scheduledTaskType", label: "Scheduled Task Type", editable: true },
+  { key: "scheduledTaskIsEnabled", label: "Scheduled Task Is Enabled", editable: true, inputType: "checkbox" },
+  { key: "scheduledTaskDoNotDeliver", label: "Scheduled Task Do Not Deliver", editable: true, inputType: "checkbox" },
+  { key: "scheduledTaskDescription", label: "Scheduled Task Description", editable: true },
+  { key: "scheduledTaskInterval", label: "Scheduled Task Interval", editable: true, inputType: "number" },
+  { key: "scheduledTaskIntervalShortDescription", label: "Scheduled Task Interval Short Description" },
+  { key: "scheduledTaskPfInterval", label: "Scheduled Task PF Interval", editable: true, inputType: "number" },
+  { key: "scheduledTaskDetectionProbability", label: "Scheduled Task Detection Probability", editable: true, inputType: "number" },
+  { key: "scheduledTaskDuration", label: "Scheduled Task Duration", editable: true, inputType: "number" },
+  { key: "scheduledTaskLaborLabor", label: "Scheduled Task Labor Labor", editable: true, inputType: "number" },
+  { key: "failureModeAlarmIsEnabled", label: "Failure Mode Alarm Is Enabled" },
+  { key: "failureModeAlarmDescription", label: "Failure Mode Alarm Description" },
+  { key: "failureModeAlarmPfInterval", label: "Failure Mode Alarm PF Interval" },
+  { key: "failureModeAlarmDetectionProbability", label: "Failure Mode Alarm Detection Probability" },
+  { key: "failureModeCostBenefitRatio", label: "Failure Mode Cost Benefit Ratio" },
+  { key: "failureModeTotalCost", label: "Failure Mode Total Cost" },
+  { key: "failureModeEffectCost", label: "Failure Mode Effect Cost" },
+  { key: "failureModeCorrectiveDownTime", label: "Failure Mode Corrective Down Time" },
+  { key: "failureModeCorrectiveEventCount", label: "Failure Mode Corrective Event Count" },
+  { key: "failureModeCorrectiveCost", label: "Failure Mode Corrective Cost" },
+  { key: "failureModePlannedCost", label: "Failure Mode Planned Cost" },
+  { key: "failureModeSecondaryActionCost", label: "Failure Mode Secondary Action Cost" },
+  { key: "failureModeInspectionCost", label: "Failure Mode Inspection Cost" },
+  { key: "failureModeFailureRate", label: "Failure Mode Failure Rate" },
+  { key: "failureModeAvailability", label: "Failure Mode Availability" },
+];
+const strategyTableEditableColumnKeys = new Set(
+  strategyTableColumns.filter((column) => column.editable).map((column) => column.key)
+);
 const getEffectJsonEntryForNode = (path = [], node = null) => {
   const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
   const dbJson = getFailureModeJsonForPath(path);
@@ -2550,6 +2608,123 @@ const getTaskJsonEntryForNode = (path = [], node = null) => {
   const taskIndex = taskChildren.findIndex((child) => child.id === node.id);
   return taskIndex >= 0 ? dbJson.tasks[taskIndex] || null : null;
 };
+const getStrategyScopeNodeInfo = (nodeInfo) => {
+  if (!nodeInfo) {
+    return null;
+  }
+
+  if (nodeInfo.node.type === "effect") {
+    const failureModeNode = getNearestAncestorNodeFromPath(nodeInfo.path, "cause");
+    return failureModeNode ? findNodeInfo(state.hierarchy, failureModeNode.id) : nodeInfo;
+  }
+
+  return nodeInfo;
+};
+const collectStrategyTaskNodeInfos = (nodeInfo, rows = []) => {
+  if (!nodeInfo) {
+    return rows;
+  }
+
+  if (["cm", "pm", "ins"].includes(nodeInfo.node.type)) {
+    rows.push(nodeInfo);
+    return rows;
+  }
+
+  (nodeInfo.node.children || []).forEach((child) => {
+    collectStrategyTaskNodeInfos(
+      {
+        node: child,
+        parent: nodeInfo.node,
+        path: [...nodeInfo.path, child],
+      },
+      rows
+    );
+  });
+  return rows;
+};
+const getStrategyTaskNodeInfosForSelection = (nodeInfo) => {
+  const scopeInfo = getStrategyScopeNodeInfo(nodeInfo);
+  if (!scopeInfo) {
+    return [];
+  }
+
+  return ["cm", "pm", "ins"].includes(scopeInfo.node.type) ? [scopeInfo] : collectStrategyTaskNodeInfos(scopeInfo);
+};
+const getCombinedFailureModeEffectSummary = (dbJson) =>
+  Array.isArray(dbJson?.effects)
+    ? dbJson.effects
+        .map((entry) => String(entry?.["Failure Mode Effect Effect"] || "").trim())
+        .filter(Boolean)
+        .join(" | ")
+    : "";
+const getFailureModeEffectRedundancySummary = (dbJson) =>
+  Array.isArray(dbJson?.effects)
+    ? dbJson.effects
+        .map((entry) => String(entry?.["Failure Mode Effect Redundancy Factor"] || "").trim())
+        .find(Boolean) || ""
+    : "";
+const buildStrategyTableRow = (taskNodeInfo) => {
+  const failureModeNode = getNearestAncestorNodeFromPath(taskNodeInfo.path, "cause");
+  const failureModeInfo = failureModeNode ? findNodeInfo(state.hierarchy, failureModeNode.id) : null;
+  const dbJson =
+    failureModeInfo?.node?.failureConfig?.dbJson && typeof failureModeInfo.node.failureConfig.dbJson === "object"
+      ? failureModeInfo.node.failureConfig.dbJson
+      : failureModeInfo
+        ? buildFailureModeDbJson(failureModeInfo.node, failureModeInfo.path)
+        : null;
+  const taskJson = getTaskJsonEntryForNode(taskNodeInfo.path, taskNodeInfo.node) || {};
+
+  return {
+    rowId: taskNodeInfo.node.id,
+    taskNodeId: taskNodeInfo.node.id,
+    taskNodeType: taskNodeInfo.node.type,
+    taskCode: getNodeCodeValue(taskNodeInfo.node),
+    failureModeNodeId: failureModeInfo?.node?.id || "",
+    physicalAssetName: String(dbJson?.["Physical Asset Name"] || "").trim(),
+    physicalAssetDescription: String(dbJson?.["Physical Asset Description"] || "").trim(),
+    componentName: String(dbJson?.["Component Name"] || "").trim(),
+    failureModeName: String(dbJson?.["Failure Mode Name"] || "").trim(),
+    failureModeDescription: String(dbJson?.["Failure Mode Description"] || "").trim(),
+    failureModeEffectEffect: getCombinedFailureModeEffectSummary(dbJson),
+    failureModeEffectRedundancyFactor: getFailureModeEffectRedundancySummary(dbJson),
+    failureModeIsDormant: Boolean(dbJson?.["Failure Mode Is Dormant"]),
+    failureModeDemandFrequency: String(dbJson?.["Failure Mode Demand Frequency"] || "").trim(),
+    failureModeDistribution: String(dbJson?.["Failure Mode Distribution"] || "").trim(),
+    failureModeMttf: String(dbJson?.["Failure Mode MTTF"] || "").trim(),
+    failureModeEta1: String(dbJson?.["Failure Mode Eta 1"] || "").trim(),
+    failureModeBeta1: String(dbJson?.["Failure Mode Beta 1"] || "").trim(),
+    failureModeGamma1: String(dbJson?.["Failure Mode Gamma 1"] || "").trim(),
+    scheduledTaskType: String(taskJson?.["Scheduled Task Type"] || "").trim(),
+    scheduledTaskIsEnabled: Boolean(taskJson?.["Scheduled Task Is Enabled"]),
+    scheduledTaskDoNotDeliver: Boolean(taskJson?.["Scheduled Task Do Not Deliver"]),
+    scheduledTaskDescription: String(taskJson?.["Scheduled Task Description"] || "").trim(),
+    scheduledTaskInterval: String(taskJson?.["Scheduled Task Interval"] || "").trim(),
+    scheduledTaskIntervalShortDescription: String(taskJson?.["Scheduled Task Interval Short Description"] || "").trim(),
+    scheduledTaskPfInterval: String(taskJson?.["Scheduled Task PF Interval"] || "").trim(),
+    scheduledTaskDetectionProbability: String(taskJson?.["Scheduled Task Detection Probability"] || "").trim(),
+    scheduledTaskDuration: String(taskJson?.["Scheduled Task Duration"] || "").trim(),
+    scheduledTaskLaborLabor: String(taskJson?.["Scheduled Task Labor Labor"] || "").trim(),
+    failureModeAlarmIsEnabled: Boolean(dbJson?.["Failure Mode Alarm Is Enabled"]),
+    failureModeAlarmDescription: String(dbJson?.["Failure Mode Alarm Description"] || "").trim(),
+    failureModeAlarmPfInterval: String(dbJson?.["Failure Mode Alarm PF Interval"] || "").trim(),
+    failureModeAlarmDetectionProbability: String(dbJson?.["Failure Mode Alarm Detection Probability"] || "").trim(),
+    failureModeCostBenefitRatio: String(dbJson?.["Failure Mode Cost Benefit Ratio"] || "").trim(),
+    failureModeTotalCost: String(dbJson?.["Failure Mode Total Cost"] || "").trim(),
+    failureModeEffectCost: String(dbJson?.["Failure Mode Effect Cost"] || "").trim(),
+    failureModeCorrectiveDownTime: String(dbJson?.["Failure Mode Corrective Down Time"] || "").trim(),
+    failureModeCorrectiveEventCount: String(dbJson?.["Failure Mode Corrective Event Count"] || "").trim(),
+    failureModeCorrectiveCost: String(dbJson?.["Failure Mode Corrective Cost"] || "").trim(),
+    failureModePlannedCost: String(dbJson?.["Failure Mode Planned Cost"] || "").trim(),
+    failureModeSecondaryActionCost: String(dbJson?.["Failure Mode Secondary Action Cost"] || "").trim(),
+    failureModeInspectionCost: String(dbJson?.["Failure Mode Inspection Cost"] || "").trim(),
+    failureModeFailureRate: String(dbJson?.["Failure Mode Failure Rate"] || "").trim(),
+    failureModeAvailability: String(dbJson?.["Failure Mode Availability"] || "").trim(),
+  };
+};
+const getStrategyTableRowsForSelection = (nodeInfo) =>
+  getStrategyTaskNodeInfosForSelection(nodeInfo)
+    .map((taskNodeInfo) => buildStrategyTableRow(taskNodeInfo))
+    .sort((left, right) => left.taskCode.localeCompare(right.taskCode, undefined, { numeric: true, sensitivity: "base" }));
 const getLeftPanelRowName = (node, path = []) => {
   if (node.type === "effect") {
     const effectJson = getEffectJsonEntryForNode(path, node);
@@ -2640,12 +2815,12 @@ const buildFailureModeDbJson = (causeNode, path = []) => {
         "Task Strategy": taskNode.type.toUpperCase(),
         "Scheduled Task Type": String(config.type || "").trim(),
         "Scheduled Task Is Enabled": Boolean(config.isEnabled),
-        "Scheduled Task Do Not Deliver": "",
+        "Scheduled Task Do Not Deliver": Boolean(config.doNotDeliver),
         "Scheduled Task Description": getNodeDescription(taskNode),
         "Scheduled Task Interval": String(config.intervalHours || "").trim(),
         "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
-        "Scheduled Task PF Interval": "",
-        "Scheduled Task Detection Probability": "",
+        "Scheduled Task PF Interval": String(config.pfInterval || "").trim(),
+        "Scheduled Task Detection Probability": String(config.detectionProbability || "").trim(),
         "Scheduled Task Duration": String(config.durationHours || "").trim(),
         "Scheduled Task Labor Labor": String(config.labourDurationHours || "").trim(),
       };
@@ -2733,11 +2908,14 @@ const createCmConfigDraft = (node) => {
     cmRampTimeHours: String(config.rampTimeHours || ""),
     cmOperationNumber: String(config.operationNumber || ""),
     cmIsEnabled: Boolean(config.isEnabled),
+    cmDoNotDeliver: Boolean(config.doNotDeliver),
     cmIsFixed: Boolean(config.isFixed),
     cmIsSecondaryAction: Boolean(config.isSecondaryAction),
     cmExternalOperationCost: String(config.externalOperationCost || ""),
     cmMaintenanceType: String(config.maintenanceType || ""),
     cmTaskType: String(config.type || ""),
+    cmPfInterval: String(config.pfInterval || ""),
+    cmDetectionProbability: String(config.detectionProbability || ""),
     cmLabourDurationHours: String(config.labourDurationHours || ""),
     cmResources: Array.isArray(config.resources)
       ? config.resources.map((resource) => createCmResourceAssignment(resource.resourceType, resource.durationHours))
@@ -2764,11 +2942,14 @@ const createPmConfigDraft = (node) => {
     cmRampTimeHours: String(config.rampTimeHours || ""),
     cmOperationNumber: String(config.operationNumber || ""),
     cmIsEnabled: Boolean(config.isEnabled),
+    cmDoNotDeliver: Boolean(config.doNotDeliver),
     cmIsFixed: Boolean(config.isFixed),
     cmIsSecondaryAction: Boolean(config.isSecondaryAction),
     cmExternalOperationCost: String(config.externalOperationCost || ""),
     cmMaintenanceType: String(config.maintenanceType || ""),
     cmTaskType: String(config.type || ""),
+    cmPfInterval: String(config.pfInterval || ""),
+    cmDetectionProbability: String(config.detectionProbability || ""),
     cmLabourDurationHours: String(config.labourDurationHours || ""),
     cmResources: Array.isArray(config.resources)
       ? config.resources.map((resource) => createCmResourceAssignment(resource.resourceType, resource.durationHours))
@@ -3570,12 +3751,7 @@ const saveCauseConfig = (nodeId, draft) => {
 
   info.node.description = String(draft?.description || "").trim();
   info.node.failureConfig = buildCauseFailureConfigFromDraft(draft);
-  causeConfigState = {
-    nodeId,
-    draft: createCauseConfigDraft(info.node),
-    advancedOpen: false,
-    alarmOpen: false,
-  };
+  closeCauseConfig();
   persistDraftSilently();
   renderAll({
     includeEntryDynamic: false,
@@ -4731,13 +4907,20 @@ const renderSelectedNodeActions = (nodeInfo, options = {}) => {
   }
 
   const isAddMode = Boolean(options.isAddMode);
+  const isEditorMode = Boolean(options.isEditorMode);
   const equipmentInfoMode = options.equipmentInfoMode || "closed";
   const showEquipmentInfoAction =
-    Boolean(nodeInfo && nodeInfo.node.type === "equipment" && !isAddMode && equipmentInfoMode !== "edit");
+    Boolean(nodeInfo && nodeInfo.node.type === "equipment" && !isAddMode && !isEditorMode && equipmentInfoMode !== "edit");
+  const showFailureModeAction =
+    Boolean(nodeInfo && nodeInfo.node.type === "cause" && !isAddMode && !isEditorMode);
+  const showTaskEditAction =
+    Boolean(nodeInfo && ["cm", "pm", "ins"].includes(nodeInfo.node.type) && !isAddMode && !isEditorMode);
+  const taskFailureModeNode = nodeInfo ? getNearestAncestorNodeFromPath(nodeInfo.path, "cause") : null;
+  const showTaskFailureModeAction = Boolean(showTaskEditAction && taskFailureModeNode);
   const showDeleteAction =
-    Boolean(nodeInfo && isNodeDeletable(nodeInfo.node) && !isAddMode && equipmentInfoMode !== "edit");
+    Boolean(nodeInfo && isNodeDeletable(nodeInfo.node) && !isAddMode && !isEditorMode && equipmentInfoMode !== "edit");
 
-  if (!showEquipmentInfoAction && !showDeleteAction) {
+  if (!showEquipmentInfoAction && !showFailureModeAction && !showTaskEditAction && !showTaskFailureModeAction && !showDeleteAction) {
     selectedNodeActions.innerHTML = "";
     selectedNodeActions.hidden = true;
     return;
@@ -4781,6 +4964,45 @@ const renderSelectedNodeActions = (nodeInfo, options = {}) => {
         : ""
     }
     ${
+      showFailureModeAction
+        ? `
+          <button
+            class="secondary-button"
+            type="button"
+            data-open-failure-mode-config="${escapeHtml(nodeInfo.node.id)}"
+          >
+            Edit failure mode
+          </button>
+        `
+        : ""
+    }
+    ${
+      showTaskEditAction
+        ? `
+          <button
+            class="secondary-button"
+            type="button"
+            data-open-task-editor="${escapeHtml(nodeInfo.node.id)}"
+          >
+            Edit task
+          </button>
+        `
+        : ""
+    }
+    ${
+      showTaskFailureModeAction
+        ? `
+          <button
+            class="secondary-button"
+            type="button"
+            data-open-failure-mode-config="${escapeHtml(taskFailureModeNode.id)}"
+          >
+            Edit failure mode
+          </button>
+        `
+        : ""
+    }
+    ${
       showDeleteAction
         ? `
           <button
@@ -4794,6 +5016,69 @@ const renderSelectedNodeActions = (nodeInfo, options = {}) => {
         `
         : ""
     }
+  `;
+};
+
+const getStrategyTableSelectionSummary = (nodeInfo, rowCount) => {
+  if (!nodeInfo) {
+    return "Select a node in the asset register to see related strategy rows.";
+  }
+
+  if (nodeInfo.node.type === "effect") {
+    return rowCount
+      ? `${rowCount} strategy row${rowCount === 1 ? "" : "s"} from the parent failure mode.`
+      : "No strategy rows under the parent failure mode yet.";
+  }
+
+  return rowCount
+    ? `${rowCount} strategy row${rowCount === 1 ? "" : "s"} under this selection.`
+    : "No strategy rows under this selection yet.";
+};
+const renderStrategyTableCell = (row, column) => {
+  const rawValue = row[column.key];
+  const stringValue = typeof rawValue === "boolean" ? "" : String(rawValue || "");
+
+  if (column.editable) {
+    if (column.inputType === "checkbox") {
+      return `
+        <td class="strategy-grid__cell strategy-grid__cell--checkbox">
+          <input
+            class="strategy-grid__checkbox"
+            type="checkbox"
+            data-strategy-task-node="${escapeHtml(row.taskNodeId)}"
+            data-strategy-column="${escapeHtml(column.key)}"
+            ${rawValue ? "checked" : ""}
+          >
+        </td>
+      `;
+    }
+
+    return `
+      <td class="strategy-grid__cell strategy-grid__cell--editable">
+        <input
+          class="strategy-grid__field"
+          type="${column.inputType === "number" ? "number" : "text"}"
+          value="${escapeHtml(stringValue)}"
+          data-strategy-task-node="${escapeHtml(row.taskNodeId)}"
+          data-strategy-column="${escapeHtml(column.key)}"
+          ${column.inputType === "number" ? 'step="any"' : ""}
+        >
+      </td>
+    `;
+  }
+
+  if (typeof rawValue === "boolean") {
+    return `
+      <td class="strategy-grid__cell strategy-grid__cell--checkbox">
+        <input class="strategy-grid__checkbox" type="checkbox" ${rawValue ? "checked" : ""} disabled>
+      </td>
+    `;
+  }
+
+  return `
+    <td class="strategy-grid__cell" title="${escapeHtml(stringValue)}">
+      <span class="strategy-grid__text ${stringValue ? "" : "is-empty"}">${escapeHtml(stringValue)}</span>
+    </td>
   `;
 };
 
@@ -4813,49 +5098,66 @@ const renderStrategyDrafts = (nodeInfo) => {
     return;
   }
 
-  const strategyItems = getStrategyItemsForNodeInfo(nodeInfo);
+  const strategyRows = getStrategyTableRowsForSelection(nodeInfo);
   strategyList.hidden = false;
-  strategyList.innerHTML = strategyItems.length
+  strategyList.innerHTML = strategyRows.length
     ? `
-        <section class="strategy-draft-list__section">
+        <section class="strategy-draft-list__section strategy-draft-list__section--table">
           <div class="strategy-surface__header strategy-surface__header--spread">
             <div>
               <strong>Strategies</strong>
-              <span>${strategyItems.length} linked item${strategyItems.length === 1 ? "" : "s"}</span>
+              <span>${strategyRows.length} task row${strategyRows.length === 1 ? "" : "s"} | Saves on change</span>
             </div>
           </div>
-          ${strategyItems
-            .map(({ item, nodeInfo: itemNodeInfo }, index) => {
-              const sourceLabel = itemNodeInfo
-                ? `${getNodeDisplayName(itemNodeInfo.node)} · ${getNodeLabel(itemNodeInfo.node)}`
-                : "Linked asset";
-              const sourcePath = itemNodeInfo
-                ? getFullNameFromPath(itemNodeInfo.path) || getFullCodeFromPath(itemNodeInfo.path)
-                : "Asset path unavailable";
-              return `
-                <article class="strategy-draft-card">
-                  <span class="strategy-draft-card__eyebrow">Strategy ${index + 1}</span>
-                  <strong>${escapeHtml(getDisplayValue(item.name, `Maintainable item ${index + 1}`))}</strong>
-                  <p>${escapeHtml(
-                    itemNodeInfo
-                      ? `${getNodeDisplayName(itemNodeInfo.node)} - ${getNodeLabel(itemNodeInfo.node)}`
-                      : "Linked asset"
-                  )}</p>
-                  <small>${escapeHtml(sourcePath)}</small>
-                </article>
-              `;
-            })
-            .join("")}
+          <div class="strategy-grid__viewport">
+            <table class="strategy-grid" aria-label="Strategy table">
+              <thead>
+                <tr>
+                  ${strategyTableColumns
+                    .map((column) => `<th scope="col" class="strategy-grid__head">${escapeHtml(column.label)}</th>`)
+                    .join("")}
+                  <th scope="col" class="strategy-grid__head strategy-grid__head--actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${strategyRows
+                  .map(
+                    (row) => `
+                      <tr class="strategy-grid__row">
+                        ${strategyTableColumns.map((column) => renderStrategyTableCell(row, column)).join("")}
+                        <td class="strategy-grid__cell strategy-grid__cell--actions">
+                          <button
+                            class="secondary-button strategy-grid__action"
+                            type="button"
+                            data-open-task-editor="${escapeHtml(row.taskNodeId)}"
+                          >
+                            Edit task
+                          </button>
+                          <button
+                            class="secondary-button strategy-grid__action"
+                            type="button"
+                            data-open-failure-mode-config="${escapeHtml(row.failureModeNodeId)}"
+                          >
+                            Edit failure mode
+                          </button>
+                        </td>
+                      </tr>
+                    `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
         </section>
       `
     : `
         <section class="strategy-draft-list__section">
           <div class="strategy-surface__header">
             <strong>Strategies</strong>
-            <span>No linked items yet</span>
+            <span>No strategy rows yet</span>
           </div>
           <article class="asset-workspace-empty asset-workspace-empty--soft">
-            <strong>No strategies under this selection yet</strong>
+            <strong>No strategy rows under this selection yet</strong>
             <p>Select another asset or add hierarchy children to keep building the strategy structure.</p>
           </article>
         </section>
@@ -4883,6 +5185,9 @@ const renderSelectedNodePanel = () => {
   const { node, path } = nodeInfo;
   const actions = getChildActions(node.type);
   const isEditingSelectedTask = Boolean(childDraftState.editNodeId) && childDraftState.editNodeId === node.id;
+  if (childDraftState.editNodeId && childDraftState.editNodeId !== node.id) {
+    closeChildCreator();
+  }
   if (childDraftState.parentId && childDraftState.parentId !== node.id && !isEditingSelectedTask) {
     closeChildCreator();
   }
@@ -4892,12 +5197,11 @@ const renderSelectedNodePanel = () => {
   if (causeConfigState.nodeId && causeConfigState.nodeId !== node.id) {
     closeCauseConfig();
   }
-  if (["cm", "pm", "ins"].includes(node.type) && (!childDraftState.editNodeId || childDraftState.editNodeId !== node.id)) {
-    openExistingTaskEditor(nodeInfo);
-  }
   const isAddMode = childDraftState.isOpen && childDraftState.parentId === node.id && actions.length > 0;
   const equipmentInfoMode =
     node.type === "equipment" && equipmentInfoState.nodeId === node.id ? equipmentInfoState.mode : "closed";
+  const isCauseEditorMode = node.type === "cause" && causeConfigState.nodeId === node.id && causeConfigState.draft;
+  const isTaskEditorMode = ["cm", "pm", "ins"].includes(node.type) && childDraftState.editNodeId === node.id && childDraftState.isOpen;
 
   if (isAddMode) {
     const selectedChildType = actions.some((action) => action.type === childDraftState.childType)
@@ -4920,7 +5224,7 @@ const renderSelectedNodePanel = () => {
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
     backgroundDetailSummary.textContent = "";
     renderEquipmentInfoEditor(nodeInfo);
-    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode });
+    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode, isEditorMode: true });
     if (strategyList) {
       strategyList.hidden = true;
       strategyList.innerHTML = "";
@@ -4941,20 +5245,12 @@ const renderSelectedNodePanel = () => {
     return;
   }
 
-  if (node.type === "cause") {
-    if (causeConfigState.nodeId !== node.id || !causeConfigState.draft) {
-      causeConfigState = {
-        nodeId: node.id,
-        draft: createCauseConfigDraft(node),
-        advancedOpen: false,
-        alarmOpen: false,
-      };
-    }
+  if (isCauseEditorMode) {
     selectedNodeTypeLabel.textContent = "Failure Mode Configuration";
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
     backgroundDetailSummary.textContent = "";
     renderCauseConfigEditor(nodeInfo);
-    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed" });
+    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed", isEditorMode: true });
     if (strategyList) {
       strategyList.hidden = true;
       strategyList.innerHTML = "";
@@ -4962,13 +5258,13 @@ const renderSelectedNodePanel = () => {
     return;
   }
 
-  if (["cm", "pm", "ins"].includes(node.type) && nodeInfo.parent) {
+  if (isTaskEditorMode && nodeInfo.parent) {
     const parentActions = getChildActions(nodeInfo.parent.type);
     selectedNodeTypeLabel.textContent = node.type === "cm" ? "CM" : node.type === "pm" ? "PM" : "INS";
     backgroundDetailHeading.textContent = getNodeDisplayName(node);
     backgroundDetailSummary.textContent = "";
     renderChildCreator(nodeInfo.parent ? findNodeInfo(state.hierarchy, nodeInfo.parent.id) : nodeInfo, parentActions);
-    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed" });
+    renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed", isEditorMode: true });
     if (strategyList) {
       strategyList.hidden = true;
       strategyList.innerHTML = "";
@@ -4978,7 +5274,7 @@ const renderSelectedNodePanel = () => {
 
   selectedNodeTypeLabel.textContent = "Strategies";
   backgroundDetailHeading.textContent = getNodeDisplayName(node);
-  backgroundDetailSummary.textContent = "";
+  backgroundDetailSummary.textContent = getStrategyTableSelectionSummary(nodeInfo, getStrategyTableRowsForSelection(nodeInfo).length);
   if (childCreatorPanel) {
     childCreatorPanel.hidden = true;
     childCreatorPanel.innerHTML = "";
@@ -5011,6 +5307,90 @@ const renderAll = (options = {}) => {
     includeDynamic: options.includeEntryDynamic !== false,
   });
   renderWorkspaceState();
+};
+
+const updateStrategyTableTaskField = (taskNodeId, fieldKey, nextValue) => {
+  const info = findNodeInfo(state.hierarchy, taskNodeId);
+  if (!info || !["cm", "pm", "ins"].includes(info.node.type) || !strategyTableEditableColumnKeys.has(fieldKey)) {
+    return;
+  }
+
+  if (fieldKey === "scheduledTaskDescription") {
+    info.node.description = String(nextValue || "").trim();
+  } else if (info.node.type === "ins") {
+    const config = normalizeInsConfig(info.node.insConfig);
+    switch (fieldKey) {
+      case "scheduledTaskType":
+        config.scheduledTaskType = String(nextValue || "").trim();
+        break;
+      case "scheduledTaskIsEnabled":
+        config.isEnabled = Boolean(nextValue);
+        break;
+      case "scheduledTaskDoNotDeliver":
+        config.doNotDeliver = Boolean(nextValue);
+        break;
+      case "scheduledTaskInterval":
+        config.interval = String(nextValue || "").trim();
+        config.intervalShortDescription = deriveCmIntervalShortDescription(config.interval);
+        break;
+      case "scheduledTaskPfInterval":
+        config.pfInterval = String(nextValue || "").trim();
+        break;
+      case "scheduledTaskDetectionProbability":
+        config.detectionProbability = String(nextValue || "").trim();
+        break;
+      case "scheduledTaskDuration":
+        config.duration = String(nextValue || "").trim();
+        break;
+      case "scheduledTaskLaborLabor":
+        config.laborLabor = String(nextValue || "").trim();
+        break;
+      default:
+        break;
+    }
+    info.node.insConfig = config;
+  } else {
+    const config = info.node.type === "pm" ? normalizePmConfig(info.node.pmConfig) : normalizeCmConfig(info.node.cmConfig);
+    switch (fieldKey) {
+      case "scheduledTaskType":
+        config.type = String(nextValue || "").trim();
+        break;
+      case "scheduledTaskIsEnabled":
+        config.isEnabled = Boolean(nextValue);
+        break;
+      case "scheduledTaskDoNotDeliver":
+        config.doNotDeliver = Boolean(nextValue);
+        break;
+      case "scheduledTaskInterval":
+        config.intervalHours = String(nextValue || "").trim();
+        config.intervalShortDescription = deriveCmIntervalShortDescription(config.intervalHours);
+        break;
+      case "scheduledTaskPfInterval":
+        config.pfInterval = String(nextValue || "").trim();
+        break;
+      case "scheduledTaskDetectionProbability":
+        config.detectionProbability = String(nextValue || "").trim();
+        break;
+      case "scheduledTaskDuration":
+        config.durationHours = String(nextValue || "").trim();
+        break;
+      case "scheduledTaskLaborLabor":
+        config.labourDurationHours = String(nextValue || "").trim();
+        break;
+      default:
+        break;
+    }
+    if (info.node.type === "pm") {
+      info.node.pmConfig = config;
+    } else {
+      info.node.cmConfig = config;
+    }
+  }
+
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
 };
 
 const saveExistingTaskNode = (nodeId, draft) => {
@@ -5051,10 +5431,7 @@ const saveExistingTaskNode = (nodeId, draft) => {
     info.node.insConfig = buildInsConfigFromDraft(draft);
   }
 
-  childDraftState = {
-    ...childDraftState,
-    editNodeId: nodeId,
-  };
+  closeChildCreator();
   persistDraftSilently();
   renderAll({
     includeEntryDynamic: false,
@@ -6169,8 +6546,7 @@ childCreatorPanel?.addEventListener("click", (event) => {
   const cancelButton = event.target.closest("#cancelChildCreatorButton");
   if (cancelButton) {
     if (childDraftState.editNodeId) {
-      const nodeInfo = getSelectedNodeInfo();
-      openExistingTaskEditor(nodeInfo);
+      closeChildCreator();
       renderAll({
         includeEntryDynamic: false,
       });
@@ -6220,18 +6596,10 @@ childCreatorPanel?.addEventListener("click", (event) => {
 
   const resetCauseConfigButton = event.target.closest("#resetCauseConfigButton");
   if (resetCauseConfigButton) {
-    const nodeInfo = getSelectedNodeInfo();
-    if (nodeInfo && nodeInfo.node.type === "cause") {
-      causeConfigState = {
-        nodeId: nodeInfo.node.id,
-        draft: createCauseConfigDraft(nodeInfo.node),
-        advancedOpen: false,
-        alarmOpen: false,
-      };
-      renderAll({
-        includeEntryDynamic: false,
-      });
-    }
+    closeCauseConfig();
+    renderAll({
+      includeEntryDynamic: false,
+    });
     return;
   }
 
@@ -6280,12 +6648,80 @@ selectedNodeActions?.addEventListener("click", (event) => {
     return;
   }
 
+  const failureModeButton = event.target.closest("[data-open-failure-mode-config]");
+  if (failureModeButton) {
+    event.stopPropagation();
+    const nodeInfo = findNodeInfo(state.hierarchy, failureModeButton.dataset.openFailureModeConfig);
+    if (nodeInfo) {
+      state.selectedNodeId = nodeInfo.node.id;
+      openCauseConfig(nodeInfo);
+      renderAll({
+        includeEntryDynamic: false,
+      });
+    }
+    return;
+  }
+
+  const taskEditorButton = event.target.closest("[data-open-task-editor]");
+  if (taskEditorButton) {
+    event.stopPropagation();
+    const nodeInfo = findNodeInfo(state.hierarchy, taskEditorButton.dataset.openTaskEditor);
+    if (nodeInfo) {
+      state.selectedNodeId = nodeInfo.node.id;
+      openExistingTaskEditor(nodeInfo);
+      renderAll({
+        includeEntryDynamic: false,
+      });
+    }
+    return;
+  }
+
   const deleteButton = event.target.closest("[data-delete-node]");
   if (!deleteButton) {
     return;
   }
 
   deleteHierarchyNode(deleteButton.dataset.deleteNode);
+});
+
+strategyList?.addEventListener("change", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  const tableField = target.closest("[data-strategy-task-node][data-strategy-column]");
+  if (tableField) {
+    const nextValue = tableField instanceof HTMLInputElement && tableField.type === "checkbox" ? tableField.checked : tableField.value;
+    updateStrategyTableTaskField(tableField.dataset.strategyTaskNode, tableField.dataset.strategyColumn, nextValue);
+  }
+});
+
+strategyList?.addEventListener("click", (event) => {
+  const failureModeButton = event.target.closest("[data-open-failure-mode-config]");
+  if (failureModeButton) {
+    const nodeInfo = findNodeInfo(state.hierarchy, failureModeButton.dataset.openFailureModeConfig);
+    if (nodeInfo) {
+      state.selectedNodeId = nodeInfo.node.id;
+      openCauseConfig(nodeInfo);
+      renderAll({
+        includeEntryDynamic: false,
+      });
+    }
+    return;
+  }
+
+  const taskEditorButton = event.target.closest("[data-open-task-editor]");
+  if (taskEditorButton) {
+    const nodeInfo = findNodeInfo(state.hierarchy, taskEditorButton.dataset.openTaskEditor);
+    if (nodeInfo) {
+      state.selectedNodeId = nodeInfo.node.id;
+      openExistingTaskEditor(nodeInfo);
+      renderAll({
+        includeEntryDynamic: false,
+      });
+    }
+  }
 });
 
 window.addEventListener("resize", () => {
