@@ -612,7 +612,7 @@ const createInitialStrategyTableState = () => ({
   visibleColumnKeys: [...initialVisibleStrategyTableColumnKeys],
   columnFilters: {},
   optionsOpen: false,
-  rowMenuTaskNodeId: "",
+  selectedTaskNodeId: "",
   headerFilterColumnKey: "",
 });
 
@@ -2916,7 +2916,7 @@ const defaultStrategyTableState = () => ({
   visibleColumnKeys: [...defaultVisibleStrategyTableColumnKeys],
   columnFilters: {},
   optionsOpen: false,
-  rowMenuTaskNodeId: "",
+  selectedTaskNodeId: "",
   headerFilterColumnKey: "",
 });
 const normalizeStrategyTableState = (value) => {
@@ -2946,7 +2946,7 @@ const normalizeStrategyTableState = (value) => {
     visibleColumnKeys,
     columnFilters,
     optionsOpen: false,
-    rowMenuTaskNodeId: "",
+    selectedTaskNodeId: typeof value?.selectedTaskNodeId === "string" ? value.selectedTaskNodeId : "",
     headerFilterColumnKey: "",
   };
 };
@@ -3203,15 +3203,6 @@ const closeStrategyTableMenus = () => {
   state.strategyTable = {
     ...state.strategyTable,
     optionsOpen: false,
-    rowMenuTaskNodeId: "",
-    headerFilterColumnKey: "",
-  };
-};
-const toggleStrategyRowMenu = (taskNodeId) => {
-  state.strategyTable = {
-    ...state.strategyTable,
-    optionsOpen: false,
-    rowMenuTaskNodeId: state.strategyTable.rowMenuTaskNodeId === taskNodeId ? "" : taskNodeId,
     headerFilterColumnKey: "",
   };
 };
@@ -3219,7 +3210,6 @@ const toggleStrategyTableOptions = () => {
   state.strategyTable = {
     ...state.strategyTable,
     optionsOpen: !state.strategyTable.optionsOpen,
-    rowMenuTaskNodeId: "",
     headerFilterColumnKey: "",
   };
 };
@@ -3227,8 +3217,13 @@ const toggleStrategyHeaderFilter = (columnKey) => {
   state.strategyTable = {
     ...state.strategyTable,
     optionsOpen: false,
-    rowMenuTaskNodeId: "",
     headerFilterColumnKey: state.strategyTable.headerFilterColumnKey === columnKey ? "" : columnKey,
+  };
+};
+const setSelectedStrategyTaskNode = (taskNodeId) => {
+  state.strategyTable = {
+    ...state.strategyTable,
+    selectedTaskNodeId: String(taskNodeId || ""),
   };
 };
 const setStrategyColumnFilter = (columnKey, filterValue) => {
@@ -3297,7 +3292,7 @@ const resetStrategyTablePreferences = () => {
     visibleColumnKeys: defaults.visibleColumnKeys,
     columnFilters: defaults.columnFilters,
     optionsOpen: true,
-    rowMenuTaskNodeId: "",
+    selectedTaskNodeId: "",
     headerFilterColumnKey: "",
   };
   persistDraftSilently();
@@ -5489,14 +5484,22 @@ const renderSelectedNodeActions = (nodeInfo, options = {}) => {
   const isAddMode = Boolean(options.isAddMode);
   const isEditorMode = Boolean(options.isEditorMode);
   const equipmentInfoMode = options.equipmentInfoMode || "closed";
+  const selectedTaskNodeInfo =
+    options.selectedTaskNodeInfo && ["cm", "pm", "ins"].includes(options.selectedTaskNodeInfo.node?.type)
+      ? options.selectedTaskNodeInfo
+      : nodeInfo && ["cm", "pm", "ins"].includes(nodeInfo.node.type)
+      ? nodeInfo
+      : null;
   const showEquipmentInfoAction =
     Boolean(nodeInfo && nodeInfo.node.type === "equipment" && !isAddMode && !isEditorMode && equipmentInfoMode !== "edit");
   const showFailureModeAction =
     Boolean(nodeInfo && nodeInfo.node.type === "cause" && !isAddMode && !isEditorMode);
   const showTaskEditAction =
-    Boolean(nodeInfo && ["cm", "pm", "ins"].includes(nodeInfo.node.type) && !isAddMode && !isEditorMode);
-  const taskFailureModeNode = nodeInfo ? getNearestAncestorNodeFromPath(nodeInfo.path, "cause") : null;
-  const showTaskFailureModeAction = Boolean(showTaskEditAction && taskFailureModeNode);
+    Boolean(selectedTaskNodeInfo && !isAddMode && !isEditorMode);
+  const taskFailureModeNode = selectedTaskNodeInfo ? getNearestAncestorNodeFromPath(selectedTaskNodeInfo.path, "cause") : null;
+  const showTaskFailureModeAction = Boolean(
+    showTaskEditAction && taskFailureModeNode && (!showFailureModeAction || taskFailureModeNode.id !== nodeInfo?.node.id)
+  );
   const showDeleteAction =
     Boolean(nodeInfo && isNodeDeletable(nodeInfo.node) && !isAddMode && !isEditorMode && equipmentInfoMode !== "edit");
 
@@ -5562,7 +5565,7 @@ const renderSelectedNodeActions = (nodeInfo, options = {}) => {
           <button
             class="secondary-button"
             type="button"
-            data-open-task-editor="${escapeHtml(nodeInfo.node.id)}"
+            data-open-task-editor="${escapeHtml(selectedTaskNodeInfo.node.id)}"
           >
             Edit task
           </button>
@@ -5847,7 +5850,7 @@ const renderStrategyRowActions = (row) => `
   </div>
 `;
 
-const renderStrategyDrafts = (nodeInfo) => {
+const renderStrategyDrafts = (nodeInfo, strategyRowsOverride = null, filteredRowsOverride = null) => {
   if (!strategyList) {
     return;
   }
@@ -5866,8 +5869,8 @@ const renderStrategyDrafts = (nodeInfo) => {
     return;
   }
 
-  const strategyRows = getStrategyTableRowsForSelection(nodeInfo);
-  const filteredRows = getFilteredStrategyTableRows(strategyRows);
+  const strategyRows = Array.isArray(strategyRowsOverride) ? strategyRowsOverride : getStrategyTableRowsForSelection(nodeInfo);
+  const filteredRows = Array.isArray(filteredRowsOverride) ? filteredRowsOverride : getFilteredStrategyTableRows(strategyRows);
   const visibleColumns = getVisibleStrategyTableColumns();
   strategyList.hidden = false;
   strategyList.innerHTML = strategyRows.length
@@ -5885,7 +5888,6 @@ const renderStrategyDrafts = (nodeInfo) => {
               <thead>
                 <tr>
                   ${visibleColumns.map((column) => renderStrategyTableHeader(column, strategyRows)).join("")}
-                  <th scope="col" class="strategy-grid__head strategy-grid__head--actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -5894,18 +5896,17 @@ const renderStrategyDrafts = (nodeInfo) => {
                     ? filteredRows
                         .map(
                           (row) => `
-                            <tr class="strategy-grid__row">
+                            <tr class="strategy-grid__row ${state.strategyTable.selectedTaskNodeId === row.taskNodeId ? "is-selected" : ""}" data-strategy-task-row="${escapeHtml(
+                              row.taskNodeId
+                            )}">
                               ${visibleColumns.map((column) => renderStrategyTableCell(row, column)).join("")}
-                              <td class="strategy-grid__cell strategy-grid__cell--actions">
-                                ${renderStrategyRowActions(row)}
-                              </td>
                             </tr>
                           `
                         )
                         .join("")
                     : `
                         <tr class="strategy-grid__empty-row">
-                          <td class="strategy-grid__empty-cell" colspan="${visibleColumns.length + 1}">
+                          <td class="strategy-grid__empty-cell" colspan="${visibleColumns.length}">
                             No rows match the current strategy filters.
                           </td>
                         </tr>
@@ -5956,6 +5957,16 @@ const renderSelectedNodePanel = () => {
 
   const { node, path } = nodeInfo;
   const actions = getChildActions(node.type);
+  const strategyRows = getStrategyTableRowsForSelection(nodeInfo);
+  const filteredStrategyRows = getFilteredStrategyTableRows(strategyRows);
+  const selectedStrategyRow = filteredStrategyRows.find((row) => row.taskNodeId === state.strategyTable.selectedTaskNodeId) || null;
+  if (state.strategyTable.selectedTaskNodeId && !selectedStrategyRow) {
+    state.strategyTable = {
+      ...state.strategyTable,
+      selectedTaskNodeId: "",
+    };
+  }
+  const selectedStrategyTaskNodeInfo = selectedStrategyRow ? findNodeInfo(state.hierarchy, selectedStrategyRow.taskNodeId) : null;
   const isEditingSelectedTask = Boolean(childDraftState.editNodeId) && childDraftState.editNodeId === node.id;
   if (childDraftState.editNodeId && childDraftState.editNodeId !== node.id) {
     closeChildCreator();
@@ -6048,14 +6059,18 @@ const renderSelectedNodePanel = () => {
   backgroundDetailHeading.textContent = getNodeDisplayName(node);
   backgroundDetailSummary.textContent = getStrategyTableSelectionSummary(
     nodeInfo,
-    getFilteredStrategyTableRows(getStrategyTableRowsForSelection(nodeInfo)).length
+    filteredStrategyRows.length
   );
   if (childCreatorPanel) {
     childCreatorPanel.hidden = true;
     childCreatorPanel.innerHTML = "";
   }
-  renderSelectedNodeActions(nodeInfo, { isAddMode: false, equipmentInfoMode: "closed" });
-  renderStrategyDrafts(nodeInfo);
+  renderSelectedNodeActions(nodeInfo, {
+    isAddMode: false,
+    equipmentInfoMode: "closed",
+    selectedTaskNodeInfo: selectedStrategyTaskNodeInfo,
+  });
+  renderStrategyDrafts(nodeInfo, strategyRows, filteredStrategyRows);
 };
 
 const renderWorkspaceState = () => {
@@ -7549,40 +7564,41 @@ strategyList?.addEventListener("click", (event) => {
     return;
   }
 
-  const rowMenuButton = event.target.closest("[data-strategy-row-menu]");
-  if (rowMenuButton) {
-    toggleStrategyRowMenu(rowMenuButton.dataset.strategyRowMenu);
+  const taskRow = event.target.closest("[data-strategy-task-row]");
+  if (taskRow) {
+    if (event.target.closest("input, select, button, textarea, a, label")) {
+      return;
+    }
+    setSelectedStrategyTaskNode(taskRow.dataset.strategyTaskRow);
     renderAll({
       includeEntryDynamic: false,
     });
+  }
+});
+
+strategyList?.addEventListener("dblclick", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) {
     return;
   }
 
-  const failureModeButton = event.target.closest("[data-open-failure-mode-config]");
-  if (failureModeButton) {
-    const nodeInfo = findNodeInfo(state.hierarchy, failureModeButton.dataset.openFailureModeConfig);
-    if (nodeInfo) {
-      state.selectedNodeId = nodeInfo.node.id;
-      closeStrategyTableMenus();
-      openCauseConfig(nodeInfo);
-      renderAll({
-        includeEntryDynamic: false,
-      });
-    }
+  if (target.closest("input, select, button, textarea, a")) {
     return;
   }
 
-  const taskEditorButton = event.target.closest("[data-open-task-editor]");
-  if (taskEditorButton) {
-    const nodeInfo = findNodeInfo(state.hierarchy, taskEditorButton.dataset.openTaskEditor);
-    if (nodeInfo) {
-      state.selectedNodeId = nodeInfo.node.id;
-      closeStrategyTableMenus();
-      openExistingTaskEditor(nodeInfo);
-      renderAll({
-        includeEntryDynamic: false,
-      });
-    }
+  const taskRow = target.closest("[data-strategy-task-row]");
+  if (!taskRow) {
+    return;
+  }
+
+  const nodeInfo = findNodeInfo(state.hierarchy, taskRow.dataset.strategyTaskRow);
+  if (nodeInfo) {
+    setSelectedStrategyTaskNode(taskRow.dataset.strategyTaskRow);
+    state.selectedNodeId = nodeInfo.node.id;
+    openExistingTaskEditor(nodeInfo);
+    renderAll({
+      includeEntryDynamic: false,
+    });
   }
 });
 
@@ -7620,7 +7636,7 @@ document.addEventListener("click", (event) => {
   }
 
   if (event.target instanceof Element && event.target.closest("#strategyList")) {
-  } else if (state.strategyTable.optionsOpen || state.strategyTable.rowMenuTaskNodeId || state.strategyTable.headerFilterColumnKey) {
+  } else if (state.strategyTable.optionsOpen || state.strategyTable.headerFilterColumnKey) {
     closeStrategyTableMenus();
     renderAll({
       includeEntryDynamic: false,
@@ -7639,7 +7655,7 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeMaintenanceMenus();
-    if (state.strategyTable.optionsOpen || state.strategyTable.rowMenuTaskNodeId || state.strategyTable.headerFilterColumnKey) {
+    if (state.strategyTable.optionsOpen || state.strategyTable.headerFilterColumnKey) {
       closeStrategyTableMenus();
       renderAll({
         includeEntryDynamic: false,
