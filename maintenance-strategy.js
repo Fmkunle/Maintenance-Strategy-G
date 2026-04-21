@@ -562,6 +562,7 @@ const initialStrategyTableColumnKeys = [
   "failureModeEta1",
   "failureModeBeta1",
   "failureModeGamma1",
+  "strategyType",
   "scheduledTaskType",
   "scheduledTaskIsEnabled",
   "scheduledTaskDoNotDeliver",
@@ -596,6 +597,7 @@ const initialVisibleStrategyTableColumnKeys = [
   "failureModeName",
   "failureModeDescription",
   "failureModeEffectEffect",
+  "strategyType",
   "scheduledTaskType",
   "scheduledTaskDescription",
   "scheduledTaskInterval",
@@ -606,11 +608,12 @@ const initialVisibleStrategyTableColumnKeys = [
 
 const createInitialStrategyTableState = () => ({
   searchQuery: "",
-  strategyTypeFilter: "All",
   columnOrder: [...initialStrategyTableColumnKeys],
   visibleColumnKeys: [...initialVisibleStrategyTableColumnKeys],
+  columnFilters: {},
   optionsOpen: false,
   rowMenuTaskNodeId: "",
+  headerFilterColumnKey: "",
 });
 
 const defaultState = () => ({
@@ -2855,6 +2858,7 @@ const strategyTableColumns = [
   { key: "failureModeEta1", label: "Failure Mode Eta 1" },
   { key: "failureModeBeta1", label: "Failure Mode Beta 1" },
   { key: "failureModeGamma1", label: "Failure Mode Gamma 1" },
+  { key: "strategyType", label: "Strategy Type" },
   { key: "scheduledTaskType", label: "Scheduled Task Type", editable: true },
   { key: "scheduledTaskIsEnabled", label: "Scheduled Task Is Enabled", editable: true, inputType: "checkbox" },
   { key: "scheduledTaskDoNotDeliver", label: "Scheduled Task Do Not Deliver", editable: true, inputType: "checkbox" },
@@ -2895,18 +2899,25 @@ const defaultVisibleStrategyTableColumnKeys = [
   "scheduledTaskDuration",
   "scheduledTaskIsEnabled",
 ];
-const strategyTypeFilterOptions = ["All", "CM", "PM", "INS"];
 const strategyTableEditableColumnKeys = new Set(
   strategyTableColumns.filter((column) => column.editable).map((column) => column.key)
 );
+const strategyTableBooleanColumnKeys = new Set([
+  "failureModeIsDormant",
+  "failureModeAlarmIsEnabled",
+  "scheduledTaskIsEnabled",
+  "scheduledTaskDoNotDeliver",
+]);
+const strategyTableExactMatchColumnKeys = new Set(["strategyType", "scheduledTaskType"]);
 const allStrategyTableColumnKeys = strategyTableColumns.map((column) => column.key);
 const defaultStrategyTableState = () => ({
   searchQuery: "",
-  strategyTypeFilter: "All",
   columnOrder: [...allStrategyTableColumnKeys],
   visibleColumnKeys: [...defaultVisibleStrategyTableColumnKeys],
+  columnFilters: {},
   optionsOpen: false,
   rowMenuTaskNodeId: "",
+  headerFilterColumnKey: "",
 });
 const normalizeStrategyTableState = (value) => {
   const rawOrder = Array.isArray(value?.columnOrder) ? value.columnOrder.filter((key) => allStrategyTableColumnKeys.includes(key)) : [];
@@ -2915,23 +2926,37 @@ const normalizeStrategyTableState = (value) => {
     ? value.visibleColumnKeys.filter((key) => allStrategyTableColumnKeys.includes(key))
     : [...defaultVisibleStrategyTableColumnKeys];
   const visibleColumnKeys = rawVisible.length ? [...new Set(rawVisible)] : [...defaultVisibleStrategyTableColumnKeys];
+  const rawColumnFilters =
+    value?.columnFilters && typeof value.columnFilters === "object" && !Array.isArray(value.columnFilters)
+      ? value.columnFilters
+      : {};
+  const columnFilters = Object.fromEntries(
+    Object.entries(rawColumnFilters).flatMap(([key, filterValue]) => {
+      if (!allStrategyTableColumnKeys.includes(key)) {
+        return [];
+      }
+      const normalizedValue = String(filterValue ?? "").trim();
+      return normalizedValue ? [[key, normalizedValue]] : [];
+    })
+  );
 
   return {
     searchQuery: typeof value?.searchQuery === "string" ? value.searchQuery : "",
-    strategyTypeFilter: strategyTypeFilterOptions.includes(value?.strategyTypeFilter) ? value.strategyTypeFilter : "All",
     columnOrder: orderedKeys,
     visibleColumnKeys,
+    columnFilters,
     optionsOpen: false,
     rowMenuTaskNodeId: "",
+    headerFilterColumnKey: "",
   };
 };
 const createPersistableStrategyTableState = (strategyTable) => {
   const normalized = normalizeStrategyTableState(strategyTable);
   return {
     searchQuery: normalized.searchQuery,
-    strategyTypeFilter: normalized.strategyTypeFilter,
     columnOrder: normalized.columnOrder,
     visibleColumnKeys: normalized.visibleColumnKeys,
+    columnFilters: normalized.columnFilters,
   };
 };
 const normalizeStrategyTableStateSafely = (value) => {
@@ -3034,6 +3059,7 @@ const buildStrategyTableRow = (taskNodeInfo) => {
     taskNodeId: taskNodeInfo.node.id,
     taskNodeType: taskNodeInfo.node.type,
     taskCode: getNodeCodeValue(taskNodeInfo.node),
+    strategyType: String(taskNodeInfo.node.type || "").trim().toUpperCase(),
     failureModeNodeId: failureModeInfo?.node?.id || "",
     physicalAssetName: String(dbJson?.["Physical Asset Name"] || "").trim(),
     physicalAssetDescription: String(dbJson?.["Physical Asset Description"] || "").trim(),
@@ -3109,12 +3135,41 @@ const rowMatchesStrategyTableFilter = (row, query) => {
 
   return haystack.includes(normalizedQuery);
 };
+const getStrategyTableFilterValue = (row, columnKey) => {
+  const rawValue = row?.[columnKey];
+  if (typeof rawValue === "boolean") {
+    return rawValue ? "true" : "false";
+  }
+  return String(rawValue ?? "").trim();
+};
+const getStrategyTableDistinctColumnValues = (rows = [], columnKey = "") =>
+  [...new Set(rows.map((row) => getStrategyTableFilterValue(row, columnKey)).filter(Boolean))].sort((left, right) =>
+    left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" })
+  );
+const rowMatchesStrategyColumnFilters = (row, filters = {}) =>
+  Object.entries(filters).every(([columnKey, filterValue]) => {
+    const normalizedFilter = String(filterValue || "").trim();
+    if (!normalizedFilter) {
+      return true;
+    }
+
+    const cellValue = getStrategyTableFilterValue(row, columnKey);
+    if (strategyTableBooleanColumnKeys.has(columnKey)) {
+      return cellValue === normalizedFilter.toLowerCase();
+    }
+
+    if (strategyTableExactMatchColumnKeys.has(columnKey)) {
+      return cellValue.toLowerCase() === normalizedFilter.toLowerCase();
+    }
+
+    return cellValue.toLowerCase().includes(normalizedFilter.toLowerCase());
+  });
 const getFilteredStrategyTableRows = (rows = []) =>
   rows.filter((row) => {
-    const matchesType =
-      state.strategyTable.strategyTypeFilter === "All" ||
-      String(row.taskNodeType || "").trim().toUpperCase() === state.strategyTable.strategyTypeFilter;
-    return matchesType && rowMatchesStrategyTableFilter(row, state.strategyTable.searchQuery);
+    return (
+      rowMatchesStrategyTableFilter(row, state.strategyTable.searchQuery) &&
+      rowMatchesStrategyColumnFilters(row, state.strategyTable.columnFilters)
+    );
   });
 const syncStrategyTableScrollbars = () => {
   if (!strategyList) {
@@ -3149,6 +3204,7 @@ const closeStrategyTableMenus = () => {
     ...state.strategyTable,
     optionsOpen: false,
     rowMenuTaskNodeId: "",
+    headerFilterColumnKey: "",
   };
 };
 const toggleStrategyRowMenu = (taskNodeId) => {
@@ -3156,6 +3212,7 @@ const toggleStrategyRowMenu = (taskNodeId) => {
     ...state.strategyTable,
     optionsOpen: false,
     rowMenuTaskNodeId: state.strategyTable.rowMenuTaskNodeId === taskNodeId ? "" : taskNodeId,
+    headerFilterColumnKey: "",
   };
 };
 const toggleStrategyTableOptions = () => {
@@ -3163,7 +3220,34 @@ const toggleStrategyTableOptions = () => {
     ...state.strategyTable,
     optionsOpen: !state.strategyTable.optionsOpen,
     rowMenuTaskNodeId: "",
+    headerFilterColumnKey: "",
   };
+};
+const toggleStrategyHeaderFilter = (columnKey) => {
+  state.strategyTable = {
+    ...state.strategyTable,
+    optionsOpen: false,
+    rowMenuTaskNodeId: "",
+    headerFilterColumnKey: state.strategyTable.headerFilterColumnKey === columnKey ? "" : columnKey,
+  };
+};
+const setStrategyColumnFilter = (columnKey, filterValue) => {
+  const normalizedValue = String(filterValue ?? "").trim();
+  const nextColumnFilters = { ...state.strategyTable.columnFilters };
+  if (normalizedValue) {
+    nextColumnFilters[columnKey] = normalizedValue;
+  } else {
+    delete nextColumnFilters[columnKey];
+  }
+
+  state.strategyTable = {
+    ...state.strategyTable,
+    columnFilters: nextColumnFilters,
+  };
+  persistDraftSilently();
+  renderAll({
+    includeEntryDynamic: false,
+  });
 };
 const moveStrategyTableColumn = (columnKey, direction) => {
   const currentOrder = [...state.strategyTable.columnOrder];
@@ -3209,11 +3293,12 @@ const resetStrategyTablePreferences = () => {
   state.strategyTable = {
     ...state.strategyTable,
     searchQuery: defaults.searchQuery,
-    strategyTypeFilter: defaults.strategyTypeFilter,
     columnOrder: defaults.columnOrder,
     visibleColumnKeys: defaults.visibleColumnKeys,
+    columnFilters: defaults.columnFilters,
     optionsOpen: true,
     rowMenuTaskNodeId: "",
+    headerFilterColumnKey: "",
   };
   persistDraftSilently();
   renderAll({
@@ -5576,6 +5661,82 @@ const renderStrategyTableCell = (row, column) => {
     </td>
   `;
 };
+const renderStrategyHeaderFilterPopover = (column, rows) => {
+  const currentValue = String(state.strategyTable.columnFilters[column.key] || "");
+  if (state.strategyTable.headerFilterColumnKey !== column.key) {
+    return "";
+  }
+
+  if (strategyTableBooleanColumnKeys.has(column.key)) {
+    return `
+      <div class="strategy-header-filter__popover" role="dialog" aria-label="Filter ${escapeHtml(column.label)}">
+        <label class="strategy-header-filter__field">
+          <span>Show</span>
+          <select data-strategy-header-filter="${escapeHtml(column.key)}">
+            <option value="">All</option>
+            <option value="true" ${currentValue === "true" ? "selected" : ""}>Checked</option>
+            <option value="false" ${currentValue === "false" ? "selected" : ""}>Unchecked</option>
+          </select>
+        </label>
+        <button class="secondary-button strategy-header-filter__clear" type="button" data-clear-strategy-header-filter="${escapeHtml(column.key)}">Clear</button>
+      </div>
+    `;
+  }
+
+  if (strategyTableExactMatchColumnKeys.has(column.key)) {
+    const options = getStrategyTableDistinctColumnValues(rows, column.key);
+    return `
+      <div class="strategy-header-filter__popover" role="dialog" aria-label="Filter ${escapeHtml(column.label)}">
+        <label class="strategy-header-filter__field">
+          <span>Match value</span>
+          <select data-strategy-header-filter="${escapeHtml(column.key)}">
+            <option value="">All</option>
+            ${options.map((option) => `<option value="${escapeHtml(option)}" ${currentValue === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+          </select>
+        </label>
+        <button class="secondary-button strategy-header-filter__clear" type="button" data-clear-strategy-header-filter="${escapeHtml(column.key)}">Clear</button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="strategy-header-filter__popover" role="dialog" aria-label="Filter ${escapeHtml(column.label)}">
+      <label class="strategy-header-filter__field">
+        <span>Contains</span>
+        <input
+          type="search"
+          value="${escapeHtml(currentValue)}"
+          placeholder="Type to filter"
+          data-strategy-header-filter-input="${escapeHtml(column.key)}"
+        >
+      </label>
+      <button class="secondary-button strategy-header-filter__clear" type="button" data-clear-strategy-header-filter="${escapeHtml(column.key)}">Clear</button>
+    </div>
+  `;
+};
+const renderStrategyTableHeader = (column, rows) => {
+  const isFiltered = Boolean(String(state.strategyTable.columnFilters[column.key] || "").trim());
+  const isOpen = state.strategyTable.headerFilterColumnKey === column.key;
+  return `
+    <th scope="col" class="strategy-grid__head ${isFiltered ? "is-filtered" : ""}">
+      <div class="strategy-grid__head-shell">
+        <span class="strategy-grid__head-label">${escapeHtml(column.label)}</span>
+        <div class="strategy-header-filter">
+          <button
+            class="strategy-header-filter__trigger ${isFiltered ? "is-filtered" : ""}"
+            type="button"
+            aria-label="Filter ${escapeHtml(column.label)}"
+            aria-expanded="${isOpen ? "true" : "false"}"
+            data-strategy-header-filter-toggle="${escapeHtml(column.key)}"
+          >
+            &#9662;
+          </button>
+          ${renderStrategyHeaderFilterPopover(column, rows)}
+        </div>
+      </div>
+    </th>
+  `;
+};
 
 const renderStrategyTableToolbar = (rows, filteredRows) => `
   <div class="strategy-table-toolbar">
@@ -5587,16 +5748,6 @@ const renderStrategyTableToolbar = (rows, filteredRows) => `
         value="${escapeHtml(state.strategyTable.searchQuery)}"
         placeholder="Filter by asset, failure mode, component, or task"
       >
-    </label>
-    <label class="strategy-table-toolbar__filter">
-      <span>Strategy type</span>
-      <select id="strategyTableTypeFilterInput">
-        ${strategyTypeFilterOptions
-          .map(
-            (option) => `<option value="${escapeHtml(option)}" ${state.strategyTable.strategyTypeFilter === option ? "selected" : ""}>${escapeHtml(option)}</option>`
-          )
-          .join("")}
-      </select>
     </label>
     <div class="strategy-table-toolbar__summary">
       <strong>${filteredRows.length}</strong>
@@ -5733,9 +5884,7 @@ const renderStrategyDrafts = (nodeInfo) => {
             <table class="strategy-grid" aria-label="Strategy table">
               <thead>
                 <tr>
-                  ${visibleColumns
-                    .map((column) => `<th scope="col" class="strategy-grid__head">${escapeHtml(column.label)}</th>`)
-                    .join("")}
+                  ${visibleColumns.map((column) => renderStrategyTableHeader(column, strategyRows)).join("")}
                   <th scope="col" class="strategy-grid__head strategy-grid__head--actions">Actions</th>
                 </tr>
               </thead>
@@ -7332,6 +7481,11 @@ strategyList?.addEventListener("input", (event) => {
         nextSearchInput.setSelectionRange(searchValue.length, searchValue.length);
       }
     });
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.dataset.strategyHeaderFilterInput) {
+    setStrategyColumnFilter(target.dataset.strategyHeaderFilterInput, target.value);
   }
 });
 
@@ -7348,14 +7502,8 @@ strategyList?.addEventListener("change", (event) => {
     return;
   }
 
-  if (target.id === "strategyTableTypeFilterInput") {
-    state.strategyTable = {
-      ...state.strategyTable,
-      strategyTypeFilter: target.value,
-    };
-    renderAll({
-      includeEntryDynamic: false,
-    });
+  if (target instanceof HTMLSelectElement && target.dataset.strategyHeaderFilter) {
+    setStrategyColumnFilter(target.dataset.strategyHeaderFilter, target.value);
     return;
   }
 
@@ -7383,6 +7531,21 @@ strategyList?.addEventListener("click", (event) => {
   const moveColumnButton = event.target.closest("[data-strategy-column-move]");
   if (moveColumnButton) {
     moveStrategyTableColumn(moveColumnButton.dataset.strategyColumnMove, moveColumnButton.dataset.direction);
+    return;
+  }
+
+  const headerFilterButton = event.target.closest("[data-strategy-header-filter-toggle]");
+  if (headerFilterButton) {
+    toggleStrategyHeaderFilter(headerFilterButton.dataset.strategyHeaderFilterToggle);
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const clearHeaderFilterButton = event.target.closest("[data-clear-strategy-header-filter]");
+  if (clearHeaderFilterButton) {
+    setStrategyColumnFilter(clearHeaderFilterButton.dataset.clearStrategyHeaderFilter, "");
     return;
   }
 
@@ -7457,7 +7620,7 @@ document.addEventListener("click", (event) => {
   }
 
   if (event.target instanceof Element && event.target.closest("#strategyList")) {
-  } else if (state.strategyTable.optionsOpen || state.strategyTable.rowMenuTaskNodeId) {
+  } else if (state.strategyTable.optionsOpen || state.strategyTable.rowMenuTaskNodeId || state.strategyTable.headerFilterColumnKey) {
     closeStrategyTableMenus();
     renderAll({
       includeEntryDynamic: false,
@@ -7476,7 +7639,7 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeMaintenanceMenus();
-    if (state.strategyTable.optionsOpen || state.strategyTable.rowMenuTaskNodeId) {
+    if (state.strategyTable.optionsOpen || state.strategyTable.rowMenuTaskNodeId || state.strategyTable.headerFilterColumnKey) {
       closeStrategyTableMenus();
       renderAll({
         includeEntryDynamic: false,

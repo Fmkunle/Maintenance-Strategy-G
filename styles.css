@@ -5233,8 +5233,8 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 .strategy-grid__viewport {
   overflow: auto;
   padding: 0 16px 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(126, 141, 162, 0.72) rgba(223, 230, 240, 0.9);
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
 }
 
 .strategy-grid {
@@ -5248,6 +5248,10 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 .strategy-grid__viewport::-webkit-scrollbar,
 .strategy-grid__scrollbar::-webkit-scrollbar {
   height: 12px;
+}
+
+.strategy-grid__viewport::-webkit-scrollbar {
+  height: 0;
 }
 
 .strategy-grid__viewport::-webkit-scrollbar-thumb,
@@ -5266,10 +5270,10 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   top: 0;
   z-index: 1;
   min-width: 140px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-right: 1px solid rgba(214, 222, 233, 0.92);
   border-bottom: 1px solid rgba(166, 178, 196, 0.64);
-  background: rgba(241, 245, 251, 0.98);
+  background: rgba(233, 239, 247, 0.99);
   text-align: left;
   font-size: 0.7rem;
   font-weight: 700;
@@ -5277,6 +5281,91 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   text-transform: uppercase;
   color: var(--text-soft);
   vertical-align: bottom;
+}
+
+.strategy-grid__head.is-filtered {
+  background: rgba(224, 234, 245, 0.99);
+}
+
+.strategy-grid__head-shell {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.strategy-grid__head-label {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.strategy-header-filter {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.strategy-header-filter__trigger {
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(173, 185, 201, 0.9);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #60748c;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.strategy-header-filter__trigger.is-filtered {
+  border-color: rgba(79, 99, 130, 0.62);
+  background: rgba(210, 223, 240, 0.92);
+  color: #28405c;
+}
+
+.strategy-header-filter__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 16;
+  display: grid;
+  gap: 8px;
+  min-width: 190px;
+  padding: 10px;
+  border: 1px solid rgba(181, 193, 209, 0.96);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.99);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.16);
+}
+
+.strategy-header-filter__field {
+  display: grid;
+  gap: 4px;
+}
+
+.strategy-header-filter__field span {
+  color: #6c8097;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.strategy-header-filter__field input,
+.strategy-header-filter__field select {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(181, 193, 209, 0.9);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.strategy-header-filter__clear {
+  min-height: 30px;
 }
 
 .strategy-grid__head--actions,
@@ -6789,6 +6878,10 @@ body[data-theme="dark"] .strategy-grid__head {
   color: #9fb3cf;
 }
 
+body[data-theme="dark"] .strategy-grid__head.is-filtered {
+  background: rgba(31, 48, 77, 0.98);
+}
+
 body[data-theme="dark"] .strategy-grid__row:nth-child(odd) {
   background: rgba(18, 30, 50, 0.92);
 }
@@ -6873,6 +6966,35 @@ body[data-theme="dark"] .strategy-grid__scrollbar::-webkit-scrollbar-track {
 body[data-theme="dark"] .strategy-grid__viewport::-webkit-scrollbar-thumb,
 body[data-theme="dark"] .strategy-grid__scrollbar::-webkit-scrollbar-thumb {
   background: rgba(118, 140, 255, 0.48);
+}
+
+body[data-theme="dark"] .strategy-header-filter__trigger {
+  border-color: rgba(118, 136, 164, 0.42);
+  background: rgba(19, 31, 53, 0.96);
+  color: #b0c0d4;
+}
+
+body[data-theme="dark"] .strategy-header-filter__trigger.is-filtered {
+  border-color: rgba(152, 176, 206, 0.5);
+  background: rgba(40, 59, 90, 0.98);
+  color: #f0f5fb;
+}
+
+body[data-theme="dark"] .strategy-header-filter__popover {
+  border-color: rgba(118, 136, 164, 0.34);
+  background: rgba(16, 27, 46, 0.98);
+  box-shadow: 0 16px 30px rgba(2, 6, 23, 0.42);
+}
+
+body[data-theme="dark"] .strategy-header-filter__field span {
+  color: #88a0be;
+}
+
+body[data-theme="dark"] .strategy-header-filter__field input,
+body[data-theme="dark"] .strategy-header-filter__field select {
+  border-color: rgba(118, 136, 164, 0.34);
+  background: rgba(18, 31, 52, 0.98);
+  color: #eef4fb;
 }
 
 body[data-theme="dark"] .asset-register {
