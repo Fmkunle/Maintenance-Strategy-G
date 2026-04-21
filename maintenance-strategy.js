@@ -558,6 +558,17 @@ const defaultState = () => ({
   layout: { ...layoutDefaults },
   modalVisible: true,
   savedAt: "",
+  bootRecovery: {
+    launchMode: "new",
+    localDraftFound: false,
+    apiDraftFound: false,
+    localHierarchyCount: 0,
+    apiHierarchyCount: 0,
+    selectedSource: "",
+    recoveredMode: "",
+    status: "",
+    note: "",
+  },
 });
 
 const logBootDiagnostic = (event, details = {}) => {
@@ -570,6 +581,11 @@ const logBootDiagnostic = (event, details = {}) => {
     ...details,
   });
 };
+
+const buildBootRecoveryState = (overrides = {}) => ({
+  ...defaultState().bootRecovery,
+  ...overrides,
+});
 
 const deletableNodeTypes = new Set([
   "equipment",
@@ -1325,6 +1341,34 @@ const recoverExistingWorkspaceState = (draftSources = []) => {
   return null;
 };
 
+const renderExistingRecoveryDebugPanel = () => {
+  if (!strategyList || getLaunchMode() !== "existing") {
+    return false;
+  }
+
+  const recovery = state.bootRecovery || buildBootRecoveryState();
+  strategyList.hidden = false;
+  strategyList.innerHTML = `
+    <section class="strategy-draft-list__section">
+      <div class="strategy-empty-state strategy-empty-state--diagnostic">
+        <strong>Existing workspace recovery</strong>
+        <p>${escapeHtml(recovery.note || "Recovery details are shown below.")}</p>
+        <dl class="strategy-recovery-debug">
+          <div><dt>Launch mode</dt><dd>${escapeHtml(recovery.launchMode || "unknown")}</dd></div>
+          <div><dt>Local draft found</dt><dd>${recovery.localDraftFound ? "Yes" : "No"}</dd></div>
+          <div><dt>Local hierarchy count</dt><dd>${escapeHtml(String(recovery.localHierarchyCount || 0))}</dd></div>
+          <div><dt>API draft found</dt><dd>${recovery.apiDraftFound ? "Yes" : "No"}</dd></div>
+          <div><dt>API hierarchy count</dt><dd>${escapeHtml(String(recovery.apiHierarchyCount || 0))}</dd></div>
+          <div><dt>Selected source</dt><dd>${escapeHtml(recovery.selectedSource || "None")}</dd></div>
+          <div><dt>Recovered mode</dt><dd>${escapeHtml(recovery.recoveredMode || "None")}</dd></div>
+          <div><dt>Status</dt><dd>${escapeHtml(recovery.status || "Unknown")}</dd></div>
+        </dl>
+      </div>
+    </section>
+  `;
+  return true;
+};
+
 const initializeState = async () => {
   const launchMode = getLaunchMode();
   logBootDiagnostic("initialize-start", {
@@ -1335,16 +1379,32 @@ const initializeState = async () => {
   if (launchMode === "existing") {
     const apiDraft = await loadWorkspaceFromApi();
     const localDraft = loadExistingWorkspaceFromLocalStorage();
+    const bootRecoveryBase = buildBootRecoveryState({
+      launchMode,
+      localDraftFound: Boolean(localDraft),
+      apiDraftFound: Boolean(apiDraft),
+      localHierarchyCount: Array.isArray(localDraft?.hierarchy) ? localDraft.hierarchy.length : 0,
+      apiHierarchyCount: Array.isArray(apiDraft?.hierarchy) ? apiDraft.hierarchy.length : 0,
+    });
     logBootDiagnostic("draft-sources-inspected", {
       api: summarizeDraftShape(apiDraft),
       local: summarizeDraftShape(localDraft),
     });
     const recoveredWorkspace = recoverExistingWorkspaceState([
-      { label: "api", draft: apiDraft },
       { label: "local", draft: localDraft },
+      { label: "api", draft: apiDraft },
     ]);
     if (recoveredWorkspace) {
-      state = recoveredWorkspace.state;
+      state = {
+        ...recoveredWorkspace.state,
+        bootRecovery: buildBootRecoveryState({
+          ...bootRecoveryBase,
+          selectedSource: recoveredWorkspace.source,
+          recoveredMode: recoveredWorkspace.mode,
+          status: "Recovered existing workspace",
+          note: `Opened existing workspace from ${recoveredWorkspace.source}.`,
+        }),
+      };
       logBootDiagnostic("initialize-complete", {
         selectedSource: recoveredWorkspace.source,
         recoveredMode: recoveredWorkspace.mode,
@@ -1353,7 +1413,19 @@ const initializeState = async () => {
       });
       return;
     }
-    state = createMfaCrushSeedWorkspace();
+    state = {
+      ...createMfaCrushSeedWorkspace(),
+      bootRecovery: buildBootRecoveryState({
+        ...bootRecoveryBase,
+        selectedSource: "",
+        recoveredMode: "seed",
+        status: "No existing workspace found",
+        note:
+          bootRecoveryBase.localDraftFound || bootRecoveryBase.apiDraftFound
+            ? "A saved draft was found but it did not contain recoverable hierarchy data."
+            : "No saved workspace was found in local storage or the workspace API.",
+      }),
+    };
     logBootDiagnostic("initialize-fallback-seed", {
       launchMode,
       hierarchyCount: state.hierarchy.length,
@@ -1361,7 +1433,14 @@ const initializeState = async () => {
     return;
   }
 
-  state = defaultState();
+  state = {
+    ...defaultState(),
+    bootRecovery: buildBootRecoveryState({
+      launchMode,
+      status: "New workspace route",
+      note: "Create new starts from the asset taxonomy popup.",
+    }),
+  };
   logBootDiagnostic("initialize-new-route", {
     launchMode,
     modalVisible: state.modalVisible,
@@ -5557,6 +5636,9 @@ const renderStrategyDrafts = (nodeInfo) => {
   }
 
   if (!nodeInfo) {
+    if (renderExistingRecoveryDebugPanel()) {
+      return;
+    }
     strategyList.hidden = false;
     strategyList.innerHTML = `
       <article class="asset-workspace-empty asset-workspace-empty--soft">
