@@ -922,12 +922,65 @@ const normalizeMaintainableItems = (items, hierarchy) => {
     : [];
 };
 
+const cloneHierarchyNode = (node) => ({
+  ...node,
+  equipmentContext: node?.equipmentContext ? JSON.parse(JSON.stringify(node.equipmentContext)) : null,
+  failureConfig: node?.failureConfig ? JSON.parse(JSON.stringify(node.failureConfig)) : null,
+  cmConfig: node?.cmConfig ? JSON.parse(JSON.stringify(node.cmConfig)) : null,
+  pmConfig: node?.pmConfig ? JSON.parse(JSON.stringify(node.pmConfig)) : null,
+  insConfig: node?.insConfig ? JSON.parse(JSON.stringify(node.insConfig)) : null,
+  children: Array.isArray(node?.children) ? node.children.map((child) => cloneHierarchyNode(child)) : [],
+});
+
+const findChildByTypeAndCode = (parentNode, type, code) =>
+  (parentNode?.children || []).find(
+    (child) => child.type === type && String(child.code || "").trim().toUpperCase() === String(code || "").trim().toUpperCase()
+  ) || null;
+
+const mergeSeedBranch = (targetParent, seedNode) => {
+  const existingNode = findChildByTypeAndCode(targetParent, seedNode.type, seedNode.code);
+  if (!existingNode) {
+    targetParent.children.push(cloneHierarchyNode(seedNode));
+    return;
+  }
+
+  seedNode.children.forEach((seedChild) => {
+    mergeSeedBranch(existingNode, seedChild);
+  });
+};
+
+const backfillMfaCrushHierarchy = (hierarchy) => {
+  if (!Array.isArray(hierarchy) || !hierarchy.length) {
+    return createMfaCrushSeedWorkspace().hierarchy;
+  }
+
+  const seedHierarchy = createMfaCrushSeedWorkspace().hierarchy;
+  const seedRoot = seedHierarchy[0];
+  if (!seedRoot) {
+    return hierarchy;
+  }
+
+  const existingRoot = hierarchy.find(
+    (node) => node.type === "plant" && String(node.code || "").trim().toUpperCase() === String(seedRoot.code || "").trim().toUpperCase()
+  );
+
+  if (!existingRoot) {
+    return [...hierarchy, cloneHierarchyNode(seedRoot)];
+  }
+
+  seedRoot.children.forEach((seedChild) => {
+    mergeSeedBranch(existingRoot, seedChild);
+  });
+
+  return hierarchy;
+};
+
 const normalizeWorkspaceState = (draft) => {
   if (!isExistingWorkspaceCandidate(draft)) {
     return null;
   }
 
-  const hierarchy = draft.hierarchy.map((node) => normalizeHierarchyNode(node, "plant"));
+  const hierarchy = backfillMfaCrushHierarchy(draft.hierarchy.map((node) => normalizeHierarchyNode(node, "plant")));
   if (!hierarchy.length) {
     return null;
   }
@@ -2469,6 +2522,70 @@ const getNodeFullCode = (node, path = []) =>
   getNodeNameValue(node, getFullCodeFromPath(path) || getNodeCodeValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node"));
 const getParentPath = (path) => (Array.isArray(path) && path.length > 1 ? path.slice(0, -1) : []);
 const getParentFullCodeFromPath = (path) => getFullCodeFromPath(getParentPath(path));
+const getFailureModeJsonForPath = (path = []) => {
+  const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
+  return failureModeNode?.failureConfig?.dbJson && typeof failureModeNode.failureConfig.dbJson === "object"
+    ? failureModeNode.failureConfig.dbJson
+    : null;
+};
+const getEffectJsonEntryForNode = (path = [], node = null) => {
+  const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
+  const dbJson = getFailureModeJsonForPath(path);
+  if (!failureModeNode || !dbJson || !Array.isArray(dbJson.effects) || !node) {
+    return null;
+  }
+
+  const effectChildren = (failureModeNode.children || []).filter((child) => child.type === "effect");
+  const effectIndex = effectChildren.findIndex((child) => child.id === node.id);
+  return effectIndex >= 0 ? dbJson.effects[effectIndex] || null : null;
+};
+const getTaskJsonEntryForNode = (path = [], node = null) => {
+  const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
+  const dbJson = getFailureModeJsonForPath(path);
+  if (!failureModeNode || !dbJson || !Array.isArray(dbJson.tasks) || !node) {
+    return null;
+  }
+
+  const taskChildren = (failureModeNode.children || []).filter((child) => ["cm", "pm", "ins"].includes(child.type));
+  const taskIndex = taskChildren.findIndex((child) => child.id === node.id);
+  return taskIndex >= 0 ? dbJson.tasks[taskIndex] || null : null;
+};
+const getLeftPanelRowName = (node, path = []) => {
+  if (node.type === "effect") {
+    const effectJson = getEffectJsonEntryForNode(path, node);
+    return String(node.code || effectJson?.["Failure Mode Effect Code"] || node.name || "").trim() || getNodeBrowserName(node);
+  }
+
+  if (["cm", "pm", "ins"].includes(node.type)) {
+    const taskJson = getTaskJsonEntryForNode(path, node);
+    return String(taskJson?.["Task Name"] || node.code || node.name || "").trim() || getNodeBrowserName(node);
+  }
+
+  return getNodeBrowserName(node);
+};
+const getLeftPanelRowDescription = (node, path = []) => {
+  if (node.type === "cause") {
+    const dbJson = getFailureModeJsonForPath(path);
+    return String(dbJson?.["Failure Mode Description"] || "").trim() || getNodeBrowserDescription(path, node);
+  }
+
+  if (node.type === "effect") {
+    const effectJson = getEffectJsonEntryForNode(path, node);
+    const effectValue = String(effectJson?.["Failure Mode Effect Effect"] || "").trim();
+    const redundancyFactor = String(effectJson?.["Failure Mode Effect Redundancy Factor"] || "").trim();
+    if (effectValue && redundancyFactor) {
+      return `${effectValue} · RF ${redundancyFactor}`;
+    }
+    return effectValue || getNodeBrowserDescription(path, node);
+  }
+
+  if (["cm", "pm", "ins"].includes(node.type)) {
+    const taskJson = getTaskJsonEntryForNode(path, node);
+    return String(taskJson?.["Scheduled Task Description"] || "").trim() || getNodeBrowserDescription(path, node);
+  }
+
+  return getNodeBrowserDescription(path, node);
+};
 const getNearestAncestorNodeFromPath = (path, type) =>
   Array.isArray(path) ? [...path].reverse().find((node) => node.type === type) || null : null;
 const getFailureModeRedundancyFactor = (equipmentNode) => {
@@ -2846,7 +2963,8 @@ const nodeMatchesFilter = (nodePath, filterValue) => {
     node.code,
     node.name,
     getNodeLabel(node),
-    getNodeDescription(node),
+    getLeftPanelRowName(node, nodePath),
+    getLeftPanelRowDescription(node, nodePath),
   ]
     .join(" ")
     .toLowerCase();
@@ -3230,8 +3348,8 @@ const renderHierarchyNodes = (nodes, depth = 0, parentPath = [], filterValue = "
 const renderRegisterRow = ({ node, path, depth, hasChildren, expanded }) => {
   const isSelected = state.selectedNodeId === node.id;
   const selectedClass = isSelected ? "is-selected" : "";
-  const nodeLabel = getNodeBrowserName(node);
-  const description = getNodeBrowserDescription(path, node);
+  const nodeLabel = getLeftPanelRowName(node, path);
+  const description = getLeftPanelRowDescription(node, path);
   const actions = getChildActions(node.type);
   const showAddButton = isSelected && actions.length;
   const toggleControl = hasChildren
