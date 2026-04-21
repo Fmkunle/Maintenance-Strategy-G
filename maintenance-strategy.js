@@ -53,6 +53,7 @@ const sidebarStorageKey = "agenticai-sidebar-collapsed";
 const draftStorageKey = "maintenance-strategy-step1-draft";
 const workspaceApiUrl = "/api/maintenance-workspace";
 const workspaceSaveDebounceMs = 250;
+const bootDiagnosticsPrefix = "[maintenance-boot]";
 const assetViewModes = {
   tree: "tree",
   list: "list",
@@ -559,6 +560,17 @@ const defaultState = () => ({
   savedAt: "",
 });
 
+const logBootDiagnostic = (event, details = {}) => {
+  if (typeof console === "undefined" || typeof console.info !== "function") {
+    return;
+  }
+
+  console.info(bootDiagnosticsPrefix, event, {
+    assetVersion: window.__maintenanceAssetVersion || "unknown",
+    ...details,
+  });
+};
+
 const deletableNodeTypes = new Set([
   "equipment",
   "subsystem",
@@ -754,6 +766,15 @@ const normalizeLayoutState = (layout, workspaceWidth = getAssetWorkspaceWidth())
 
 const hasHierarchyDraftData = (draft) =>
   Boolean(draft && typeof draft === "object" && Array.isArray(draft.hierarchy) && draft.hierarchy.length > 0);
+
+const summarizeDraftShape = (draft) => ({
+  present: Boolean(draft && typeof draft === "object"),
+  hierarchyCount: Array.isArray(draft?.hierarchy) ? draft.hierarchy.length : 0,
+  hasModalEntryData: entryDraftHasRecoverableData(draft?.entry),
+  modalVisible: draft?.modalVisible === undefined ? "missing" : Boolean(draft.modalVisible),
+  hasStrategyTable: Boolean(draft && typeof draft === "object" && "strategyTable" in draft),
+  savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
+});
 
 const entryDraftHasRecoverableData = (entry) => {
   if (!entry || typeof entry !== "object") {
@@ -1014,7 +1035,7 @@ const backfillMfaCrushHierarchy = (hierarchy) => {
   return hierarchy;
 };
 
-const normalizeWorkspaceHierarchyState = (draft) => {
+const normalizeWorkspaceHierarchyState = (draft, source = "unknown") => {
   if (!hasHierarchyDraftData(draft)) {
     return null;
   }
@@ -1049,11 +1070,15 @@ const normalizeWorkspaceHierarchyState = (draft) => {
       savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
     };
   } catch {
+    logBootDiagnostic("hierarchy-draft-rejected", {
+      source,
+      summary: summarizeDraftShape(draft),
+    });
     return null;
   }
 };
 
-const normalizeWorkspaceModalDraftState = (draft) => {
+const normalizeWorkspaceModalDraftState = (draft, source = "unknown") => {
   if (!isSavedModalDraftCandidate(draft)) {
     return null;
   }
@@ -1073,6 +1098,10 @@ const normalizeWorkspaceModalDraftState = (draft) => {
       savedAt: typeof draft?.savedAt === "string" ? draft.savedAt : "",
     };
   } catch {
+    logBootDiagnostic("modal-draft-rejected", {
+      source,
+      summary: summarizeDraftShape(draft),
+    });
     return null;
   }
 };
@@ -1264,32 +1293,82 @@ const beginLayoutResize = (type, pointerStartX) => {
   window.addEventListener("pointercancel", finishResize);
 };
 
-const recoverExistingWorkspaceState = (...drafts) => {
-  const hierarchyDraft = drafts.map((draft) => normalizeWorkspaceHierarchyState(draft)).find(Boolean);
-  if (hierarchyDraft) {
-    return hierarchyDraft;
+const recoverExistingWorkspaceState = (draftSources = []) => {
+  const rankedSources = Array.isArray(draftSources)
+    ? draftSources.filter((entry) => entry && typeof entry === "object" && "draft" in entry)
+    : [];
+
+  for (const source of rankedSources) {
+    const recoveredState = normalizeWorkspaceHierarchyState(source.draft, source.label);
+    if (recoveredState) {
+      logBootDiagnostic("recovered-hierarchy-draft", {
+        source: source.label,
+        summary: summarizeDraftShape(source.draft),
+      });
+      return {
+        state: recoveredState,
+        source: source.label,
+        mode: "workspace",
+      };
+    }
   }
 
-  const modalDraft = drafts.map((draft) => normalizeWorkspaceModalDraftState(draft)).find(Boolean);
-  if (modalDraft) {
-    return modalDraft;
+  for (const source of rankedSources) {
+    const recoveredState = normalizeWorkspaceModalDraftState(source.draft, source.label);
+    if (recoveredState) {
+      logBootDiagnostic("recovered-modal-draft", {
+        source: source.label,
+        summary: summarizeDraftShape(source.draft),
+      });
+      return {
+        state: recoveredState,
+        source: source.label,
+        mode: "modal",
+      };
+    }
   }
 
+  logBootDiagnostic("no-recoverable-draft", {
+    sources: rankedSources.map((source) => ({
+      source: source.label,
+      summary: summarizeDraftShape(source.draft),
+    })),
+  });
   return null;
 };
 
 const initializeState = async () => {
-  if (getLaunchMode() === "existing") {
+  const launchMode = getLaunchMode();
+  logBootDiagnostic("initialize-start", { launchMode });
+
+  if (launchMode === "existing") {
     const apiDraft = await loadWorkspaceFromApi();
     const localDraft = loadExistingWorkspaceFromLocalStorage();
-    const existingWorkspace = recoverExistingWorkspaceState(apiDraft, localDraft);
-    if (existingWorkspace) {
-      state = existingWorkspace;
+    logBootDiagnostic("draft-sources-inspected", {
+      api: summarizeDraftShape(apiDraft),
+      local: summarizeDraftShape(localDraft),
+    });
+    const recoveredWorkspace = recoverExistingWorkspaceState([
+      { label: "api", draft: apiDraft },
+      { label: "local", draft: localDraft },
+    ]);
+    if (recoveredWorkspace) {
+      state = recoveredWorkspace.state;
+      logBootDiagnostic("initialize-complete", {
+        selectedSource: recoveredWorkspace.source,
+        recoveredMode: recoveredWorkspace.mode,
+        modalVisible: state.modalVisible,
+        hierarchyCount: state.hierarchy.length,
+      });
       return;
     }
   }
 
   state = createMfaCrushSeedWorkspace();
+  logBootDiagnostic("initialize-fallback-seed", {
+    launchMode,
+    hierarchyCount: state.hierarchy.length,
+  });
 };
 
 let state = defaultState();
@@ -7271,9 +7350,17 @@ document.addEventListener("keydown", (event) => {
 const bootApp = async () => {
   try {
     await initializeState();
-  } catch {
+  } catch (error) {
+    logBootDiagnostic("boot-error-fallback-seed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
     state = createMfaCrushSeedWorkspace();
   } finally {
+    logBootDiagnostic("boot-render", {
+      modalVisible: state.modalVisible,
+      hierarchyCount: Array.isArray(state.hierarchy) ? state.hierarchy.length : 0,
+      selectedNodeId: state.selectedNodeId || "",
+    });
     renderAll();
     if (maintenanceWorkspace) {
       maintenanceWorkspace.hidden = false;
