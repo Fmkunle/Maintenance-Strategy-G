@@ -611,9 +611,12 @@ const createInitialStrategyTableState = () => ({
   columnOrder: [...initialStrategyTableColumnKeys],
   visibleColumnKeys: [...initialVisibleStrategyTableColumnKeys],
   columnFilters: {},
+  activeView: "decision",
   optionsOpen: false,
   selectedTaskNodeId: "",
+  selectedFailureModeNodeId: "",
   headerFilterColumnKey: "",
+  expandedTaskNodeIds: [],
 });
 
 const defaultState = () => ({
@@ -2843,6 +2846,568 @@ const getFailureModeJsonForPath = (path = []) => {
     ? failureModeNode.failureConfig.dbJson
     : null;
 };
+const annualHours = 8760;
+const defaultStrategyExecutionRate = 125;
+const strategyResourceHourlyRates = {
+  "ELECT TECH": 125,
+  "ELECT ENG": 165,
+  "MECH TECH": 120,
+  "MECH ENG": 160,
+  "AUTOMA.": 145,
+  BOILER: 130,
+  MAKER: 115,
+  FITTER: 115,
+};
+const strategySparePartCostEstimates = {
+  Motor: 5000,
+  Bearing: 1800,
+  "Seal kit": 850,
+  Coupling: 2400,
+  "Drive belt": 1200,
+};
+const compactCurrencyFormatter = new Intl.NumberFormat("en-AU", {
+  style: "currency",
+  currency: "AUD",
+  maximumFractionDigits: 1,
+  notation: "compact",
+});
+const currencyFormatter = new Intl.NumberFormat("en-AU", {
+  style: "currency",
+  currency: "AUD",
+  maximumFractionDigits: 0,
+});
+const percentFormatter = new Intl.NumberFormat("en-AU", {
+  style: "percent",
+  maximumFractionDigits: 0,
+});
+const numberFormatter = new Intl.NumberFormat("en-AU", {
+  maximumFractionDigits: 1,
+});
+const clampNumber = (value, min = 0, max = 1) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, parsed));
+};
+const parseNumericInput = (value) => {
+  const parsed = Number.parseFloat(String(value || "").replace(/,/g, "").trim());
+  return Number.isFinite(parsed) ? parsed : null;
+};
+const parseCurrencyAmount = (value) => {
+  const source = String(value || "")
+    .replace(/,/g, "")
+    .trim()
+    .toUpperCase();
+  if (!source) {
+    return null;
+  }
+
+  const rangeMatch = source.match(/(\d+(?:\.\d+)?)\s*([KMB]?)\s*(?:AUD)?\s*(?:TO|-)\s*(\d+(?:\.\d+)?)\s*([KMB]?)/i);
+  if (rangeMatch) {
+    const lower = Number.parseFloat(rangeMatch[1]);
+    const lowerScale = rangeMatch[2] || "";
+    const upper = Number.parseFloat(rangeMatch[3]);
+    const upperScale = rangeMatch[4] || lowerScale;
+    const scaleLookup = { "": 1, K: 1000, M: 1000000, B: 1000000000 };
+    return (lower * scaleLookup[lowerScale] + upper * scaleLookup[upperScale]) / 2;
+  }
+
+  const amountMatch = source.match(/(\d+(?:\.\d+)?)\s*([KMB]?)/i);
+  if (!amountMatch) {
+    return null;
+  }
+
+  const multiplier = { "": 1, K: 1000, M: 1000000, B: 1000000000 }[amountMatch[2] || ""];
+  return Number.parseFloat(amountMatch[1]) * multiplier;
+};
+const parseEffectCostRange = (description) => {
+  const text = String(description || "").trim();
+  if (!text) {
+    return null;
+  }
+
+  const betweenMatch = text.match(/between\s+(\d+(?:\.\d+)?)\s*([KMB]?)\s+to\s+(\d+(?:\.\d+)?)\s*([KMB]?)/i);
+  if (betweenMatch) {
+    const lower = parseCurrencyAmount(`${betweenMatch[1]}${betweenMatch[2]}`);
+    const upper = parseCurrencyAmount(`${betweenMatch[3]}${betweenMatch[4] || betweenMatch[2]}`);
+    if (lower !== null && upper !== null) {
+      return {
+        min: lower,
+        max: upper,
+        estimate: (lower + upper) / 2,
+        label: `${formatCurrency(lower)}-${formatCurrency(upper)}`,
+      };
+    }
+  }
+
+  const greaterMatch = text.match(/greater\s+than\s+(\d+(?:\.\d+)?)\s*([KMB]?)/i);
+  if (greaterMatch) {
+    const lower = parseCurrencyAmount(`${greaterMatch[1]}${greaterMatch[2]}`);
+    if (lower !== null) {
+      return {
+        min: lower,
+        max: lower * 1.5,
+        estimate: lower * 1.25,
+        label: `>${formatCurrency(lower)}`,
+      };
+    }
+  }
+
+  const directAmount = parseCurrencyAmount(text);
+  if (directAmount !== null) {
+    return {
+      min: directAmount,
+      max: directAmount,
+      estimate: directAmount,
+      label: formatCurrency(directAmount),
+    };
+  }
+
+  return null;
+};
+const formatCurrency = (value, options = {}) => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return "Not set";
+  }
+  if (options.compact && Math.abs(amount) >= 1000) {
+    return compactCurrencyFormatter.format(amount);
+  }
+  return currencyFormatter.format(amount);
+};
+const formatSignedCurrency = (value) => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return "Not set";
+  }
+  return `${amount >= 0 ? "+" : "-"}${formatCurrency(Math.abs(amount), { compact: Math.abs(amount) >= 1000 })}`;
+};
+const formatPercentValue = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "Not set";
+  }
+  return percentFormatter.format(clampNumber(numeric));
+};
+const formatHoursLabel = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return "Not set";
+  }
+  return `${numberFormatter.format(numeric)} h`;
+};
+const formatAnnualOccurrenceLabel = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return "Not set";
+  }
+  return `${numberFormatter.format(numeric)} / year`;
+};
+const formatTimeWindowFromHours = (value) => {
+  const hours = Number(value);
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return "Not set";
+  }
+
+  if (hours < 24) {
+    return `${numberFormatter.format(hours)} hours`;
+  }
+  if (hours < 24 * 14) {
+    return `${numberFormatter.format(hours / 24)} days`;
+  }
+  if (hours < 24 * 30 * 6) {
+    return `${numberFormatter.format(hours / (24 * 7))} weeks`;
+  }
+  if (hours < annualHours * 2) {
+    return `${numberFormatter.format(hours / (24 * 30))} months`;
+  }
+  return `${numberFormatter.format(hours / annualHours)} years`;
+};
+const getFailureModeRiskLabel = (baselineExposure) => {
+  if (!Number.isFinite(baselineExposure) || baselineExposure <= 0) {
+    return "Needs exposure setup";
+  }
+  if (baselineExposure >= 400000) {
+    return "Severe untreated risk";
+  }
+  if (baselineExposure >= 180000) {
+    return "High untreated risk";
+  }
+  if (baselineExposure >= 80000) {
+    return "Moderate untreated risk";
+  }
+  return "Lower untreated risk";
+};
+const getStrategyResourceRate = (resourceType) =>
+  strategyResourceHourlyRates[String(resourceType || "").trim().toUpperCase()] || defaultStrategyExecutionRate;
+const getStrategyTaskIntervalHours = (taskNode) => {
+  if (!taskNode) {
+    return null;
+  }
+  if (taskNode.type === "ins") {
+    return parseNumericInput(taskNode.insConfig?.interval);
+  }
+  return parseNumericInput(taskNode.type === "pm" ? taskNode.pmConfig?.intervalHours : taskNode.cmConfig?.intervalHours);
+};
+const getStrategyTaskPfIntervalHours = (taskNode) => {
+  if (!taskNode) {
+    return null;
+  }
+  if (taskNode.type === "ins") {
+    return parseNumericInput(taskNode.insConfig?.pfInterval);
+  }
+  return parseNumericInput(taskNode.type === "pm" ? taskNode.pmConfig?.pfInterval : taskNode.cmConfig?.pfInterval);
+};
+const getStrategyTaskDurationHours = (taskNode) => {
+  if (!taskNode) {
+    return null;
+  }
+  if (taskNode.type === "ins") {
+    return parseNumericInput(taskNode.insConfig?.duration);
+  }
+  return parseNumericInput(taskNode.type === "pm" ? taskNode.pmConfig?.durationHours : taskNode.cmConfig?.durationHours);
+};
+const getStrategyTaskLabourHours = (taskNode) => {
+  if (!taskNode) {
+    return null;
+  }
+  if (taskNode.type === "ins") {
+    return parseNumericInput(taskNode.insConfig?.laborLabor);
+  }
+  return parseNumericInput(taskNode.type === "pm" ? taskNode.pmConfig?.labourDurationHours : taskNode.cmConfig?.labourDurationHours);
+};
+const getStrategyTaskDetectionProbability = (taskNode) => {
+  if (!taskNode) {
+    return null;
+  }
+  if (taskNode.type === "ins") {
+    return parseNumericInput(taskNode.insConfig?.detectionProbability);
+  }
+  return parseNumericInput(taskNode.type === "pm" ? taskNode.pmConfig?.detectionProbability : taskNode.cmConfig?.detectionProbability);
+};
+const getStrategyTaskResources = (taskNode) => {
+  if (!taskNode) {
+    return [];
+  }
+  if (taskNode.type === "ins") {
+    return Array.isArray(taskNode.insConfig?.resources) ? taskNode.insConfig.resources : [];
+  }
+  return Array.isArray(taskNode.type === "pm" ? taskNode.pmConfig?.resources : taskNode.cmConfig?.resources)
+    ? taskNode.type === "pm"
+      ? taskNode.pmConfig.resources
+      : taskNode.cmConfig.resources
+    : [];
+};
+const getStrategyTaskSpareParts = (taskNode) => {
+  if (!taskNode || taskNode.type === "ins") {
+    return [];
+  }
+  const config = taskNode.type === "pm" ? taskNode.pmConfig : taskNode.cmConfig;
+  return Array.isArray(config?.sparePartsRequired) ? config.sparePartsRequired : [];
+};
+const getStrategyTaskTools = (taskNode) => {
+  if (!taskNode) {
+    return [];
+  }
+  const config = taskNode.type === "ins" ? taskNode.insConfig : taskNode.type === "pm" ? taskNode.pmConfig : taskNode.cmConfig;
+  return Array.isArray(config?.toolsRequired) ? config.toolsRequired : [];
+};
+const getStrategyTaskExternalCost = (taskNode) => {
+  if (!taskNode || taskNode.type === "ins") {
+    return 0;
+  }
+  const config = taskNode.type === "pm" ? taskNode.pmConfig : taskNode.cmConfig;
+  return parseNumericInput(config?.externalOperationCost) || 0;
+};
+const getStrategyTaskRateBasis = (taskNode) => {
+  const resources = getStrategyTaskResources(taskNode);
+  if (resources.length) {
+    return resources.reduce((sum, resource) => sum + (parseNumericInput(resource.durationHours) || 0) * getStrategyResourceRate(resource.resourceType), 0);
+  }
+  return (getStrategyTaskLabourHours(taskNode) || getStrategyTaskDurationHours(taskNode) || 0) * defaultStrategyExecutionRate;
+};
+const getFailureModePrimaryEffectEstimate = (failureModeInfo) => {
+  const dbJson = getFailureModeJsonForPath(failureModeInfo?.path || []);
+  const effectEntries = Array.isArray(dbJson?.effects) ? dbJson.effects : [];
+  const ranges = effectEntries
+    .map((entry) => parseEffectCostRange(entry?.["Failure Mode Effect Effect"]))
+    .filter(Boolean);
+  const estimatedFromEffects = ranges.reduce((sum, entry) => sum + entry.estimate, 0);
+  const explicitEffectCost = parseCurrencyAmount(dbJson?.["Failure Mode Effect Cost"]);
+  const explicitTotalCost = parseCurrencyAmount(dbJson?.["Failure Mode Total Cost"]);
+  const equipmentNode = getNearestAncestorNodeFromPath(failureModeInfo?.path || [], "equipment");
+  const downtimeRate = parseCurrencyAmount(equipmentNode?.equipmentContext?.effectPerHourDown);
+  const downtimeFallback = downtimeRate ? downtimeRate * 8 : 0;
+  const baselineExposure = explicitTotalCost || explicitEffectCost || estimatedFromEffects || downtimeFallback || 0;
+  const effectRangeLabel = ranges.length ? ranges.map((entry) => entry.label).join(" + ") : "Not set";
+  return {
+    baselineExposure,
+    effectRangeLabel,
+    downtimeRate,
+    explicitTotalCost,
+    explicitEffectCost,
+  };
+};
+const getStrategyTaskOccurrencesPerYear = (taskNode, failureModeInfo) => {
+  const intervalHours = getStrategyTaskIntervalHours(taskNode);
+  if (intervalHours && intervalHours > 0) {
+    return annualHours / intervalHours;
+  }
+  const mttfHours = parseNumericInput(getFailureModeJsonForPath(failureModeInfo?.path || [])?.["Failure Mode MTTF"]);
+  if (mttfHours && mttfHours > 0) {
+    return annualHours / mttfHours;
+  }
+  return 1;
+};
+const getStrategyMitigationFactor = (taskNode, failureModeInfo) => {
+  const detectionValue = getStrategyTaskDetectionProbability(taskNode);
+  const baseDetection = detectionValue !== null ? clampNumber(detectionValue / 100) : taskNode?.type === "pm" ? 0.72 : taskNode?.type === "ins" ? 0.62 : 0.45;
+  const typeWeight = taskNode?.type === "pm" ? 0.92 : taskNode?.type === "ins" ? 0.72 : 0.55;
+  const intervalHours = getStrategyTaskIntervalHours(taskNode);
+  const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
+  const cadenceFactor =
+    intervalHours && pfIntervalHours && intervalHours > 0 && pfIntervalHours > 0
+      ? clampNumber(pfIntervalHours / intervalHours, 0.35, 1)
+      : 1;
+  const enabledFactor = taskNode?.type === "ins"
+    ? 1
+    : taskNode?.type === "pm"
+      ? 1.05
+      : 0.95;
+  return clampNumber(baseDetection * typeWeight * cadenceFactor * enabledFactor);
+};
+const getStrategyCardStatus = (isEnabled, isRecommended) => {
+  if (!isEnabled) {
+    return "disabled";
+  }
+  return isRecommended ? "recommended" : "enabled";
+};
+const getStrategyStatusLabel = (status) => {
+  switch (status) {
+    case "recommended":
+      return "Recommended";
+    case "enabled":
+      return "Enabled";
+    default:
+      return "Disabled";
+  }
+};
+const getStrategyWhyStatement = (taskNode, metrics) => {
+  if (metrics.mitigationFactor >= 0.6) {
+    return `${String(taskNode?.type || "").toUpperCase()} gives strong coverage against this failure path at the current settings.`;
+  }
+  if (metrics.cadenceFactor < 0.65) {
+    return `${String(taskNode?.type || "").toUpperCase()} is directionally useful, but the current cadence trails the PF window.`;
+  }
+  if (metrics.detectionProbability < 0.4) {
+    return `${String(taskNode?.type || "").toUpperCase()} has limited detectability, so risk reduction is modest.`;
+  }
+  return `${String(taskNode?.type || "").toUpperCase()} contributes some coverage, but it should be justified against the residual exposure left behind.`;
+};
+const getStrategyTradeoffStatement = (metrics) => {
+  if (metrics.residualExposure <= metrics.baselineExposure * 0.25) {
+    return "Residual risk is comparatively small after this strategy is active.";
+  }
+  if (metrics.annualCost > metrics.exposureReduction) {
+    return "Cost outweighs the modeled exposure reduction, so the economics are weak.";
+  }
+  if (metrics.residualExposure >= metrics.baselineExposure * 0.65) {
+    return "A large share of exposure remains, so this should not be the only line of defense.";
+  }
+  return "This reduces exposure, but there is still a material trade-off to accept.";
+};
+const getStrategyWeaknessFlags = (metrics) => {
+  const flags = [];
+  if (metrics.detectionProbability < 0.35) {
+    flags.push("Low mitigation probability");
+  }
+  if (metrics.annualCost > metrics.exposureReduction) {
+    flags.push("High cost for the reduction delivered");
+  }
+  if (metrics.residualExposure >= metrics.baselineExposure * 0.65) {
+    flags.push("Large residual exposure remains");
+  }
+  return flags;
+};
+const collectFailureModeNodeInfos = (nodeInfo, rows = []) => {
+  if (!nodeInfo) {
+    return rows;
+  }
+
+  if (nodeInfo.node.type === "cause") {
+    rows.push(nodeInfo);
+    return rows;
+  }
+
+  (nodeInfo.node.children || []).forEach((child) => {
+    collectFailureModeNodeInfos(
+      {
+        node: child,
+        parent: nodeInfo.node,
+        path: [...nodeInfo.path, child],
+      },
+      rows
+    );
+  });
+  return rows;
+};
+const getFailureModeScopeNodeInfo = (nodeInfo) => {
+  if (!nodeInfo) {
+    return null;
+  }
+
+  if (["effect", "cm", "pm", "ins"].includes(nodeInfo.node.type)) {
+    const failureModeNode = getNearestAncestorNodeFromPath(nodeInfo.path, "cause");
+    return failureModeNode ? findNodeInfo(state.hierarchy, failureModeNode.id) : nodeInfo;
+  }
+
+  return getStrategyScopeNodeInfo(nodeInfo);
+};
+const getFailureModeNodeInfosForSelection = (nodeInfo) => {
+  const scopeInfo = getFailureModeScopeNodeInfo(nodeInfo);
+  if (!scopeInfo) {
+    return [];
+  }
+  return scopeInfo.node.type === "cause" ? [scopeInfo] : collectFailureModeNodeInfos(scopeInfo);
+};
+const getStrategySelectionSummary = (selectedCount, totalCount, label) => {
+  if (!totalCount) {
+    return `No ${label} selected`;
+  }
+  return `${selectedCount} of ${totalCount} ${label} selected`;
+};
+const getFailureModeDecisionData = (failureModeInfo) => {
+  if (!failureModeInfo || failureModeInfo.node.type !== "cause") {
+    return null;
+  }
+
+  const dbJson =
+    failureModeInfo.node.failureConfig?.dbJson && typeof failureModeInfo.node.failureConfig.dbJson === "object"
+      ? failureModeInfo.node.failureConfig.dbJson
+      : buildFailureModeDbJson(failureModeInfo.node, failureModeInfo.path);
+  const equipmentNode = getNearestAncestorNodeFromPath(failureModeInfo.path, "equipment");
+  const effectEstimate = getFailureModePrimaryEffectEstimate(failureModeInfo);
+  const strategyRows = getStrategyTableRowsForSelection(failureModeInfo);
+  const strategies = strategyRows.map((row) => {
+    const taskNodeInfo = findNodeInfo(state.hierarchy, row.taskNodeId);
+    const taskNode = taskNodeInfo?.node || null;
+    const executionCost = getStrategyTaskRateBasis(taskNode);
+    const sparePartCost = getStrategyTaskSpareParts(taskNode).reduce(
+      (sum, part) => sum + (strategySparePartCostEstimates[String(part?.part || "").trim()] || 600),
+      0
+    );
+    const toolCost = getStrategyTaskTools(taskNode).length * 75;
+    const directEventCost = executionCost + sparePartCost + toolCost + getStrategyTaskExternalCost(taskNode);
+    const annualOccurrences = getStrategyTaskOccurrencesPerYear(taskNode, failureModeInfo);
+    const annualCost = directEventCost * annualOccurrences;
+    const mitigationFactor = getStrategyMitigationFactor(taskNode, failureModeInfo);
+    const exposureReduction = effectEstimate.baselineExposure * mitigationFactor;
+    const residualExposure = Math.max(0, effectEstimate.baselineExposure - exposureReduction);
+    const detectionProbability = clampNumber((getStrategyTaskDetectionProbability(taskNode) || 0) / 100);
+    const intervalHours = getStrategyTaskIntervalHours(taskNode);
+    const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
+    const cadenceFactor =
+      intervalHours && pfIntervalHours && intervalHours > 0 && pfIntervalHours > 0
+        ? clampNumber(pfIntervalHours / intervalHours, 0.35, 1)
+        : 1;
+    const netValue = exposureReduction - annualCost;
+    const isRecommended = netValue >= 0 || mitigationFactor >= 0.48;
+    const status = getStrategyCardStatus(Boolean(row.scheduledTaskIsEnabled), isRecommended);
+    const metrics = {
+      baselineExposure: effectEstimate.baselineExposure,
+      mitigationFactor,
+      exposureReduction,
+      residualExposure,
+      annualCost,
+      directEventCost,
+      annualOccurrences,
+      detectionProbability,
+      cadenceFactor,
+    };
+    return {
+      ...row,
+      taskNode,
+      taskNodeInfo,
+      status,
+      statusLabel: getStrategyStatusLabel(status),
+      isRecommended,
+      annualCost,
+      directEventCost,
+      annualOccurrences,
+      mitigationFactor,
+      exposureReduction,
+      residualExposure,
+      netValue,
+      detectionProbability,
+      cadenceFactor,
+      weaknessFlags: getStrategyWeaknessFlags(metrics),
+      whyStatement: getStrategyWhyStatement(taskNode, metrics),
+      tradeoffStatement: getStrategyTradeoffStatement(metrics),
+      intervalHours,
+      pfIntervalHours,
+      durationHours: getStrategyTaskDurationHours(taskNode),
+      labourHours: getStrategyTaskLabourHours(taskNode),
+      technicalDetails: {
+        taskCode: row.taskCode,
+        intervalLabel: row.scheduledTaskIntervalShortDescription || formatHoursLabel(intervalHours),
+        durationLabel: formatHoursLabel(getStrategyTaskDurationHours(taskNode)),
+        labourLabel: formatHoursLabel(getStrategyTaskLabourHours(taskNode)),
+        pfIntervalLabel: formatHoursLabel(pfIntervalHours),
+        annualOccurrenceLabel: formatAnnualOccurrenceLabel(annualOccurrences),
+      },
+    };
+  });
+  const enabledStrategies = strategies.filter((entry) => entry.scheduledTaskIsEnabled);
+  const combinedMitigationFactor = enabledStrategies.length
+    ? 1 - enabledStrategies.reduce((remainingRiskFactor, entry) => remainingRiskFactor * (1 - entry.mitigationFactor), 1)
+    : 0;
+  const residualExposure = effectEstimate.baselineExposure * (1 - combinedMitigationFactor);
+  const exposureReduction = effectEstimate.baselineExposure - residualExposure;
+  const totalAnnualCost = enabledStrategies.reduce((sum, entry) => sum + entry.annualCost, 0);
+  const coverageConfidenceValue =
+    enabledStrategies.length || dbJson["Failure Mode Alarm Is Enabled"]
+      ? clampNumber(
+          (enabledStrategies.reduce((sum, entry) => sum + entry.mitigationFactor, 0) +
+            (dbJson["Failure Mode Alarm Is Enabled"]
+              ? clampNumber((parseNumericInput(dbJson["Failure Mode Alarm Detection Probability"]) || 0) / 100) * 0.35
+              : 0)) /
+            Math.max(1, enabledStrategies.length + (dbJson["Failure Mode Alarm Is Enabled"] ? 1 : 0))
+        )
+      : 0;
+  const coverageConfidenceLabel =
+    coverageConfidenceValue >= 0.7 ? "High confidence" : coverageConfidenceValue >= 0.45 ? "Moderate confidence" : "Low confidence";
+  return {
+    failureModeInfo,
+    dbJson,
+    effectEstimate,
+    strategies,
+    enabledStrategies,
+    comparison: {
+      baselineExposure: effectEstimate.baselineExposure,
+      exposureReduction,
+      residualExposure,
+      totalAnnualCost,
+      netValue: exposureReduction - totalAnnualCost,
+      coverageConfidenceValue,
+      coverageConfidenceLabel,
+      enabledCount: enabledStrategies.length,
+      totalCount: strategies.length,
+    },
+    summary: {
+      failureModeName: String(dbJson["Failure Mode Name"] || "").trim() || getNodeDisplayName(failureModeInfo.node),
+      failureModeDescription: String(dbJson["Failure Mode Description"] || "").trim() || getNodeDescription(failureModeInfo.node),
+      componentName: String(dbJson["Component Name"] || "").trim(),
+      mttfHours: parseNumericInput(dbJson["Failure Mode MTTF"]),
+      untreatedRiskLabel: getFailureModeRiskLabel(effectEstimate.baselineExposure),
+      alarmEnabled: Boolean(dbJson["Failure Mode Alarm Is Enabled"]),
+      alarmDescription: String(dbJson["Failure Mode Alarm Description"] || "").trim(),
+      alarmDetectionProbability: clampNumber((parseNumericInput(dbJson["Failure Mode Alarm Detection Probability"]) || 0) / 100),
+      effectRangeLabel: effectEstimate.effectRangeLabel,
+      downtimeRate: effectEstimate.downtimeRate,
+    },
+  };
+};
 const strategyTableColumns = [
   { key: "physicalAssetName", label: "Physical Asset Name" },
   { key: "physicalAssetDescription", label: "Physical Asset Description" },
@@ -2915,9 +3480,12 @@ const defaultStrategyTableState = () => ({
   columnOrder: [...allStrategyTableColumnKeys],
   visibleColumnKeys: [...defaultVisibleStrategyTableColumnKeys],
   columnFilters: {},
+  activeView: "decision",
   optionsOpen: false,
   selectedTaskNodeId: "",
+  selectedFailureModeNodeId: "",
   headerFilterColumnKey: "",
+  expandedTaskNodeIds: [],
 });
 const normalizeStrategyTableState = (value) => {
   const rawOrder = Array.isArray(value?.columnOrder) ? value.columnOrder.filter((key) => allStrategyTableColumnKeys.includes(key)) : [];
@@ -2945,9 +3513,14 @@ const normalizeStrategyTableState = (value) => {
     columnOrder: orderedKeys,
     visibleColumnKeys,
     columnFilters,
+    activeView: value?.activeView === "audit" ? "audit" : "decision",
     optionsOpen: false,
     selectedTaskNodeId: typeof value?.selectedTaskNodeId === "string" ? value.selectedTaskNodeId : "",
+    selectedFailureModeNodeId: typeof value?.selectedFailureModeNodeId === "string" ? value.selectedFailureModeNodeId : "",
     headerFilterColumnKey: "",
+    expandedTaskNodeIds: Array.isArray(value?.expandedTaskNodeIds)
+      ? [...new Set(value.expandedTaskNodeIds.filter((entry) => typeof entry === "string" && entry.trim()))]
+      : [],
   };
 };
 const createPersistableStrategyTableState = (strategyTable) => {
@@ -2957,6 +3530,8 @@ const createPersistableStrategyTableState = (strategyTable) => {
     columnOrder: normalized.columnOrder,
     visibleColumnKeys: normalized.visibleColumnKeys,
     columnFilters: normalized.columnFilters,
+    activeView: normalized.activeView,
+    selectedFailureModeNodeId: normalized.selectedFailureModeNodeId,
   };
 };
 const normalizeStrategyTableStateSafely = (value) => {
@@ -3218,6 +3793,30 @@ const toggleStrategyHeaderFilter = (columnKey) => {
     ...state.strategyTable,
     optionsOpen: false,
     headerFilterColumnKey: state.strategyTable.headerFilterColumnKey === columnKey ? "" : columnKey,
+  };
+};
+const setStrategyWorkspaceView = (view) => {
+  state.strategyTable = {
+    ...state.strategyTable,
+    activeView: view === "audit" ? "audit" : "decision",
+    optionsOpen: false,
+    headerFilterColumnKey: "",
+  };
+};
+const setSelectedFailureModeForWorkspace = (failureModeNodeId) => {
+  state.strategyTable = {
+    ...state.strategyTable,
+    selectedFailureModeNodeId: String(failureModeNodeId || ""),
+    selectedTaskNodeId: "",
+  };
+};
+const toggleStrategyDecisionCardExpanded = (taskNodeId) => {
+  const expandedTaskNodeIds = state.strategyTable.expandedTaskNodeIds.includes(taskNodeId)
+    ? state.strategyTable.expandedTaskNodeIds.filter((entry) => entry !== taskNodeId)
+    : [...state.strategyTable.expandedTaskNodeIds, taskNodeId];
+  state.strategyTable = {
+    ...state.strategyTable,
+    expandedTaskNodeIds,
   };
 };
 const setSelectedStrategyTaskNode = (taskNodeId) => {
@@ -5656,6 +6255,21 @@ const getStrategyTableSelectionSummary = (nodeInfo, rowCount) => {
     ? `${rowCount} strategy row${rowCount === 1 ? "" : "s"} under this selection.`
     : "No strategy rows under this selection yet.";
 };
+const getStrategyWorkspaceSummary = (nodeInfo, rowCount) => {
+  const failureModeCount = getFailureModeNodeInfosForSelection(nodeInfo).length;
+  if (!failureModeCount) {
+    return getStrategyTableSelectionSummary(nodeInfo, rowCount);
+  }
+
+  const { selectedDecisionData } = getActiveFailureModeDecisionData(nodeInfo);
+  if (!selectedDecisionData) {
+    return `${failureModeCount} failure mode${failureModeCount === 1 ? "" : "s"} in scope.`;
+  }
+
+  return `${failureModeCount} failure mode${failureModeCount === 1 ? "" : "s"} in scope | ${selectedDecisionData.strategies.length} strategy option${
+    selectedDecisionData.strategies.length === 1 ? "" : "s"
+  } in the current decision.`;
+};
 const renderStrategyTableCell = (row, column) => {
   const rawValue = row[column.key];
   const stringValue = typeof rawValue === "boolean" ? "" : String(rawValue || "");
@@ -5889,6 +6503,418 @@ const renderStrategyRowActions = (row) => `
   </div>
 `;
 
+const getActiveFailureModeDecisionData = (nodeInfo) => {
+  const failureModeInfos = getFailureModeNodeInfosForSelection(nodeInfo);
+  if (!failureModeInfos.length) {
+    return {
+      failureModeInfos: [],
+      selectedFailureModeId: "",
+      selectedDecisionData: null,
+    };
+  }
+
+  const selectionPreferredFailureMode =
+    nodeInfo && ["cause", "effect", "cm", "pm", "ins"].includes(nodeInfo.node.type)
+      ? getNearestAncestorNodeFromPath(nodeInfo.path, "cause")?.id || nodeInfo.node.id
+      : "";
+  const selectedFailureModeId =
+    failureModeInfos.some((entry) => entry.node.id === state.strategyTable.selectedFailureModeNodeId)
+      ? state.strategyTable.selectedFailureModeNodeId
+      : failureModeInfos.some((entry) => entry.node.id === selectionPreferredFailureMode)
+        ? selectionPreferredFailureMode
+        : failureModeInfos[0].node.id;
+
+  if (selectedFailureModeId !== state.strategyTable.selectedFailureModeNodeId) {
+    state.strategyTable = {
+      ...state.strategyTable,
+      selectedFailureModeNodeId: selectedFailureModeId,
+    };
+  }
+
+  const activeFailureModeInfo = failureModeInfos.find((entry) => entry.node.id === selectedFailureModeId) || failureModeInfos[0];
+  return {
+    failureModeInfos,
+    selectedFailureModeId,
+    selectedDecisionData: getFailureModeDecisionData(activeFailureModeInfo),
+  };
+};
+
+const renderStrategyWorkspaceTabs = () => `
+  <div class="strategy-workspace__tabs" role="tablist" aria-label="Strategy workspace view">
+    <button
+      class="strategy-workspace__tab ${state.strategyTable.activeView === "decision" ? "is-active" : ""}"
+      type="button"
+      role="tab"
+      aria-selected="${state.strategyTable.activeView === "decision" ? "true" : "false"}"
+      data-strategy-view="decision"
+    >
+      Decision workspace
+    </button>
+    <button
+      class="strategy-workspace__tab ${state.strategyTable.activeView === "audit" ? "is-active" : ""}"
+      type="button"
+      role="tab"
+      aria-selected="${state.strategyTable.activeView === "audit" ? "true" : "false"}"
+      data-strategy-view="audit"
+    >
+      Data / audit view
+    </button>
+  </div>
+`;
+
+const renderFailureModeSelector = (failureModeInfos, selectedDecisionData) => `
+  <section class="strategy-failure-selector">
+    <div class="strategy-failure-selector__header">
+      <div>
+        <strong>Failure modes</strong>
+        <span>${failureModeInfos.length} in the current asset selection</span>
+      </div>
+      <div class="strategy-failure-selector__summary">
+        ${selectedDecisionData ? `${selectedDecisionData.strategies.length} strategy option${selectedDecisionData.strategies.length === 1 ? "" : "s"}` : "No strategies yet"}
+      </div>
+    </div>
+    <div class="strategy-failure-selector__list" role="list">
+      ${failureModeInfos
+        .map((entry) => {
+          const decisionData = getFailureModeDecisionData(entry);
+          const isSelected = selectedDecisionData?.failureModeInfo?.node?.id === entry.node.id;
+          const exposure = decisionData?.effectEstimate?.baselineExposure || 0;
+          return `
+            <button
+              class="strategy-failure-pill ${isSelected ? "is-active" : ""}"
+              type="button"
+              data-select-failure-mode="${escapeHtml(entry.node.id)}"
+            >
+              <strong>${escapeHtml(getNodeDisplayName(entry.node))}</strong>
+              <span>${escapeHtml(formatCurrency(exposure, { compact: exposure >= 1000 }))} exposure</span>
+            </button>
+          `;
+        })
+        .join("")}
+    </div>
+  </section>
+`;
+
+const renderFailureModeSummaryBand = (decisionData) => {
+  if (!decisionData) {
+    return "";
+  }
+
+  const { summary, effectEstimate } = decisionData;
+  const alarmSummary = summary.alarmEnabled
+    ? `${summary.alarmDescription || "Alarm coverage"} | ${formatPercentValue(summary.alarmDetectionProbability)} detectability`
+    : "No alarm or online coverage configured";
+
+  return `
+    <section class="strategy-summary-band">
+      <div class="strategy-summary-band__hero">
+        <div class="strategy-summary-band__copy">
+          <span class="strategy-summary-band__eyebrow">Failure mode decision workspace</span>
+          <h3>${escapeHtml(summary.failureModeName)}</h3>
+          <p>${escapeHtml(summary.failureModeDescription || "No failure mode description set.")}</p>
+        </div>
+        <div class="strategy-summary-band__context">
+          <span>${escapeHtml(summary.componentName || "Component not set")}</span>
+          <strong>${escapeHtml(summary.untreatedRiskLabel)}</strong>
+        </div>
+      </div>
+      <div class="strategy-summary-band__metrics">
+        <article class="strategy-metric-card">
+          <span>Baseline exposure</span>
+          <strong>${escapeHtml(formatCurrency(effectEstimate.baselineExposure, { compact: effectEstimate.baselineExposure >= 1000 }))}</strong>
+          <small>${escapeHtml(summary.effectRangeLabel)}</small>
+        </article>
+        <article class="strategy-metric-card">
+          <span>Likely failure window</span>
+          <strong>${escapeHtml(formatTimeWindowFromHours(summary.mttfHours))}</strong>
+          <small>${escapeHtml(summary.mttfHours ? formatHoursLabel(summary.mttfHours) : "MTTF not set")}</small>
+        </article>
+        <article class="strategy-metric-card">
+          <span>Current untreated risk</span>
+          <strong>${escapeHtml(summary.untreatedRiskLabel)}</strong>
+          <small>${escapeHtml(effectEstimate.downtimeRate ? `${formatCurrency(effectEstimate.downtimeRate, { compact: true })} / hour down` : "No downtime proxy set")}</small>
+        </article>
+        <article class="strategy-metric-card">
+          <span>Existing alarm / monitoring</span>
+          <strong>${escapeHtml(summary.alarmEnabled ? "Present" : "None")}</strong>
+          <small>${escapeHtml(alarmSummary)}</small>
+        </article>
+      </div>
+    </section>
+  `;
+};
+
+const renderComparisonPanel = (decisionData) => {
+  if (!decisionData) {
+    return "";
+  }
+
+  const { comparison } = decisionData;
+  const residualRatio =
+    comparison.baselineExposure > 0 ? clampNumber(comparison.residualExposure / comparison.baselineExposure, 0, 1) : 0;
+  return `
+    <aside class="strategy-comparison-panel">
+      <div class="strategy-comparison-panel__header">
+        <strong>Enabled strategy impact</strong>
+        <span>${escapeHtml(getStrategySelectionSummary(comparison.enabledCount, comparison.totalCount, "strategies"))}</span>
+      </div>
+      <div class="strategy-comparison-panel__grid">
+        <article class="strategy-impact-stat">
+          <span>Total strategy cost</span>
+          <strong>${escapeHtml(formatCurrency(comparison.totalAnnualCost, { compact: comparison.totalAnnualCost >= 1000 }))}</strong>
+          <small>Annualised estimate</small>
+        </article>
+        <article class="strategy-impact-stat">
+          <span>Exposure reduced</span>
+          <strong>${escapeHtml(formatCurrency(comparison.exposureReduction, { compact: comparison.exposureReduction >= 1000 }))}</strong>
+          <small>Against untreated baseline</small>
+        </article>
+        <article class="strategy-impact-stat">
+          <span>Residual exposure</span>
+          <strong>${escapeHtml(formatCurrency(comparison.residualExposure, { compact: comparison.residualExposure >= 1000 }))}</strong>
+          <small>What remains after enabled coverage</small>
+        </article>
+        <article class="strategy-impact-stat">
+          <span>Net economic position</span>
+          <strong>${escapeHtml(formatSignedCurrency(comparison.netValue))}</strong>
+          <small>${escapeHtml(comparison.coverageConfidenceLabel)}</small>
+        </article>
+      </div>
+      <div class="strategy-impact-bar" aria-label="Baseline versus residual exposure">
+        <div class="strategy-impact-bar__track">
+          <span class="strategy-impact-bar__baseline"></span>
+          <span class="strategy-impact-bar__residual" style="width:${Math.max(8, residualRatio * 100)}%;"></span>
+        </div>
+        <div class="strategy-impact-bar__legend">
+          <span>Before</span>
+          <span>After</span>
+        </div>
+      </div>
+      <div class="strategy-confidence-meter">
+        <span>Coverage confidence</span>
+        <div class="strategy-confidence-meter__track">
+          <span class="strategy-confidence-meter__fill" style="width:${comparison.coverageConfidenceValue * 100}%;"></span>
+        </div>
+        <strong>${escapeHtml(formatPercentValue(comparison.coverageConfidenceValue))}</strong>
+      </div>
+    </aside>
+  `;
+};
+
+const renderStrategyDecisionCard = (strategy, decisionData) => {
+  const isExpanded = state.strategyTable.expandedTaskNodeIds.includes(strategy.taskNodeId);
+  const isSelected = state.strategyTable.selectedTaskNodeId === strategy.taskNodeId;
+  const beforeAfterWidth = decisionData.effectEstimate.baselineExposure
+    ? clampNumber(strategy.residualExposure / decisionData.effectEstimate.baselineExposure, 0, 1) * 100
+    : 0;
+  return `
+    <article class="strategy-option-card strategy-option-card--${strategy.status} ${isSelected ? "is-selected" : ""}" data-strategy-task-row="${escapeHtml(
+      strategy.taskNodeId
+    )}">
+      <div class="strategy-option-card__header">
+        <div class="strategy-option-card__identity">
+          <div class="strategy-option-card__badges">
+            <span class="strategy-option-card__status">${escapeHtml(strategy.statusLabel)}</span>
+            <span class="strategy-option-card__type">${escapeHtml(strategy.strategyType)}</span>
+            ${strategy.isRecommended && strategy.status !== "recommended" ? '<span class="strategy-option-card__hint">Worth reviewing</span>' : ""}
+          </div>
+          <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
+          <p>${escapeHtml(strategy.whyStatement)}</p>
+        </div>
+        <label class="strategy-option-card__toggle" aria-label="Toggle strategy">
+          <input
+            type="checkbox"
+            data-strategy-task-node="${escapeHtml(strategy.taskNodeId)}"
+            data-strategy-column="scheduledTaskIsEnabled"
+            ${strategy.scheduledTaskIsEnabled ? "checked" : ""}
+          >
+          <span>${strategy.scheduledTaskIsEnabled ? "Enabled" : "Disabled"}</span>
+        </label>
+      </div>
+      <div class="strategy-option-card__metrics">
+        <div>
+          <span>Exposure before</span>
+          <strong>${escapeHtml(formatCurrency(decisionData.effectEstimate.baselineExposure, { compact: decisionData.effectEstimate.baselineExposure >= 1000 }))}</strong>
+        </div>
+        <div>
+          <span>Exposure after</span>
+          <strong>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</strong>
+        </div>
+        <div>
+          <span>Cost to mitigate</span>
+          <strong>${escapeHtml(formatCurrency(strategy.annualCost, { compact: strategy.annualCost >= 1000 }))}</strong>
+        </div>
+        <div>
+          <span>Mitigation probability</span>
+          <strong>${escapeHtml(formatPercentValue(strategy.mitigationFactor))}</strong>
+        </div>
+      </div>
+      <div class="strategy-option-card__bar">
+        <div class="strategy-option-card__bar-track">
+          <span class="strategy-option-card__bar-base"></span>
+          <span class="strategy-option-card__bar-residual" style="width:${Math.max(8, beforeAfterWidth)}%;"></span>
+        </div>
+      </div>
+      <div class="strategy-option-card__footer">
+        <div class="strategy-option-card__tradeoff">
+          <strong>Trade-off</strong>
+          <span>${escapeHtml(strategy.tradeoffStatement)}</span>
+        </div>
+        ${
+          strategy.weaknessFlags.length
+            ? `<div class="strategy-option-card__flags">${strategy.weaknessFlags
+                .map((flag) => `<span class="strategy-option-card__flag">${escapeHtml(flag)}</span>`)
+                .join("")}</div>`
+            : ""
+        }
+      </div>
+      <div class="strategy-option-card__actions">
+        <button
+          class="secondary-button strategy-option-card__action"
+          type="button"
+          data-strategy-card-expand="${escapeHtml(strategy.taskNodeId)}"
+          aria-expanded="${isExpanded ? "true" : "false"}"
+        >
+          ${isExpanded ? "Hide technical details" : "Show technical details"}
+        </button>
+        <button class="secondary-button strategy-option-card__action" type="button" data-open-task-editor="${escapeHtml(strategy.taskNodeId)}">
+          Edit task
+        </button>
+      </div>
+      ${
+        isExpanded
+          ? `
+            <div class="strategy-option-card__details">
+              <dl class="strategy-option-card__detail-grid">
+                <div><dt>Task code</dt><dd>${escapeHtml(strategy.technicalDetails.taskCode || "Not set")}</dd></div>
+                <div><dt>Task type</dt><dd>${escapeHtml(strategy.scheduledTaskType || "Not set")}</dd></div>
+                <div><dt>Cadence</dt><dd>${escapeHtml(strategy.technicalDetails.intervalLabel || "Not set")}</dd></div>
+                <div><dt>PF interval</dt><dd>${escapeHtml(strategy.technicalDetails.pfIntervalLabel || "Not set")}</dd></div>
+                <div><dt>Duration</dt><dd>${escapeHtml(strategy.technicalDetails.durationLabel || "Not set")}</dd></div>
+                <div><dt>Labour</dt><dd>${escapeHtml(strategy.technicalDetails.labourLabel || "Not set")}</dd></div>
+                <div><dt>Detectability</dt><dd>${escapeHtml(formatPercentValue(strategy.detectionProbability))}</dd></div>
+                <div><dt>Expected occurrences</dt><dd>${escapeHtml(strategy.technicalDetails.annualOccurrenceLabel || "Not set")}</dd></div>
+                <div><dt>Per-intervention cost</dt><dd>${escapeHtml(formatCurrency(strategy.directEventCost, { compact: strategy.directEventCost >= 1000 }))}</dd></div>
+                <div><dt>Net value</dt><dd>${escapeHtml(formatSignedCurrency(strategy.netValue))}</dd></div>
+              </dl>
+            </div>
+          `
+          : ""
+      }
+    </article>
+  `;
+};
+
+const renderDecisionWorkspace = (nodeInfo) => {
+  const { failureModeInfos, selectedDecisionData } = getActiveFailureModeDecisionData(nodeInfo);
+  if (!failureModeInfos.length || !selectedDecisionData) {
+    return `
+      ${renderStrategyWorkspaceTabs()}
+      <section class="strategy-workspace-empty">
+        <strong>No failure modes in this selection</strong>
+        <p>Select a function, failure mode, or asset with strategy content to start the decision workflow.</p>
+      </section>
+    `;
+  }
+
+  const sortedStrategies = [...selectedDecisionData.strategies].sort((left, right) => {
+    const statusWeight = { recommended: 0, enabled: 1, disabled: 2 };
+    const leftWeight = statusWeight[left.status] ?? 3;
+    const rightWeight = statusWeight[right.status] ?? 3;
+    if (leftWeight !== rightWeight) {
+      return leftWeight - rightWeight;
+    }
+    return right.netValue - left.netValue;
+  });
+
+  return `
+    ${renderStrategyWorkspaceTabs()}
+    ${renderFailureModeSelector(failureModeInfos, selectedDecisionData)}
+    <div class="strategy-workspace">
+      <div class="strategy-workspace__main">
+        ${renderFailureModeSummaryBand(selectedDecisionData)}
+        <section class="strategy-option-stack">
+          <div class="strategy-option-stack__header">
+            <strong>Mitigation strategies</strong>
+            <span>${sortedStrategies.length} option${sortedStrategies.length === 1 ? "" : "s"} to compare</span>
+          </div>
+          <div class="strategy-option-stack__list">
+            ${sortedStrategies.map((strategy) => renderStrategyDecisionCard(strategy, selectedDecisionData)).join("")}
+          </div>
+        </section>
+      </div>
+      ${renderComparisonPanel(selectedDecisionData)}
+    </div>
+  `;
+};
+
+const getAuditRowsForCurrentWorkspace = (nodeInfo, strategyRows, filteredRows) => {
+  const { selectedFailureModeId } = getActiveFailureModeDecisionData(nodeInfo);
+  if (!selectedFailureModeId) {
+    return {
+      strategyRows,
+      filteredRows,
+    };
+  }
+
+  return {
+    strategyRows: strategyRows.filter((row) => row.failureModeNodeId === selectedFailureModeId),
+    filteredRows: filteredRows.filter((row) => row.failureModeNodeId === selectedFailureModeId),
+  };
+};
+
+const renderAuditWorkspace = (nodeInfo, strategyRows, filteredRows) => {
+  const auditRows = getAuditRowsForCurrentWorkspace(nodeInfo, strategyRows, filteredRows);
+  const visibleColumns = getVisibleStrategyTableColumns();
+  return `
+    ${renderStrategyWorkspaceTabs()}
+    <section class="strategy-draft-list__section strategy-draft-list__section--table">
+      ${renderStrategyTableToolbar(auditRows.strategyRows, auditRows.filteredRows)}
+      <div class="strategy-surface__header strategy-surface__header--spread">
+        <div>
+          <strong>Audit table</strong>
+          <span>${auditRows.filteredRows.length} visible row${auditRows.filteredRows.length === 1 ? "" : "s"} | Raw field view</span>
+        </div>
+      </div>
+      <div class="strategy-grid__viewport">
+        <table class="strategy-grid" aria-label="Strategy audit table">
+          <thead>
+            <tr>
+              ${visibleColumns.map((column) => renderStrategyTableHeader(column, auditRows.strategyRows)).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              auditRows.filteredRows.length
+                ? auditRows.filteredRows
+                    .map(
+                      (row) => `
+                        <tr class="strategy-grid__row ${state.strategyTable.selectedTaskNodeId === row.taskNodeId ? "is-selected" : ""}" data-strategy-task-row="${escapeHtml(
+                          row.taskNodeId
+                        )}">
+                          ${visibleColumns.map((column) => renderStrategyTableCell(row, column)).join("")}
+                        </tr>
+                      `
+                    )
+                    .join("")
+                : `
+                    <tr class="strategy-grid__empty-row">
+                      <td class="strategy-grid__empty-cell" colspan="${visibleColumns.length}">
+                        No rows match the current strategy filters.
+                      </td>
+                    </tr>
+                  `
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="strategy-grid__scrollbar" aria-hidden="true">
+        <div class="strategy-grid__scrollbar-inner"></div>
+      </div>
+    </section>
+  `;
+};
+
 const renderStrategyDrafts = (nodeInfo, strategyRowsOverride = null, filteredRowsOverride = null) => {
   if (!strategyList) {
     return;
@@ -5910,57 +6936,14 @@ const renderStrategyDrafts = (nodeInfo, strategyRowsOverride = null, filteredRow
 
   const strategyRows = Array.isArray(strategyRowsOverride) ? strategyRowsOverride : getStrategyTableRowsForSelection(nodeInfo);
   const filteredRows = Array.isArray(filteredRowsOverride) ? filteredRowsOverride : getFilteredStrategyTableRows(strategyRows);
-  const visibleColumns = getVisibleStrategyTableColumns();
   strategyList.hidden = false;
   strategyList.innerHTML = strategyRows.length
-    ? `
-        <section class="strategy-draft-list__section strategy-draft-list__section--table">
-          ${renderStrategyTableToolbar(strategyRows, filteredRows)}
-          <div class="strategy-surface__header strategy-surface__header--spread">
-            <div>
-              <strong>Strategies</strong>
-              <span>${filteredRows.length} visible row${filteredRows.length === 1 ? "" : "s"} | Saves on change</span>
-            </div>
-          </div>
-          <div class="strategy-grid__viewport">
-            <table class="strategy-grid" aria-label="Strategy table">
-              <thead>
-                <tr>
-                  ${visibleColumns.map((column) => renderStrategyTableHeader(column, strategyRows)).join("")}
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  filteredRows.length
-                    ? filteredRows
-                        .map(
-                          (row) => `
-                            <tr class="strategy-grid__row ${state.strategyTable.selectedTaskNodeId === row.taskNodeId ? "is-selected" : ""}" data-strategy-task-row="${escapeHtml(
-                              row.taskNodeId
-                            )}">
-                              ${visibleColumns.map((column) => renderStrategyTableCell(row, column)).join("")}
-                            </tr>
-                          `
-                        )
-                        .join("")
-                    : `
-                        <tr class="strategy-grid__empty-row">
-                          <td class="strategy-grid__empty-cell" colspan="${visibleColumns.length}">
-                            No rows match the current strategy filters.
-                          </td>
-                        </tr>
-                      `
-                }
-              </tbody>
-            </table>
-          </div>
-          <div class="strategy-grid__scrollbar" aria-hidden="true">
-            <div class="strategy-grid__scrollbar-inner"></div>
-          </div>
-        </section>
-      `
+    ? state.strategyTable.activeView === "audit"
+      ? renderAuditWorkspace(nodeInfo, strategyRows, filteredRows)
+      : renderDecisionWorkspace(nodeInfo)
     : `
         <section class="strategy-draft-list__section">
+          ${renderStrategyWorkspaceTabs()}
           <div class="strategy-surface__header">
             <strong>Strategies</strong>
             <span>No strategy rows yet</span>
@@ -5971,7 +6954,7 @@ const renderStrategyDrafts = (nodeInfo, strategyRowsOverride = null, filteredRow
           </article>
         </section>
       `;
-  if (strategyRows.length) {
+  if (strategyRows.length && state.strategyTable.activeView === "audit") {
     syncStrategyTableScrollbars();
   }
 };
@@ -6096,7 +7079,7 @@ const renderSelectedNodePanel = () => {
 
   selectedNodeTypeLabel.textContent = "Strategies";
   backgroundDetailHeading.textContent = getNodeDisplayName(node);
-  backgroundDetailSummary.textContent = getStrategyTableSelectionSummary(
+  backgroundDetailSummary.textContent = getStrategyWorkspaceSummary(
     nodeInfo,
     filteredStrategyRows.length
   );
@@ -7567,6 +8550,46 @@ strategyList?.addEventListener("change", (event) => {
 });
 
 strategyList?.addEventListener("click", (event) => {
+  const workspaceTab = event.target.closest("[data-strategy-view]");
+  if (workspaceTab) {
+    setStrategyWorkspaceView(workspaceTab.dataset.strategyView);
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const selectFailureModeButton = event.target.closest("[data-select-failure-mode]");
+  if (selectFailureModeButton) {
+    setSelectedFailureModeForWorkspace(selectFailureModeButton.dataset.selectFailureMode);
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const toggleCardDetailsButton = event.target.closest("[data-strategy-card-expand]");
+  if (toggleCardDetailsButton) {
+    toggleStrategyDecisionCardExpanded(toggleCardDetailsButton.dataset.strategyCardExpand);
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
+
+  const taskEditorButton = event.target.closest("[data-open-task-editor]");
+  if (taskEditorButton) {
+    const nodeInfo = findNodeInfo(state.hierarchy, taskEditorButton.dataset.openTaskEditor);
+    if (nodeInfo) {
+      state.selectedNodeId = nodeInfo.node.id;
+      openExistingTaskEditor(nodeInfo);
+      renderAll({
+        includeEntryDynamic: false,
+      });
+    }
+    return;
+  }
+
   const optionsButton = event.target.closest("#strategyTableOptionsButton");
   if (optionsButton) {
     toggleStrategyTableOptions();
