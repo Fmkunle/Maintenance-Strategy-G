@@ -76,6 +76,7 @@ const layoutLimits = {
   descriptionMin: 160,
 };
 const resizableLayoutMediaQuery = "(max-width: 1180px)";
+let lastDecisionWorkspaceTileColumnCount = 0;
 
 const nodeTypeMeta = {
   plant: {
@@ -6720,103 +6721,146 @@ const renderStrategyDecisionDetails = (strategy, detailId) => `
   </section>
 `;
 
-const renderStrategyDecisionCard = (strategy, decisionData) => {
-  const isExpanded = state.strategyTable.expandedTaskNodeIds.includes(strategy.taskNodeId);
+const getDecisionWorkspaceTileColumnCount = () => {
+  const mainWidth =
+    strategyList?.querySelector(".strategy-workspace__main")?.clientWidth ||
+    strategyList?.clientWidth ||
+    (typeof window !== "undefined" ? window.innerWidth : 0);
+  if (mainWidth >= 1160) {
+    return 3;
+  }
+  if (mainWidth >= 720) {
+    return 2;
+  }
+  return 1;
+};
+
+const getDecisionWorkspaceTileRows = (strategies) => {
+  const columnCount = getDecisionWorkspaceTileColumnCount();
+  const rows = [];
+  for (let index = 0; index < strategies.length; index += columnCount) {
+    rows.push(strategies.slice(index, index + columnCount));
+  }
+  lastDecisionWorkspaceTileColumnCount = columnCount;
+  return {
+    columnCount,
+    rows,
+  };
+};
+
+const renderStrategyDecisionCard = (strategy, decisionData, expandedTaskNodeId = "") => {
+  const isExpanded = expandedTaskNodeId === strategy.taskNodeId;
   const isSelected = state.strategyTable.selectedTaskNodeId === strategy.taskNodeId;
   const detailId = `strategy-option-details-${strategy.taskNodeId}`;
   const beforeAfterWidth = decisionData.effectEstimate.baselineExposure
     ? clampNumber(strategy.residualExposure / decisionData.effectEstimate.baselineExposure, 0, 1) * 100
     : 0;
   return `
-    <article class="strategy-option-row ${isExpanded ? "is-expanded" : ""} ${isSelected ? "is-selected" : ""}" data-strategy-task-row="${escapeHtml(
-      strategy.taskNodeId
-    )}">
-      <div class="strategy-option-row__card-wrap">
-        <section class="strategy-option-card strategy-option-card--${strategy.status}">
-          <div class="strategy-option-card__header">
-            <div class="strategy-option-card__identity">
-              <div class="strategy-option-card__badges">
-                <span class="strategy-option-card__status">${escapeHtml(strategy.statusLabel)}</span>
-                <span class="strategy-option-card__type">${escapeHtml(strategy.strategyType)}</span>
-                ${strategy.isRecommended && strategy.status !== "recommended" ? '<span class="strategy-option-card__hint">Worth reviewing</span>' : ""}
-              </div>
-              <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
-              <p>${escapeHtml(strategy.whyStatement)}</p>
-            </div>
-            <label class="strategy-option-card__toggle" aria-label="Toggle strategy">
-              <input
-                type="checkbox"
-                data-strategy-task-node="${escapeHtml(strategy.taskNodeId)}"
-                data-strategy-column="scheduledTaskIsEnabled"
-                ${strategy.scheduledTaskIsEnabled ? "checked" : ""}
-              >
-              <span>${strategy.scheduledTaskIsEnabled ? "Enabled" : "Disabled"}</span>
-            </label>
+    <article
+      class="strategy-option-card strategy-option-card--${strategy.status} ${isSelected ? "is-selected" : ""} ${isExpanded ? "is-expanded" : ""}"
+      data-strategy-task-row="${escapeHtml(strategy.taskNodeId)}"
+    >
+      <div class="strategy-option-card__header">
+        <div class="strategy-option-card__identity">
+          <div class="strategy-option-card__badges">
+            <span class="strategy-option-card__status">${escapeHtml(strategy.statusLabel)}</span>
+            <span class="strategy-option-card__type">${escapeHtml(strategy.strategyType)}</span>
+            ${strategy.isRecommended && strategy.status !== "recommended" ? '<span class="strategy-option-card__hint">Worth reviewing</span>' : ""}
           </div>
-          <div class="strategy-option-card__metrics">
-            <div>
-              <span>Exposure before</span>
-              <strong>${escapeHtml(formatCurrency(decisionData.effectEstimate.baselineExposure, { compact: decisionData.effectEstimate.baselineExposure >= 1000 }))}</strong>
-            </div>
-            <div>
-              <span>Exposure after</span>
-              <strong>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</strong>
-            </div>
-            <div>
-              <span>Cost to mitigate</span>
-              <strong>${escapeHtml(formatCurrency(strategy.annualCost, { compact: strategy.annualCost >= 1000 }))}</strong>
-            </div>
-            <div>
-              <span>Mitigation probability</span>
-              <strong>${escapeHtml(formatPercentValue(strategy.mitigationFactor))}</strong>
-            </div>
-          </div>
-          <div class="strategy-option-card__bar">
-            <div class="strategy-option-card__bar-track">
-              <span class="strategy-option-card__bar-base"></span>
-              <span class="strategy-option-card__bar-residual" style="width:${Math.max(8, beforeAfterWidth)}%;"></span>
-            </div>
-          </div>
-          <div class="strategy-option-card__footer">
-            <div class="strategy-option-card__tradeoff">
-              <strong>Trade-off</strong>
-              <span>${escapeHtml(strategy.tradeoffStatement)}</span>
-            </div>
-            ${
-              strategy.weaknessFlags.length
-                ? `<div class="strategy-option-card__flags">${strategy.weaknessFlags
-                    .map((flag) => `<span class="strategy-option-card__flag">${escapeHtml(flag)}</span>`)
-                    .join("")}</div>`
-                : ""
-            }
-          </div>
-          <div class="strategy-option-card__actions">
-            <button
-              class="secondary-button strategy-option-card__action"
-              type="button"
-              data-strategy-card-expand="${escapeHtml(strategy.taskNodeId)}"
-              aria-expanded="${isExpanded ? "true" : "false"}"
-              aria-controls="${escapeHtml(detailId)}"
-            >
-              ${isExpanded ? "Hide technical details" : "Show technical details"}
-            </button>
-            <button class="secondary-button strategy-option-card__action" type="button" data-open-task-editor="${escapeHtml(strategy.taskNodeId)}">
-              Edit task
-            </button>
-          </div>
-        </section>
+          <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
+          <p>${escapeHtml(strategy.whyStatement)}</p>
+        </div>
+        <label class="strategy-option-card__toggle" aria-label="Toggle strategy">
+          <input
+            type="checkbox"
+            data-strategy-task-node="${escapeHtml(strategy.taskNodeId)}"
+            data-strategy-column="scheduledTaskIsEnabled"
+            ${strategy.scheduledTaskIsEnabled ? "checked" : ""}
+          >
+          <span>${strategy.scheduledTaskIsEnabled ? "Enabled" : "Disabled"}</span>
+        </label>
       </div>
-      ${
-        isExpanded
-          ? `
-            <div class="strategy-option-row__details-wrap">
-              ${renderStrategyDecisionDetails(strategy, detailId)}
-            </div>
-          `
-          : ""
-      }
+      <div class="strategy-option-card__metrics">
+        <div>
+          <span>Exposure before</span>
+          <strong>${escapeHtml(formatCurrency(decisionData.effectEstimate.baselineExposure, { compact: decisionData.effectEstimate.baselineExposure >= 1000 }))}</strong>
+        </div>
+        <div>
+          <span>Exposure after</span>
+          <strong>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</strong>
+        </div>
+        <div>
+          <span>Cost to mitigate</span>
+          <strong>${escapeHtml(formatCurrency(strategy.annualCost, { compact: strategy.annualCost >= 1000 }))}</strong>
+        </div>
+        <div>
+          <span>Mitigation probability</span>
+          <strong>${escapeHtml(formatPercentValue(strategy.mitigationFactor))}</strong>
+        </div>
+      </div>
+      <div class="strategy-option-card__bar">
+        <div class="strategy-option-card__bar-track">
+          <span class="strategy-option-card__bar-base"></span>
+          <span class="strategy-option-card__bar-residual" style="width:${Math.max(8, beforeAfterWidth)}%;"></span>
+        </div>
+      </div>
+      <div class="strategy-option-card__footer">
+        <div class="strategy-option-card__tradeoff">
+          <strong>Trade-off</strong>
+          <span>${escapeHtml(strategy.tradeoffStatement)}</span>
+        </div>
+        ${
+          strategy.weaknessFlags.length
+            ? `<div class="strategy-option-card__flags">${strategy.weaknessFlags
+                .map((flag) => `<span class="strategy-option-card__flag">${escapeHtml(flag)}</span>`)
+                .join("")}</div>`
+            : ""
+        }
+      </div>
+      <div class="strategy-option-card__actions">
+        <button
+          class="secondary-button strategy-option-card__action"
+          type="button"
+          data-strategy-card-expand="${escapeHtml(strategy.taskNodeId)}"
+          aria-expanded="${isExpanded ? "true" : "false"}"
+          aria-controls="${escapeHtml(detailId)}"
+        >
+          ${isExpanded ? "Hide technical details" : "Show technical details"}
+        </button>
+        <button class="secondary-button strategy-option-card__action" type="button" data-open-task-editor="${escapeHtml(strategy.taskNodeId)}">
+          Edit task
+        </button>
+      </div>
     </article>
   `;
+};
+
+const renderStrategyDecisionTileRows = (strategies, decisionData) => {
+  const expandedTaskNodeId = state.strategyTable.expandedTaskNodeIds[0] || "";
+  const { columnCount, rows } = getDecisionWorkspaceTileRows(strategies);
+  const columnClass = columnCount === 3 ? "strategy-option-tile-row__tiles--cols-3" : columnCount === 2 ? "strategy-option-tile-row__tiles--cols-2" : "strategy-option-tile-row__tiles--cols-1";
+  return rows
+    .map((row) => {
+      const expandedStrategy = row.find((strategy) => strategy.taskNodeId === expandedTaskNodeId) || null;
+      const detailId = expandedStrategy ? `strategy-option-details-${expandedStrategy.taskNodeId}` : "";
+      return `
+        <div class="strategy-option-tile-row">
+          <div class="strategy-option-tile-row__tiles ${columnClass}">
+            ${row.map((strategy) => renderStrategyDecisionCard(strategy, decisionData, expandedTaskNodeId)).join("")}
+          </div>
+          ${
+            expandedStrategy
+              ? `
+                <div class="strategy-option-tile-row__details">
+                  ${renderStrategyDecisionDetails(expandedStrategy, detailId)}
+                </div>
+              `
+              : ""
+          }
+        </div>
+      `;
+    })
+    .join("");
 };
 
 const renderDecisionWorkspace = (nodeInfo) => {
@@ -6853,7 +6897,7 @@ const renderDecisionWorkspace = (nodeInfo) => {
             <span>${sortedStrategies.length} option${sortedStrategies.length === 1 ? "" : "s"} to compare</span>
           </div>
           <div class="strategy-option-stack__list">
-            ${sortedStrategies.map((strategy) => renderStrategyDecisionCard(strategy, selectedDecisionData)).join("")}
+            ${renderStrategyDecisionTileRows(sortedStrategies, selectedDecisionData)}
           </div>
         </section>
       </div>
@@ -8683,6 +8727,19 @@ window.addEventListener("resize", () => {
 
   state.layout = normalizeLayoutState(state.layout);
   applyWorkspaceLayoutStyles();
+  const nextDecisionWorkspaceTileColumnCount = getDecisionWorkspaceTileColumnCount();
+  if (
+    nextDecisionWorkspaceTileColumnCount !== lastDecisionWorkspaceTileColumnCount &&
+    state.strategyTable.activeView === "decision" &&
+    strategyList &&
+    !strategyList.hidden
+  ) {
+    lastDecisionWorkspaceTileColumnCount = nextDecisionWorkspaceTileColumnCount;
+    renderAll({
+      includeEntryDynamic: false,
+    });
+    return;
+  }
   syncStrategyTableScrollbars();
 });
 
