@@ -3811,9 +3811,7 @@ const setSelectedFailureModeForWorkspace = (failureModeNodeId) => {
   };
 };
 const toggleStrategyDecisionCardExpanded = (taskNodeId) => {
-  const expandedTaskNodeIds = state.strategyTable.expandedTaskNodeIds.includes(taskNodeId)
-    ? state.strategyTable.expandedTaskNodeIds.filter((entry) => entry !== taskNodeId)
-    : [...state.strategyTable.expandedTaskNodeIds, taskNodeId];
+  const expandedTaskNodeIds = state.strategyTable.expandedTaskNodeIds.includes(taskNodeId) ? [] : [taskNodeId];
   state.strategyTable = {
     ...state.strategyTable,
     expandedTaskNodeIds,
@@ -6701,102 +6699,118 @@ const renderComparisonPanel = (decisionData) => {
   `;
 };
 
+const renderStrategyDecisionDetails = (strategy, detailId) => `
+  <section class="strategy-option-details" id="${escapeHtml(detailId)}">
+    <div class="strategy-option-details__header">
+      <span>Technical details</span>
+      <strong>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</strong>
+    </div>
+    <dl class="strategy-option-card__detail-grid">
+      <div><dt>Task code</dt><dd>${escapeHtml(strategy.technicalDetails.taskCode || "Not set")}</dd></div>
+      <div><dt>Task type</dt><dd>${escapeHtml(strategy.scheduledTaskType || "Not set")}</dd></div>
+      <div><dt>Cadence</dt><dd>${escapeHtml(strategy.technicalDetails.intervalLabel || "Not set")}</dd></div>
+      <div><dt>PF interval</dt><dd>${escapeHtml(strategy.technicalDetails.pfIntervalLabel || "Not set")}</dd></div>
+      <div><dt>Duration</dt><dd>${escapeHtml(strategy.technicalDetails.durationLabel || "Not set")}</dd></div>
+      <div><dt>Labour</dt><dd>${escapeHtml(strategy.technicalDetails.labourLabel || "Not set")}</dd></div>
+      <div><dt>Detectability</dt><dd>${escapeHtml(formatPercentValue(strategy.detectionProbability))}</dd></div>
+      <div><dt>Expected occurrences</dt><dd>${escapeHtml(strategy.technicalDetails.annualOccurrenceLabel || "Not set")}</dd></div>
+      <div><dt>Per-intervention cost</dt><dd>${escapeHtml(formatCurrency(strategy.directEventCost, { compact: strategy.directEventCost >= 1000 }))}</dd></div>
+      <div><dt>Net value</dt><dd>${escapeHtml(formatSignedCurrency(strategy.netValue))}</dd></div>
+    </dl>
+  </section>
+`;
+
 const renderStrategyDecisionCard = (strategy, decisionData) => {
   const isExpanded = state.strategyTable.expandedTaskNodeIds.includes(strategy.taskNodeId);
   const isSelected = state.strategyTable.selectedTaskNodeId === strategy.taskNodeId;
+  const detailId = `strategy-option-details-${strategy.taskNodeId}`;
   const beforeAfterWidth = decisionData.effectEstimate.baselineExposure
     ? clampNumber(strategy.residualExposure / decisionData.effectEstimate.baselineExposure, 0, 1) * 100
     : 0;
   return `
-    <article class="strategy-option-card strategy-option-card--${strategy.status} ${isSelected ? "is-selected" : ""}" data-strategy-task-row="${escapeHtml(
+    <article class="strategy-option-row ${isExpanded ? "is-expanded" : ""} ${isSelected ? "is-selected" : ""}" data-strategy-task-row="${escapeHtml(
       strategy.taskNodeId
     )}">
-      <div class="strategy-option-card__header">
-        <div class="strategy-option-card__identity">
-          <div class="strategy-option-card__badges">
-            <span class="strategy-option-card__status">${escapeHtml(strategy.statusLabel)}</span>
-            <span class="strategy-option-card__type">${escapeHtml(strategy.strategyType)}</span>
-            ${strategy.isRecommended && strategy.status !== "recommended" ? '<span class="strategy-option-card__hint">Worth reviewing</span>' : ""}
+      <div class="strategy-option-row__card-wrap">
+        <section class="strategy-option-card strategy-option-card--${strategy.status}">
+          <div class="strategy-option-card__header">
+            <div class="strategy-option-card__identity">
+              <div class="strategy-option-card__badges">
+                <span class="strategy-option-card__status">${escapeHtml(strategy.statusLabel)}</span>
+                <span class="strategy-option-card__type">${escapeHtml(strategy.strategyType)}</span>
+                ${strategy.isRecommended && strategy.status !== "recommended" ? '<span class="strategy-option-card__hint">Worth reviewing</span>' : ""}
+              </div>
+              <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
+              <p>${escapeHtml(strategy.whyStatement)}</p>
+            </div>
+            <label class="strategy-option-card__toggle" aria-label="Toggle strategy">
+              <input
+                type="checkbox"
+                data-strategy-task-node="${escapeHtml(strategy.taskNodeId)}"
+                data-strategy-column="scheduledTaskIsEnabled"
+                ${strategy.scheduledTaskIsEnabled ? "checked" : ""}
+              >
+              <span>${strategy.scheduledTaskIsEnabled ? "Enabled" : "Disabled"}</span>
+            </label>
           </div>
-          <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
-          <p>${escapeHtml(strategy.whyStatement)}</p>
-        </div>
-        <label class="strategy-option-card__toggle" aria-label="Toggle strategy">
-          <input
-            type="checkbox"
-            data-strategy-task-node="${escapeHtml(strategy.taskNodeId)}"
-            data-strategy-column="scheduledTaskIsEnabled"
-            ${strategy.scheduledTaskIsEnabled ? "checked" : ""}
-          >
-          <span>${strategy.scheduledTaskIsEnabled ? "Enabled" : "Disabled"}</span>
-        </label>
-      </div>
-      <div class="strategy-option-card__metrics">
-        <div>
-          <span>Exposure before</span>
-          <strong>${escapeHtml(formatCurrency(decisionData.effectEstimate.baselineExposure, { compact: decisionData.effectEstimate.baselineExposure >= 1000 }))}</strong>
-        </div>
-        <div>
-          <span>Exposure after</span>
-          <strong>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</strong>
-        </div>
-        <div>
-          <span>Cost to mitigate</span>
-          <strong>${escapeHtml(formatCurrency(strategy.annualCost, { compact: strategy.annualCost >= 1000 }))}</strong>
-        </div>
-        <div>
-          <span>Mitigation probability</span>
-          <strong>${escapeHtml(formatPercentValue(strategy.mitigationFactor))}</strong>
-        </div>
-      </div>
-      <div class="strategy-option-card__bar">
-        <div class="strategy-option-card__bar-track">
-          <span class="strategy-option-card__bar-base"></span>
-          <span class="strategy-option-card__bar-residual" style="width:${Math.max(8, beforeAfterWidth)}%;"></span>
-        </div>
-      </div>
-      <div class="strategy-option-card__footer">
-        <div class="strategy-option-card__tradeoff">
-          <strong>Trade-off</strong>
-          <span>${escapeHtml(strategy.tradeoffStatement)}</span>
-        </div>
-        ${
-          strategy.weaknessFlags.length
-            ? `<div class="strategy-option-card__flags">${strategy.weaknessFlags
-                .map((flag) => `<span class="strategy-option-card__flag">${escapeHtml(flag)}</span>`)
-                .join("")}</div>`
-            : ""
-        }
-      </div>
-      <div class="strategy-option-card__actions">
-        <button
-          class="secondary-button strategy-option-card__action"
-          type="button"
-          data-strategy-card-expand="${escapeHtml(strategy.taskNodeId)}"
-          aria-expanded="${isExpanded ? "true" : "false"}"
-        >
-          ${isExpanded ? "Hide technical details" : "Show technical details"}
-        </button>
-        <button class="secondary-button strategy-option-card__action" type="button" data-open-task-editor="${escapeHtml(strategy.taskNodeId)}">
-          Edit task
-        </button>
+          <div class="strategy-option-card__metrics">
+            <div>
+              <span>Exposure before</span>
+              <strong>${escapeHtml(formatCurrency(decisionData.effectEstimate.baselineExposure, { compact: decisionData.effectEstimate.baselineExposure >= 1000 }))}</strong>
+            </div>
+            <div>
+              <span>Exposure after</span>
+              <strong>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</strong>
+            </div>
+            <div>
+              <span>Cost to mitigate</span>
+              <strong>${escapeHtml(formatCurrency(strategy.annualCost, { compact: strategy.annualCost >= 1000 }))}</strong>
+            </div>
+            <div>
+              <span>Mitigation probability</span>
+              <strong>${escapeHtml(formatPercentValue(strategy.mitigationFactor))}</strong>
+            </div>
+          </div>
+          <div class="strategy-option-card__bar">
+            <div class="strategy-option-card__bar-track">
+              <span class="strategy-option-card__bar-base"></span>
+              <span class="strategy-option-card__bar-residual" style="width:${Math.max(8, beforeAfterWidth)}%;"></span>
+            </div>
+          </div>
+          <div class="strategy-option-card__footer">
+            <div class="strategy-option-card__tradeoff">
+              <strong>Trade-off</strong>
+              <span>${escapeHtml(strategy.tradeoffStatement)}</span>
+            </div>
+            ${
+              strategy.weaknessFlags.length
+                ? `<div class="strategy-option-card__flags">${strategy.weaknessFlags
+                    .map((flag) => `<span class="strategy-option-card__flag">${escapeHtml(flag)}</span>`)
+                    .join("")}</div>`
+                : ""
+            }
+          </div>
+          <div class="strategy-option-card__actions">
+            <button
+              class="secondary-button strategy-option-card__action"
+              type="button"
+              data-strategy-card-expand="${escapeHtml(strategy.taskNodeId)}"
+              aria-expanded="${isExpanded ? "true" : "false"}"
+              aria-controls="${escapeHtml(detailId)}"
+            >
+              ${isExpanded ? "Hide technical details" : "Show technical details"}
+            </button>
+            <button class="secondary-button strategy-option-card__action" type="button" data-open-task-editor="${escapeHtml(strategy.taskNodeId)}">
+              Edit task
+            </button>
+          </div>
+        </section>
       </div>
       ${
         isExpanded
           ? `
-            <div class="strategy-option-card__details">
-              <dl class="strategy-option-card__detail-grid">
-                <div><dt>Task code</dt><dd>${escapeHtml(strategy.technicalDetails.taskCode || "Not set")}</dd></div>
-                <div><dt>Task type</dt><dd>${escapeHtml(strategy.scheduledTaskType || "Not set")}</dd></div>
-                <div><dt>Cadence</dt><dd>${escapeHtml(strategy.technicalDetails.intervalLabel || "Not set")}</dd></div>
-                <div><dt>PF interval</dt><dd>${escapeHtml(strategy.technicalDetails.pfIntervalLabel || "Not set")}</dd></div>
-                <div><dt>Duration</dt><dd>${escapeHtml(strategy.technicalDetails.durationLabel || "Not set")}</dd></div>
-                <div><dt>Labour</dt><dd>${escapeHtml(strategy.technicalDetails.labourLabel || "Not set")}</dd></div>
-                <div><dt>Detectability</dt><dd>${escapeHtml(formatPercentValue(strategy.detectionProbability))}</dd></div>
-                <div><dt>Expected occurrences</dt><dd>${escapeHtml(strategy.technicalDetails.annualOccurrenceLabel || "Not set")}</dd></div>
-                <div><dt>Per-intervention cost</dt><dd>${escapeHtml(formatCurrency(strategy.directEventCost, { compact: strategy.directEventCost >= 1000 }))}</dd></div>
-                <div><dt>Net value</dt><dd>${escapeHtml(formatSignedCurrency(strategy.netValue))}</dd></div>
-              </dl>
+            <div class="strategy-option-row__details-wrap">
+              ${renderStrategyDecisionDetails(strategy, detailId)}
             </div>
           `
           : ""
