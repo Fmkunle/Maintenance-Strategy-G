@@ -5129,6 +5129,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   background: transparent;
   color: var(--text-soft);
   font: inherit;
+  font-size: 0.88rem;
   font-weight: 700;
   transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
@@ -5196,13 +5197,13 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 
 .strategy-failure-pill strong {
   color: var(--text);
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   line-height: 1.35;
 }
 
 .strategy-failure-pill span {
   color: #59718b;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
@@ -5226,12 +5227,13 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 
 .strategy-comparison-panel__header strong {
   color: var(--text);
+  font-size: 0.9rem;
 }
 
 .strategy-impact-stat span,
 .strategy-confidence-meter span {
   color: #6d8198;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -5239,7 +5241,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 
 .strategy-impact-stat strong {
   color: var(--text);
-  font-size: 1.04rem;
+  font-size: 0.96rem;
 }
 
 .strategy-option-stack {
@@ -5348,7 +5350,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 .strategy-option-card__identity h4 {
   margin: 0;
   color: var(--text);
-  font-size: 1rem;
+  font-size: 0.92rem;
   line-height: 1.35;
 }
 
@@ -5374,7 +5376,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   min-height: 24px;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -5404,7 +5406,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   border-radius: 999px;
   background: rgba(249, 251, 253, 0.98);
   color: #51667e;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
@@ -5438,7 +5440,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 .strategy-option-card__tradeoff strong,
 .strategy-option-card__detail-grid dt {
   color: #6d8198;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -5447,7 +5449,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 .strategy-option-card__metrics strong,
 .strategy-option-card__detail-grid dd {
   color: var(--text);
-  font-size: 1rem;
+  font-size: 0.92rem;
 }
 
 .strategy-option-card__bar-track,
@@ -5514,7 +5516,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 
 .strategy-option-details__header span {
   color: #6d8198;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -5522,6 +5524,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 
 .strategy-option-details__header strong {
   color: var(--text);
+  font-size: 0.92rem;
 }
 
 .strategy-option-details__section {
@@ -5535,7 +5538,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 
 .strategy-option-details__section > span {
   color: #6d8198;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -5544,6 +5547,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 .strategy-option-details__section p {
   margin: 0;
   color: var(--text);
+  font-size: 0.9rem;
   line-height: 1.5;
 }
 
@@ -5623,7 +5627,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
 }
 
 .strategy-confidence-meter {

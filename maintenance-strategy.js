@@ -5315,6 +5315,10 @@ const renderChildCreator = (nodeInfo, actions) => {
                     <input id="childCreatorCmIsEnabledInput" type="checkbox" ${childDraftState.cmIsEnabled ? "checked" : ""}>
                     <span>Is enabled</span>
                   </label>
+                  <label class="cm-task-editor__flag">
+                    <input id="childCreatorCmDoNotDeliverInput" type="checkbox" ${childDraftState.cmDoNotDeliver ? "checked" : ""}>
+                    <span>Do not deliver</span>
+                  </label>
                   ${
                     selectedChildType === "pm"
                       ? `
@@ -5359,12 +5363,26 @@ const renderChildCreator = (nodeInfo, actions) => {
                          <div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
                   }
                 </div>
-                <label class="cm-task-editor__field cm-task-editor__field--wide">
-                  <span class="cm-task-editor__label">Labour duration</span>
-                  <input class="cm-task-editor__control" id="childCreatorCmLabourDurationInput" type="number" min="0" step="any" value="${escapeHtml(
+                <div class="cm-task-editor__grid">
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Task PF Interval</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmPfIntervalInput" type="number" min="0" step="any" value="${escapeHtml(
+                      childDraftState.cmPfInterval
+                    )}" placeholder="Enter PF interval">
+                  </label>
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Task Detection Probability</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmDetectionProbabilityInput" type="number" min="0" max="100" step="any" value="${escapeHtml(
+                      childDraftState.cmDetectionProbability
+                    )}" placeholder="Enter detection probability">
+                  </label>
+                  <label class="cm-task-editor__field">
+                    <span class="cm-task-editor__label">Labour duration</span>
+                    <input class="cm-task-editor__control" id="childCreatorCmLabourDurationInput" type="number" min="0" step="any" value="${escapeHtml(
                       childDraftState.cmLabourDurationHours
                     )}" placeholder="Enter labour duration">
-                </label>
+                  </label>
+                </div>
                 <section class="asset-child-creator__section cm-task-editor__resources">
                   <header class="asset-child-creator__section-head">
                     <strong class="asset-child-creator__section-title">Resources</strong>
@@ -8433,6 +8451,10 @@ const syncChildCreatorDraftField = (target) => {
     childDraftState.cmIsEnabled = target.checked;
   }
 
+  if (target.id === "childCreatorCmDoNotDeliverInput" && target instanceof HTMLInputElement) {
+    childDraftState.cmDoNotDeliver = target.checked;
+  }
+
   if (target.id === "childCreatorCmIsFixedInput" && target instanceof HTMLInputElement) {
     childDraftState.cmIsFixed = target.checked;
   }
@@ -8451,6 +8473,14 @@ const syncChildCreatorDraftField = (target) => {
 
   if (target.id === "childCreatorCmTaskTypeInput") {
     childDraftState.cmTaskType = target.value;
+  }
+
+  if (target.id === "childCreatorCmPfIntervalInput") {
+    childDraftState.cmPfInterval = target.value;
+  }
+
+  if (target.id === "childCreatorCmDetectionProbabilityInput") {
+    childDraftState.cmDetectionProbability = target.value;
   }
 
   if (target.id === "childCreatorCmLabourDurationInput") {
