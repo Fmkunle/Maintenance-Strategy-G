@@ -263,12 +263,13 @@ const defaultPmConfig = () => ({
   isEnabled: true,
   doNotDeliver: false,
   isFixed: true,
-  isSecondaryAction: true,
+  isSecondaryAction: false,
   externalOperationCost: "",
   maintenanceType: "",
   type: "",
   pfInterval: "",
   detectionProbability: "",
+  secondaryActionInspectionNodeId: "",
   labourDurationHours: "",
   resources: [],
   sparePartsRequired: [],
@@ -483,12 +484,13 @@ const defaultChildDraftState = () => ({
   cmIsEnabled: true,
   cmDoNotDeliver: false,
   cmIsFixed: true,
-  cmIsSecondaryAction: true,
+  cmIsSecondaryAction: false,
   cmExternalOperationCost: "",
   cmMaintenanceType: "",
   cmTaskType: "",
   cmPfInterval: "",
   cmDetectionProbability: "",
+  cmSecondaryActionInspectionNodeId: "",
   cmLabourDurationHours: "",
   cmResources: [],
   cmSparePartsRequired: [],
@@ -567,7 +569,9 @@ const initialStrategyTableColumnKeys = [
   "scheduledTaskType",
   "scheduledTaskIsEnabled",
   "scheduledTaskDoNotDeliver",
+  "scheduledTaskIsSecondaryAction",
   "scheduledTaskDescription",
+  "scheduledTaskSecondaryInspection",
   "scheduledTaskInterval",
   "scheduledTaskIntervalShortDescription",
   "scheduledTaskPfInterval",
@@ -600,7 +604,9 @@ const initialVisibleStrategyTableColumnKeys = [
   "failureModeEffectEffect",
   "strategyType",
   "scheduledTaskType",
+  "scheduledTaskIsSecondaryAction",
   "scheduledTaskDescription",
+  "scheduledTaskSecondaryInspection",
   "scheduledTaskInterval",
   "scheduledTaskIntervalShortDescription",
   "scheduledTaskDuration",
@@ -715,7 +721,7 @@ const normalizeCmConfig = (value) => ({
   isEnabled: value?.isEnabled !== undefined ? Boolean(value.isEnabled) : true,
   doNotDeliver: Boolean(value?.doNotDeliver),
   isFixed: value?.isFixed !== undefined ? Boolean(value.isFixed) : true,
-  isSecondaryAction: value?.isSecondaryAction !== undefined ? Boolean(value.isSecondaryAction) : true,
+  isSecondaryAction: value?.isSecondaryAction !== undefined ? Boolean(value.isSecondaryAction) : false,
   resources: Array.isArray(value?.resources)
     ? value.resources.map((resource, index) => ({
         id: typeof resource?.id === "string" && resource.id ? resource.id : createId(`cm-resource-${index}`),
@@ -743,7 +749,8 @@ const normalizePmConfig = (value) => ({
   isEnabled: value?.isEnabled !== undefined ? Boolean(value.isEnabled) : true,
   doNotDeliver: Boolean(value?.doNotDeliver),
   isFixed: value?.isFixed !== undefined ? Boolean(value.isFixed) : true,
-  isSecondaryAction: value?.isSecondaryAction !== undefined ? Boolean(value.isSecondaryAction) : true,
+  isSecondaryAction: value?.isSecondaryAction !== undefined ? Boolean(value.isSecondaryAction) : false,
+  secondaryActionInspectionNodeId: typeof value?.secondaryActionInspectionNodeId === "string" ? value.secondaryActionInspectionNodeId.trim() : "",
   resources: Array.isArray(value?.resources)
     ? value.resources.map((resource, index) => ({
         id: typeof resource?.id === "string" && resource.id ? resource.id : createId(`pm-resource-${index}`),
@@ -2649,6 +2656,7 @@ const buildCmConfigFromDraft = (draft) => ({
 });
 const buildPmConfigFromDraft = (draft) => ({
   ...buildCmConfigFromDraft(draft),
+  secondaryActionInspectionNodeId: String(draft?.cmSecondaryActionInspectionNodeId || "").trim(),
 });
 const buildInsConfigFromDraft = (draft) => ({
   inspectionType: String(draft?.insInspectionType || "Routine") || "Routine",
@@ -2854,6 +2862,8 @@ const getFailureModeJsonForPath = (path = []) => {
     : null;
 };
 const annualHours = 8760;
+const strategyModelHorizonYears = 10;
+const strategyModelHorizonHours = annualHours * strategyModelHorizonYears;
 const defaultStrategyExecutionRate = 125;
 const strategyResourceHourlyRates = {
   "ELECT TECH": 125,
@@ -3011,6 +3021,13 @@ const formatAnnualOccurrenceLabel = (value) => {
   }
   return `${numberFormatter.format(numeric)} / year`;
 };
+const formatExpectedExecutionLabel = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return "Not set";
+  }
+  return `${numberFormatter.format(numeric)} in ${strategyModelHorizonYears} years`;
+};
 const formatTimeWindowFromHours = (value) => {
   const hours = Number(value);
   if (!Number.isFinite(hours) || hours <= 0) {
@@ -3134,8 +3151,62 @@ const getStrategyTaskRateBasis = (taskNode) => {
   }
   return (getStrategyTaskLabourHours(taskNode) || getStrategyTaskDurationHours(taskNode) || 0) * defaultStrategyExecutionRate;
 };
-const getFailureModePrimaryEffectEstimate = (failureModeInfo) => {
-  const dbJson = getFailureModeJsonForPath(failureModeInfo?.path || []);
+const getStrategyTaskDirectExecutionCost = (taskNode) => {
+  const executionCost = getStrategyTaskRateBasis(taskNode);
+  const sparePartCost = getStrategyTaskSpareParts(taskNode).reduce(
+    (sum, part) => sum + (strategySparePartCostEstimates[String(part?.part || "").trim()] || 600),
+    0
+  );
+  const toolCost = getStrategyTaskTools(taskNode).length * 75;
+  return executionCost + sparePartCost + toolCost + getStrategyTaskExternalCost(taskNode);
+};
+const getFailureModeExpectedFailureProfile = (failureModeInfo, dbJsonOverride = null) => {
+  const dbJson =
+    dbJsonOverride && typeof dbJsonOverride === "object"
+      ? dbJsonOverride
+      : getFailureModeJsonForPath(failureModeInfo?.path || []);
+  const etaHours = parseNumericInput(dbJson?.["Failure Mode Eta 1"]);
+  const betaValue = parseNumericInput(dbJson?.["Failure Mode Beta 1"]);
+  const gammaHours = parseNumericInput(dbJson?.["Failure Mode Gamma 1"]) || 0;
+  if (etaHours && etaHours > 0 && betaValue && betaValue > 0) {
+    const adjustedHorizonHours = Math.max(0, strategyModelHorizonHours - Math.max(0, gammaHours));
+    const expectedFailureCount = adjustedHorizonHours > 0 ? Math.pow(adjustedHorizonHours / etaHours, betaValue) : 0;
+    return {
+      expectedFailureCount: Number.isFinite(expectedFailureCount) ? expectedFailureCount : 0,
+      source: "weibull",
+      etaHours,
+      betaValue,
+      gammaHours,
+      mttfHours: parseNumericInput(dbJson?.["Failure Mode MTTF"]),
+    };
+  }
+
+  const mttfHours = parseNumericInput(dbJson?.["Failure Mode MTTF"]);
+  if (mttfHours && mttfHours > 0) {
+    return {
+      expectedFailureCount: strategyModelHorizonHours / mttfHours,
+      source: "mttf",
+      etaHours,
+      betaValue,
+      gammaHours,
+      mttfHours,
+    };
+  }
+
+  return {
+    expectedFailureCount: 1,
+    source: "fallback",
+    etaHours,
+    betaValue,
+    gammaHours,
+    mttfHours,
+  };
+};
+const getFailureModePrimaryEffectEstimate = (failureModeInfo, dbJsonOverride = null) => {
+  const dbJson =
+    dbJsonOverride && typeof dbJsonOverride === "object"
+      ? dbJsonOverride
+      : getFailureModeJsonForPath(failureModeInfo?.path || []);
   const effectEntries = Array.isArray(dbJson?.effects) ? dbJson.effects : [];
   const ranges = effectEntries
     .map((entry) => parseEffectCostRange(entry?.["Failure Mode Effect Effect"]))
@@ -3146,37 +3217,47 @@ const getFailureModePrimaryEffectEstimate = (failureModeInfo) => {
   const equipmentNode = getNearestAncestorNodeFromPath(failureModeInfo?.path || [], "equipment");
   const downtimeRate = parseCurrencyAmount(equipmentNode?.equipmentContext?.effectPerHourDown);
   const downtimeFallback = downtimeRate ? downtimeRate * 8 : 0;
-  const baselineExposure = explicitTotalCost || explicitEffectCost || estimatedFromEffects || downtimeFallback || 0;
+  const perEventExposure = explicitTotalCost || explicitEffectCost || estimatedFromEffects || downtimeFallback || 0;
+  const likelihoodProfile = getFailureModeExpectedFailureProfile(failureModeInfo, dbJson);
+  const baselineExposure = perEventExposure * likelihoodProfile.expectedFailureCount;
   const effectRangeLabel = ranges.length ? ranges.map((entry) => entry.label).join(" + ") : "Not set";
   return {
     baselineExposure,
+    perEventExposure,
+    expectedFailureCount: likelihoodProfile.expectedFailureCount,
+    likelihoodSource: likelihoodProfile.source,
+    etaHours: likelihoodProfile.etaHours,
+    betaValue: likelihoodProfile.betaValue,
+    gammaHours: likelihoodProfile.gammaHours,
+    mttfHours: likelihoodProfile.mttfHours,
     effectRangeLabel,
     downtimeRate,
     explicitTotalCost,
     explicitEffectCost,
   };
 };
-const getStrategyTaskOccurrencesPerYear = (taskNode, failureModeInfo) => {
+const getStrategyTaskExpectedExecutions = (taskNode) => {
   const intervalHours = getStrategyTaskIntervalHours(taskNode);
   if (intervalHours && intervalHours > 0) {
-    return annualHours / intervalHours;
+    return strategyModelHorizonHours / intervalHours;
   }
-  const mttfHours = parseNumericInput(getFailureModeJsonForPath(failureModeInfo?.path || [])?.["Failure Mode MTTF"]);
-  if (mttfHours && mttfHours > 0) {
-    return annualHours / mttfHours;
-  }
-  return 1;
+  return 0;
 };
-const getStrategyMitigationFactor = (taskNode, failureModeInfo) => {
+const getStrategyTaskDetectionProbabilityValue = (taskNode) => {
   const detectionValue = getStrategyTaskDetectionProbability(taskNode);
-  const baseDetection = detectionValue !== null ? clampNumber(detectionValue / 100) : taskNode?.type === "pm" ? 0.72 : taskNode?.type === "ins" ? 0.62 : 0.45;
-  const typeWeight = taskNode?.type === "pm" ? 0.92 : taskNode?.type === "ins" ? 0.72 : 0.55;
+  return detectionValue !== null ? clampNumber(detectionValue / 100) : taskNode?.type === "pm" ? 0.72 : taskNode?.type === "ins" ? 0.62 : 0.45;
+};
+const getStrategyTaskCadenceFactor = (taskNode) => {
   const intervalHours = getStrategyTaskIntervalHours(taskNode);
   const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
-  const cadenceFactor =
-    intervalHours && pfIntervalHours && intervalHours > 0 && pfIntervalHours > 0
-      ? clampNumber(pfIntervalHours / intervalHours, 0.35, 1)
-      : 1;
+  return intervalHours && pfIntervalHours && intervalHours > 0 && pfIntervalHours > 0
+    ? clampNumber(pfIntervalHours / intervalHours, 0.35, 1)
+    : 1;
+};
+const getStrategyMitigationFactor = (taskNode) => {
+  const baseDetection = getStrategyTaskDetectionProbabilityValue(taskNode);
+  const typeWeight = taskNode?.type === "pm" ? 0.92 : taskNode?.type === "ins" ? 0.72 : 0.55;
+  const cadenceFactor = getStrategyTaskCadenceFactor(taskNode);
   const enabledFactor = taskNode?.type === "ins"
     ? 1
     : taskNode?.type === "pm"
@@ -3216,7 +3297,7 @@ const getStrategyTradeoffStatement = (metrics) => {
   if (metrics.residualExposure <= metrics.baselineExposure * 0.25) {
     return "Residual risk is comparatively small after this strategy is active.";
   }
-  if (metrics.annualCost > metrics.exposureReduction) {
+  if (metrics.modeledCost > metrics.exposureReduction) {
     return "Cost outweighs the modeled exposure reduction, so the economics are weak.";
   }
   if (metrics.residualExposure >= metrics.baselineExposure * 0.65) {
@@ -3226,16 +3307,97 @@ const getStrategyTradeoffStatement = (metrics) => {
 };
 const getStrategyWeaknessFlags = (metrics) => {
   const flags = [];
+  if (metrics.secondaryActionWarning) {
+    flags.push(metrics.secondaryActionWarning);
+  }
   if (metrics.detectionProbability < 0.35) {
     flags.push("Low mitigation probability");
   }
-  if (metrics.annualCost > metrics.exposureReduction) {
+  if (metrics.modeledCost > metrics.exposureReduction) {
     flags.push("High cost for the reduction delivered");
   }
   if (metrics.residualExposure >= metrics.baselineExposure * 0.65) {
     flags.push("Large residual exposure remains");
   }
   return flags;
+};
+const getFailureModeInspectionOptions = (failureModeInfo) => {
+  if (!failureModeInfo || failureModeInfo.node.type !== "cause") {
+    return [];
+  }
+
+  return (failureModeInfo.node.children || [])
+    .filter((child) => child.type === "ins")
+    .map((child) => {
+      const path = [...failureModeInfo.path, child];
+      const taskJson = getTaskJsonEntryForNode(path, child);
+      const config = normalizeInsConfig(child.insConfig);
+      return {
+        node: child,
+        nodeId: child.id,
+        path,
+        taskName: String(getNodeCodeValue(child) || taskJson?.["Task Name"] || child.name || "").trim(),
+        taskDescription: String(getNodeDescription(child) || taskJson?.["Scheduled Task Description"] || "").trim(),
+        isEnabled: Boolean(config.isEnabled),
+      };
+    });
+};
+const getSecondaryActionInspectionLinkState = (failureModeInfo, inspectionNodeId, isSecondaryAction) => {
+  const linkedInspectionNodeId = String(inspectionNodeId || "").trim();
+  const inspectionOptions = getFailureModeInspectionOptions(failureModeInfo);
+  const linkedInspection = inspectionOptions.find((option) => option.nodeId === linkedInspectionNodeId) || null;
+  const linkedInspectionName = linkedInspection?.taskName || "";
+  if (!isSecondaryAction) {
+    return {
+      linkedInspectionNodeId,
+      linkedInspection,
+      linkedInspectionName,
+      warningMessage: "",
+      isValid: false,
+    };
+  }
+
+  if (!inspectionOptions.length) {
+    return {
+      linkedInspectionNodeId,
+      linkedInspection,
+      linkedInspectionName,
+      warningMessage: "No inspection is available to trigger this secondary action.",
+      isValid: false,
+    };
+  }
+
+  if (!linkedInspection) {
+    return {
+      linkedInspectionNodeId,
+      linkedInspection,
+      linkedInspectionName,
+      warningMessage: "Choose the inspection that triggers this secondary action.",
+      isValid: false,
+    };
+  }
+
+  if (!linkedInspection.isEnabled) {
+    return {
+      linkedInspectionNodeId,
+      linkedInspection,
+      linkedInspectionName,
+      warningMessage: "The linked inspection is disabled, so this secondary action contributes zero risk reduction.",
+      isValid: false,
+    };
+  }
+
+  return {
+    linkedInspectionNodeId,
+    linkedInspection,
+    linkedInspectionName,
+    warningMessage: "",
+    isValid: true,
+  };
+};
+const getPmSecondaryActionLinkState = (failureModeInfo, taskNode) => {
+  const config = normalizePmConfig(taskNode?.pmConfig);
+  return getSecondaryActionInspectionLinkState(failureModeInfo, config.secondaryActionInspectionNodeId, config.isSecondaryAction);
 };
 const collectFailureModeNodeInfos = (nodeInfo, rows = []) => {
   if (!nodeInfo) {
@@ -3293,61 +3455,86 @@ const getFailureModeDecisionData = (failureModeInfo) => {
     failureModeInfo.node.failureConfig?.dbJson && typeof failureModeInfo.node.failureConfig.dbJson === "object"
       ? failureModeInfo.node.failureConfig.dbJson
       : buildFailureModeDbJson(failureModeInfo.node, failureModeInfo.path);
-  const equipmentNode = getNearestAncestorNodeFromPath(failureModeInfo.path, "equipment");
-  const effectEstimate = getFailureModePrimaryEffectEstimate(failureModeInfo);
+  const effectEstimate = getFailureModePrimaryEffectEstimate(failureModeInfo, dbJson);
   const strategyRows = getStrategyTableRowsForSelection(failureModeInfo);
   const strategies = strategyRows.map((row) => {
     const taskNodeInfo = findNodeInfo(state.hierarchy, row.taskNodeId);
     const taskNode = taskNodeInfo?.node || null;
-    const executionCost = getStrategyTaskRateBasis(taskNode);
-    const sparePartCost = getStrategyTaskSpareParts(taskNode).reduce(
-      (sum, part) => sum + (strategySparePartCostEstimates[String(part?.part || "").trim()] || 600),
-      0
-    );
-    const toolCost = getStrategyTaskTools(taskNode).length * 75;
-    const directEventCost = executionCost + sparePartCost + toolCost + getStrategyTaskExternalCost(taskNode);
-    const annualOccurrences = getStrategyTaskOccurrencesPerYear(taskNode, failureModeInfo);
-    const annualCost = directEventCost * annualOccurrences;
-    const mitigationFactor = getStrategyMitigationFactor(taskNode, failureModeInfo);
-    const exposureReduction = effectEstimate.baselineExposure * mitigationFactor;
-    const residualExposure = Math.max(0, effectEstimate.baselineExposure - exposureReduction);
-    const detectionProbability = clampNumber((getStrategyTaskDetectionProbability(taskNode) || 0) / 100);
+    const taskConfig =
+      taskNode?.type === "ins"
+        ? normalizeInsConfig(taskNode.insConfig)
+        : taskNode?.type === "pm"
+          ? normalizePmConfig(taskNode.pmConfig)
+          : normalizeCmConfig(taskNode?.cmConfig);
+    const isTaskEnabled = Boolean(taskConfig?.isEnabled);
+    const directExecutionCost = getStrategyTaskDirectExecutionCost(taskNode);
+    const expectedExecutions = getStrategyTaskExpectedExecutions(taskNode);
+    const standaloneMitigationFactor = getStrategyMitigationFactor(taskNode);
+    const detectionProbability = getStrategyTaskDetectionProbabilityValue(taskNode);
+    const isSecondaryAction = Boolean(taskNode?.type === "pm" && taskConfig?.isSecondaryAction);
+    const secondaryLinkState =
+      taskNode?.type === "pm"
+        ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig?.secondaryActionInspectionNodeId, taskConfig?.isSecondaryAction)
+        : null;
+    const linkedInspectionInfo = secondaryLinkState?.linkedInspection || null;
+    const linkedInspectionDetectionProbability = linkedInspectionInfo ? getStrategyTaskDetectionProbabilityValue(linkedInspectionInfo.node) : 0;
+    const linkedInspectionMitigationFactor = linkedInspectionInfo ? getStrategyMitigationFactor(linkedInspectionInfo.node) : 0;
+    const secondaryTriggeredExecutions =
+      isSecondaryAction && secondaryLinkState?.isValid && linkedInspectionInfo
+        ? getStrategyTaskExpectedExecutions(linkedInspectionInfo.node) * linkedInspectionDetectionProbability
+        : 0;
+    const modeledCost = isSecondaryAction ? directExecutionCost * secondaryTriggeredExecutions : directExecutionCost * expectedExecutions;
+    const mitigationFactor =
+      isSecondaryAction && secondaryLinkState
+        ? secondaryLinkState.isValid
+          ? 1 - (1 - linkedInspectionMitigationFactor) * (1 - linkedInspectionDetectionProbability * standaloneMitigationFactor)
+          : 0
+        : standaloneMitigationFactor;
+    const displayedExposureReduction = effectEstimate.baselineExposure * mitigationFactor;
+    const residualExposure = Math.max(0, effectEstimate.baselineExposure - displayedExposureReduction);
+    const exposureReduction =
+      isSecondaryAction && secondaryLinkState?.isValid
+        ? effectEstimate.baselineExposure * Math.max(0, mitigationFactor - linkedInspectionMitigationFactor)
+        : displayedExposureReduction;
     const intervalHours = getStrategyTaskIntervalHours(taskNode);
     const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
-    const cadenceFactor =
-      intervalHours && pfIntervalHours && intervalHours > 0 && pfIntervalHours > 0
-        ? clampNumber(pfIntervalHours / intervalHours, 0.35, 1)
-        : 1;
-    const netValue = exposureReduction - annualCost;
-    const isRecommended = netValue >= 0 || mitigationFactor >= 0.48;
-    const status = getStrategyCardStatus(Boolean(row.scheduledTaskIsEnabled), isRecommended);
+    const cadenceFactor = getStrategyTaskCadenceFactor(taskNode);
+    const netValue = exposureReduction - modeledCost;
+    const isRecommended = netValue > 0 || mitigationFactor >= 0.48;
+    const status = getStrategyCardStatus(isTaskEnabled, isRecommended);
     const metrics = {
       baselineExposure: effectEstimate.baselineExposure,
       mitigationFactor,
       exposureReduction,
       residualExposure,
-      annualCost,
-      directEventCost,
-      annualOccurrences,
+      modeledCost,
       detectionProbability,
       cadenceFactor,
+      secondaryActionWarning: secondaryLinkState?.warningMessage || "",
     };
     return {
       ...row,
       taskNode,
       taskNodeInfo,
+      scheduledTaskIsEnabled: isTaskEnabled,
       status,
       statusLabel: getStrategyStatusLabel(status),
       isRecommended,
-      annualCost,
-      directEventCost,
-      annualOccurrences,
+      modeledCost,
+      directExecutionCost,
+      expectedExecutions: isSecondaryAction ? secondaryTriggeredExecutions : expectedExecutions,
       mitigationFactor,
+      standaloneMitigationFactor,
       exposureReduction,
       residualExposure,
       netValue,
       detectionProbability,
       cadenceFactor,
+      isSecondaryAction,
+      secondaryActionInspectionNodeId: secondaryLinkState?.linkedInspectionNodeId || "",
+      secondaryActionInspectionName: secondaryLinkState?.linkedInspectionName || "",
+      secondaryActionWarning: secondaryLinkState?.warningMessage || "",
+      secondaryTriggeredExecutions,
       weaknessFlags: getStrategyWeaknessFlags(metrics),
       whyStatement: getStrategyWhyStatement(taskNode, metrics),
       tradeoffStatement: getStrategyTradeoffStatement(metrics),
@@ -3361,29 +3548,47 @@ const getFailureModeDecisionData = (failureModeInfo) => {
         durationLabel: formatHoursLabel(getStrategyTaskDurationHours(taskNode)),
         labourLabel: formatHoursLabel(getStrategyTaskLabourHours(taskNode)),
         pfIntervalLabel: formatHoursLabel(pfIntervalHours),
-        annualOccurrenceLabel: formatAnnualOccurrenceLabel(annualOccurrences),
+        expectedExecutionLabel: formatExpectedExecutionLabel(isSecondaryAction ? secondaryTriggeredExecutions : expectedExecutions),
       },
     };
   });
   const enabledStrategies = strategies.filter((entry) => entry.scheduledTaskIsEnabled);
-  const combinedMitigationFactor = enabledStrategies.length
-    ? 1 - enabledStrategies.reduce((remainingRiskFactor, entry) => remainingRiskFactor * (1 - entry.mitigationFactor), 1)
+  const enabledSecondaryStrategiesByInspectionId = enabledStrategies
+    .filter((entry) => entry.taskNode?.type === "pm" && entry.isSecondaryAction && entry.secondaryActionInspectionNodeId)
+    .reduce((lookup, entry) => {
+      const nextEntries = lookup.get(entry.secondaryActionInspectionNodeId) || [];
+      nextEntries.push(entry);
+      lookup.set(entry.secondaryActionInspectionNodeId, nextEntries);
+      return lookup;
+    }, new Map());
+  const combinedMitigationPathways = enabledStrategies.flatMap((entry) => {
+    if (entry.taskNode?.type === "pm" && entry.isSecondaryAction) {
+      return [];
+    }
+
+    if (entry.taskNode?.type !== "ins") {
+      return [entry.mitigationFactor];
+    }
+
+    const linkedSecondaryStrategies = enabledSecondaryStrategiesByInspectionId.get(entry.taskNodeId) || [];
+    if (!linkedSecondaryStrategies.length) {
+      return [entry.mitigationFactor];
+    }
+
+    const inspectionDetectionProbability = entry.detectionProbability;
+    const chainMitigationFactor = linkedSecondaryStrategies.reduce(
+      (combinedMitigation, secondaryEntry) =>
+        1 - (1 - combinedMitigation) * (1 - inspectionDetectionProbability * secondaryEntry.standaloneMitigationFactor),
+      entry.standaloneMitigationFactor
+    );
+    return [chainMitigationFactor];
+  });
+  const combinedMitigationFactor = combinedMitigationPathways.length
+    ? 1 - combinedMitigationPathways.reduce((remainingRiskFactor, mitigationValue) => remainingRiskFactor * (1 - mitigationValue), 1)
     : 0;
   const residualExposure = effectEstimate.baselineExposure * (1 - combinedMitigationFactor);
   const exposureReduction = effectEstimate.baselineExposure - residualExposure;
-  const totalAnnualCost = enabledStrategies.reduce((sum, entry) => sum + entry.annualCost, 0);
-  const coverageConfidenceValue =
-    enabledStrategies.length || dbJson["Failure Mode Alarm Is Enabled"]
-      ? clampNumber(
-          (enabledStrategies.reduce((sum, entry) => sum + entry.mitigationFactor, 0) +
-            (dbJson["Failure Mode Alarm Is Enabled"]
-              ? clampNumber((parseNumericInput(dbJson["Failure Mode Alarm Detection Probability"]) || 0) / 100) * 0.35
-              : 0)) /
-            Math.max(1, enabledStrategies.length + (dbJson["Failure Mode Alarm Is Enabled"] ? 1 : 0))
-        )
-      : 0;
-  const coverageConfidenceLabel =
-    coverageConfidenceValue >= 0.7 ? "High confidence" : coverageConfidenceValue >= 0.45 ? "Moderate confidence" : "Low confidence";
+  const totalModeledCost = enabledStrategies.reduce((sum, entry) => sum + entry.modeledCost, 0);
   return {
     failureModeInfo,
     dbJson,
@@ -3394,10 +3599,8 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       baselineExposure: effectEstimate.baselineExposure,
       exposureReduction,
       residualExposure,
-      totalAnnualCost,
-      netValue: exposureReduction - totalAnnualCost,
-      coverageConfidenceValue,
-      coverageConfidenceLabel,
+      totalModeledCost,
+      netValue: exposureReduction - totalModeledCost,
       enabledCount: enabledStrategies.length,
       totalCount: strategies.length,
     },
@@ -3405,7 +3608,9 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       failureModeName: String(dbJson["Failure Mode Name"] || "").trim() || getNodeDisplayName(failureModeInfo.node),
       failureModeDescription: String(dbJson["Failure Mode Description"] || "").trim() || getNodeDescription(failureModeInfo.node),
       componentName: String(dbJson["Component Name"] || "").trim(),
-      mttfHours: parseNumericInput(dbJson["Failure Mode MTTF"]),
+      mttfHours: effectEstimate.mttfHours,
+      expectedFailureCount: effectEstimate.expectedFailureCount,
+      perEventExposure: effectEstimate.perEventExposure,
       untreatedRiskLabel: getFailureModeRiskLabel(effectEstimate.baselineExposure),
       alarmEnabled: Boolean(dbJson["Failure Mode Alarm Is Enabled"]),
       alarmDescription: String(dbJson["Failure Mode Alarm Description"] || "").trim(),
@@ -3434,7 +3639,9 @@ const strategyTableColumns = [
   { key: "scheduledTaskType", label: "Scheduled Task Type", editable: true },
   { key: "scheduledTaskIsEnabled", label: "Scheduled Task Is Enabled", editable: true, inputType: "checkbox" },
   { key: "scheduledTaskDoNotDeliver", label: "Scheduled Task Do Not Deliver", editable: true, inputType: "checkbox" },
+  { key: "scheduledTaskIsSecondaryAction", label: "Scheduled Task Is Secondary Action", editable: true, inputType: "checkbox" },
   { key: "scheduledTaskDescription", label: "Scheduled Task Description", editable: true },
+  { key: "scheduledTaskSecondaryInspection", label: "Scheduled Task Secondary Inspection" },
   { key: "scheduledTaskInterval", label: "Scheduled Task Interval", editable: true, inputType: "number" },
   { key: "scheduledTaskIntervalShortDescription", label: "Scheduled Task Interval Short Description" },
   { key: "scheduledTaskPfInterval", label: "Scheduled Task PF Interval", editable: true, inputType: "number" },
@@ -3465,7 +3672,9 @@ const defaultVisibleStrategyTableColumnKeys = [
   "failureModeDescription",
   "failureModeEffectEffect",
   "scheduledTaskType",
+  "scheduledTaskIsSecondaryAction",
   "scheduledTaskDescription",
+  "scheduledTaskSecondaryInspection",
   "scheduledTaskInterval",
   "scheduledTaskIntervalShortDescription",
   "scheduledTaskDuration",
@@ -3479,6 +3688,7 @@ const strategyTableBooleanColumnKeys = new Set([
   "failureModeAlarmIsEnabled",
   "scheduledTaskIsEnabled",
   "scheduledTaskDoNotDeliver",
+  "scheduledTaskIsSecondaryAction",
 ]);
 const strategyTableExactMatchColumnKeys = new Set(["strategyType", "scheduledTaskType"]);
 const allStrategyTableColumnKeys = strategyTableColumns.map((column) => column.key);
@@ -3635,6 +3845,16 @@ const buildStrategyTableRow = (taskNodeInfo) => {
         ? buildFailureModeDbJson(failureModeInfo.node, failureModeInfo.path)
         : null;
   const taskJson = getTaskJsonEntryForNode(taskNodeInfo.path, taskNodeInfo.node) || {};
+  const taskConfig =
+    taskNodeInfo.node.type === "ins"
+      ? normalizeInsConfig(taskNodeInfo.node.insConfig)
+      : taskNodeInfo.node.type === "pm"
+        ? normalizePmConfig(taskNodeInfo.node.pmConfig)
+        : normalizeCmConfig(taskNodeInfo.node.cmConfig);
+  const secondaryInspectionLinkState =
+    taskNodeInfo.node.type === "pm"
+      ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig.secondaryActionInspectionNodeId, taskConfig.isSecondaryAction)
+      : null;
 
   return {
     rowId: taskNodeInfo.node.id,
@@ -3660,7 +3880,23 @@ const buildStrategyTableRow = (taskNodeInfo) => {
     scheduledTaskType: String(taskJson?.["Scheduled Task Type"] || "").trim(),
     scheduledTaskIsEnabled: Boolean(taskJson?.["Scheduled Task Is Enabled"]),
     scheduledTaskDoNotDeliver: Boolean(taskJson?.["Scheduled Task Do Not Deliver"]),
+    scheduledTaskIsSecondaryAction:
+      taskNodeInfo.node.type === "pm"
+        ? Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Is Secondary Action")
+          ? Boolean(taskJson?.["Scheduled Task Is Secondary Action"])
+          : Boolean(taskConfig.isSecondaryAction)
+        : false,
     scheduledTaskDescription: String(taskJson?.["Scheduled Task Description"] || "").trim(),
+    scheduledTaskSecondaryInspection:
+      taskNodeInfo.node.type === "pm"
+        ? Boolean(
+            Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Is Secondary Action")
+              ? taskJson?.["Scheduled Task Is Secondary Action"]
+              : taskConfig.isSecondaryAction
+          )
+          ? String(taskJson?.["Scheduled Task Secondary Inspection"] || secondaryInspectionLinkState?.linkedInspectionName || "").trim()
+          : ""
+        : "",
     scheduledTaskInterval: String(taskJson?.["Scheduled Task Interval"] || "").trim(),
     scheduledTaskIntervalShortDescription: String(taskJson?.["Scheduled Task Interval Short Description"] || "").trim(),
     scheduledTaskPfInterval: String(taskJson?.["Scheduled Task PF Interval"] || "").trim(),
@@ -4017,7 +4253,9 @@ const buildFailureModeDbJson = (causeNode, path = []) => {
           "Scheduled Task Type": String(config.scheduledTaskType || "").trim(),
           "Scheduled Task Is Enabled": Boolean(config.isEnabled),
           "Scheduled Task Do Not Deliver": Boolean(config.doNotDeliver),
+          "Scheduled Task Is Secondary Action": false,
           "Scheduled Task Description": getNodeDescription(taskNode),
+          "Scheduled Task Secondary Inspection": "",
           "Scheduled Task Interval": String(config.interval || "").trim(),
           "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
           "Scheduled Task PF Interval": String(config.pfInterval || "").trim(),
@@ -4028,13 +4266,19 @@ const buildFailureModeDbJson = (causeNode, path = []) => {
       }
 
       const config = taskNode.type === "pm" ? normalizePmConfig(taskNode.pmConfig) : normalizeCmConfig(taskNode.cmConfig);
+      const secondaryLinkState =
+        taskNode.type === "pm"
+          ? getSecondaryActionInspectionLinkState({ node: causeNode, path }, config.secondaryActionInspectionNodeId, config.isSecondaryAction)
+          : null;
       return {
         "Task Name": getNodeCodeValue(taskNode),
         "Task Strategy": taskNode.type.toUpperCase(),
         "Scheduled Task Type": String(config.type || "").trim(),
         "Scheduled Task Is Enabled": Boolean(config.isEnabled),
         "Scheduled Task Do Not Deliver": Boolean(config.doNotDeliver),
+        "Scheduled Task Is Secondary Action": taskNode.type === "pm" ? Boolean(config.isSecondaryAction) : false,
         "Scheduled Task Description": getNodeDescription(taskNode),
+        "Scheduled Task Secondary Inspection": taskNode.type === "pm" && config.isSecondaryAction ? secondaryLinkState?.linkedInspectionName || "" : "",
         "Scheduled Task Interval": String(config.intervalHours || "").trim(),
         "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
         "Scheduled Task PF Interval": String(config.pfInterval || "").trim(),
@@ -4168,6 +4412,7 @@ const createPmConfigDraft = (node) => {
     cmTaskType: String(config.type || ""),
     cmPfInterval: String(config.pfInterval || ""),
     cmDetectionProbability: String(config.detectionProbability || ""),
+    cmSecondaryActionInspectionNodeId: String(config.secondaryActionInspectionNodeId || ""),
     cmLabourDurationHours: String(config.labourDurationHours || ""),
     cmResources: Array.isArray(config.resources)
       ? config.resources.map((resource) => createCmResourceAssignment(resource.resourceType, resource.durationHours))
@@ -5162,6 +5407,20 @@ const renderChildCreator = (nodeInfo, actions) => {
     const taskCode = getNextAutoGeneratedCode(nodeInfo.node, selectedChildType);
     const taskLabel = selectedChildType === "cm" ? "CM" : "PM";
     const intervalShortDescription = deriveCmIntervalShortDescription(childDraftState.cmIntervalHours);
+    const secondaryInspectionOptions = selectedChildType === "pm" ? getFailureModeInspectionOptions(nodeInfo) : [];
+    const secondaryInspectionLinkState =
+      selectedChildType === "pm"
+        ? getSecondaryActionInspectionLinkState(nodeInfo, childDraftState.cmSecondaryActionInspectionNodeId, childDraftState.cmIsSecondaryAction)
+        : null;
+    const secondaryInspectionOptionsMarkup = secondaryInspectionOptions
+      .map(
+        (option) => `
+          <option value="${escapeHtml(option.nodeId)}" ${childDraftState.cmSecondaryActionInspectionNodeId === option.nodeId ? "selected" : ""}>
+            ${escapeHtml(option.taskName)}${option.isEnabled ? "" : " (Disabled)"}
+          </option>
+        `
+      )
+      .join("");
     const cmResourceRows =
       childDraftState.cmResources.length > 0
         ? childDraftState.cmResources
@@ -5363,6 +5622,30 @@ const renderChildCreator = (nodeInfo, actions) => {
                          <div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
                   }
                 </div>
+                ${
+                  selectedChildType === "pm"
+                    ? `
+                      <div class="cm-task-editor__grid">
+                        <label class="cm-task-editor__field cm-task-editor__field--full">
+                          <span class="cm-task-editor__label">Triggering Inspection</span>
+                          <select
+                            class="cm-task-editor__control"
+                            id="childCreatorCmSecondaryInspectionInput"
+                            ${childDraftState.cmIsSecondaryAction ? "" : "disabled"}
+                          >
+                            <option value="">${secondaryInspectionOptions.length ? "Select inspection" : "No inspections available"}</option>
+                            ${secondaryInspectionOptionsMarkup}
+                          </select>
+                        </label>
+                      </div>
+                      ${
+                        childDraftState.cmIsSecondaryAction && secondaryInspectionLinkState?.warningMessage
+                          ? `<div class="maintenance-notice" role="status">${escapeHtml(secondaryInspectionLinkState.warningMessage)}</div>`
+                          : ""
+                      }
+                    `
+                    : ""
+                }
                 <div class="cm-task-editor__grid">
                   <label class="cm-task-editor__field">
                     <span class="cm-task-editor__label">Task PF Interval</span>
@@ -6383,6 +6666,10 @@ const renderNodeInspectPanel = (nodeInfo) => {
         : node.type === "pm"
           ? normalizePmConfig(node.pmConfig)
           : normalizeCmConfig(node.cmConfig);
+    const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
+    const failureModeInfo = failureModeNode ? findNodeInfo(state.hierarchy, failureModeNode.id) : null;
+    const secondaryInspectionLinkState =
+      node.type === "pm" ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig.secondaryActionInspectionNodeId, taskConfig.isSecondaryAction) : null;
     const hasEnabledValue = Boolean(taskJson) && Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Is Enabled");
     const hasDoNotDeliverValue = Boolean(taskJson) && Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Do Not Deliver");
     detailSectionsMarkup += `
@@ -6401,12 +6688,39 @@ const renderNodeInspectPanel = (nodeInfo) => {
             "Do Not Deliver",
             getNodeInspectBooleanLabel(hasDoNotDeliverValue ? Boolean(taskJson?.["Scheduled Task Do Not Deliver"]) : Boolean(taskConfig.doNotDeliver))
           )}
+          ${
+            node.type === "pm"
+              ? getNodeInspectValueMarkup(
+                  "Secondary Action",
+                  getNodeInspectBooleanLabel(
+                    Object.prototype.hasOwnProperty.call(taskJson || {}, "Scheduled Task Is Secondary Action")
+                      ? Boolean(taskJson?.["Scheduled Task Is Secondary Action"])
+                      : Boolean(taskConfig.isSecondaryAction)
+                  )
+                )
+              : ""
+          }
+          ${
+            node.type === "pm"
+              ? getNodeInspectValueMarkup(
+                  "Triggering Inspection",
+                  taskJson?.["Scheduled Task Secondary Inspection"] ||
+                    secondaryInspectionLinkState?.linkedInspectionName ||
+                    (taskConfig.isSecondaryAction ? "Not linked" : "Not required")
+                )
+              : ""
+          }
           ${getNodeInspectValueMarkup("Interval", taskJson?.["Scheduled Task Interval"] || taskConfig.intervalHours || taskConfig.interval || "")}
           ${getNodeInspectValueMarkup("PF Interval", taskJson?.["Scheduled Task PF Interval"] || taskConfig.pfInterval || "")}
           ${getNodeInspectValueMarkup("Detection Probability", taskJson?.["Scheduled Task Detection Probability"] || taskConfig.detectionProbability || "")}
           ${getNodeInspectValueMarkup("Duration", taskJson?.["Scheduled Task Duration"] || taskConfig.durationHours || taskConfig.duration || "")}
           ${getNodeInspectValueMarkup("Labour", taskJson?.["Scheduled Task Labor Labor"] || taskConfig.labourDurationHours || taskConfig.laborLabor || "")}
         </div>
+        ${
+          node.type === "pm" && secondaryInspectionLinkState?.warningMessage
+            ? `<div class="maintenance-notice" role="status">${escapeHtml(secondaryInspectionLinkState.warningMessage)}</div>`
+            : ""
+        }
       </section>
     `;
   }
@@ -6685,6 +6999,8 @@ const renderStrategyTableCell = (row, column) => {
 
   if (column.editable) {
     if (column.inputType === "checkbox") {
+      const isSecondaryActionCheckbox = column.key === "scheduledTaskIsSecondaryAction";
+      const isSecondaryActionEditable = !isSecondaryActionCheckbox || row.taskNodeType === "pm";
       return `
         <td class="strategy-grid__cell strategy-grid__cell--checkbox">
           <input
@@ -6693,6 +7009,7 @@ const renderStrategyTableCell = (row, column) => {
             data-strategy-task-node="${escapeHtml(row.taskNodeId)}"
             data-strategy-column="${escapeHtml(column.key)}"
             ${rawValue ? "checked" : ""}
+            ${isSecondaryActionEditable ? "" : "disabled"}
           >
         </td>
       `;
@@ -6989,7 +7306,7 @@ const renderFailureModeSelector = (failureModeInfos, selectedDecisionData) => `
               data-select-failure-mode="${escapeHtml(entry.node.id)}"
             >
               <strong>${escapeHtml(failureModeTitle)}</strong>
-              <span>${escapeHtml(formatCurrency(exposure, { compact: exposure >= 1000 }))} exposure</span>
+              <span>${escapeHtml(formatCurrency(exposure, { compact: exposure >= 1000 }))} 10-year exposure</span>
             </button>
           `;
         })
@@ -7017,11 +7334,11 @@ const renderComparisonPanel = (decisionData) => {
           <strong>${escapeHtml(`${comparison.enabledCount} / ${comparison.totalCount}`)}</strong>
         </article>
         <article class="strategy-impact-stat">
-          <span>Annual cost</span>
-          <strong>${escapeHtml(formatCurrency(comparison.totalAnnualCost, { compact: comparison.totalAnnualCost >= 1000 }))}</strong>
+          <span>10-year cost</span>
+          <strong>${escapeHtml(formatCurrency(comparison.totalModeledCost, { compact: comparison.totalModeledCost >= 1000 }))}</strong>
         </article>
         <article class="strategy-impact-stat">
-          <span>Residual exposure</span>
+          <span>10-year residual exposure</span>
           <strong>${escapeHtml(formatCurrency(comparison.residualExposure, { compact: comparison.residualExposure >= 1000 }))}</strong>
         </article>
       </div>
@@ -7042,14 +7359,14 @@ const renderComparisonPanel = (decisionData) => {
 const renderStrategyDecisionDetails = (strategy, detailId) => `
   <section class="strategy-option-details" id="${escapeHtml(detailId)}">
     <div class="strategy-option-details__header">
-      <span>PM details</span>
+      <span>Task details</span>
       <strong>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</strong>
     </div>
     ${
       strategy.whyStatement
         ? `
           <div class="strategy-option-details__section">
-            <span>Why this PM helps</span>
+            <span>Why this task helps</span>
             <p>${escapeHtml(strategy.whyStatement)}</p>
           </div>
         `
@@ -7089,9 +7406,14 @@ const renderStrategyDecisionDetails = (strategy, detailId) => `
         <div><dt>Duration</dt><dd>${escapeHtml(strategy.technicalDetails.durationLabel || "Not set")}</dd></div>
         <div><dt>Labour</dt><dd>${escapeHtml(strategy.technicalDetails.labourLabel || "Not set")}</dd></div>
         <div><dt>Detectability</dt><dd>${escapeHtml(formatPercentValue(strategy.detectionProbability))}</dd></div>
-        <div><dt>Expected occurrences</dt><dd>${escapeHtml(strategy.technicalDetails.annualOccurrenceLabel || "Not set")}</dd></div>
-        <div><dt>Per-intervention cost</dt><dd>${escapeHtml(formatCurrency(strategy.directEventCost, { compact: strategy.directEventCost >= 1000 }))}</dd></div>
-        <div><dt>Net value</dt><dd>${escapeHtml(formatSignedCurrency(strategy.netValue))}</dd></div>
+        <div><dt>Expected executions (10-year)</dt><dd>${escapeHtml(strategy.technicalDetails.expectedExecutionLabel || "Not set")}</dd></div>
+        <div><dt>Per-intervention cost</dt><dd>${escapeHtml(formatCurrency(strategy.directExecutionCost, { compact: strategy.directExecutionCost >= 1000 }))}</dd></div>
+        ${
+          strategy.taskNodeType === "pm"
+            ? `<div><dt>Triggering inspection</dt><dd>${escapeHtml(strategy.secondaryActionInspectionName || (strategy.isSecondaryAction ? "Not linked" : "Not required"))}</dd></div>`
+            : ""
+        }
+        <div><dt>10-year net value</dt><dd>${escapeHtml(formatSignedCurrency(strategy.netValue))}</dd></div>
       </dl>
     </div>
     <div class="strategy-option-details__actions">
@@ -7147,7 +7469,7 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
           </div>
           <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
         </div>
-        <label class="strategy-option-card__toggle" aria-label="Toggle PM inclusion">
+        <label class="strategy-option-card__toggle" aria-label="Toggle task inclusion">
           <input
             type="checkbox"
             data-strategy-task-node="${escapeHtml(strategy.taskNodeId)}"
@@ -7159,12 +7481,12 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
       </div>
       <div class="strategy-option-card__metrics">
         <div>
-          <span>Residual exposure</span>
+          <span>10-year residual exposure</span>
           <strong>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</strong>
         </div>
         <div>
-          <span>Annual cost</span>
-          <strong>${escapeHtml(formatCurrency(strategy.annualCost, { compact: strategy.annualCost >= 1000 }))}</strong>
+          <span>10-year cost</span>
+          <strong>${escapeHtml(formatCurrency(strategy.modeledCost, { compact: strategy.modeledCost >= 1000 }))}</strong>
         </div>
       </div>
       <div class="strategy-option-card__actions">
@@ -7602,6 +7924,11 @@ const updateStrategyTableTaskField = (taskNodeId, fieldKey, nextValue) => {
         break;
       case "scheduledTaskDoNotDeliver":
         config.doNotDeliver = Boolean(nextValue);
+        break;
+      case "scheduledTaskIsSecondaryAction":
+        if (info.node.type === "pm") {
+          config.isSecondaryAction = Boolean(nextValue);
+        }
         break;
       case "scheduledTaskInterval":
         config.intervalHours = String(nextValue || "").trim();
@@ -8461,6 +8788,14 @@ const syncChildCreatorDraftField = (target) => {
 
   if (target.id === "childCreatorCmIsSecondaryActionInput" && target instanceof HTMLInputElement) {
     childDraftState.cmIsSecondaryAction = target.checked;
+    renderSelectedNodePanel();
+    return;
+  }
+
+  if (target.id === "childCreatorCmSecondaryInspectionInput") {
+    childDraftState.cmSecondaryActionInspectionNodeId = target.value;
+    renderSelectedNodePanel();
+    return;
   }
 
   if (target.id === "childCreatorCmExternalOperationCostInput") {
