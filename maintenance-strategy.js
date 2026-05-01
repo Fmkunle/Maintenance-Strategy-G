@@ -6939,7 +6939,7 @@ const renderStrategyWorkspaceTabs = () => `
       aria-selected="${state.strategyTable.activeView === "decision" ? "true" : "false"}"
       data-strategy-view="decision"
     >
-      Decision workspace
+      Decision
     </button>
     <button
       class="strategy-workspace__tab ${state.strategyTable.activeView === "audit" ? "is-active" : ""}"
@@ -6948,35 +6948,29 @@ const renderStrategyWorkspaceTabs = () => `
       aria-selected="${state.strategyTable.activeView === "audit" ? "true" : "false"}"
       data-strategy-view="audit"
     >
-      Data / audit view
+      Audit
     </button>
   </div>
 `;
 
 const renderFailureModeSelector = (failureModeInfos, selectedDecisionData) => `
-  <section class="strategy-failure-selector">
-    <div class="strategy-failure-selector__header">
-      <div>
-        <strong>Failure modes</strong>
-        <span>${failureModeInfos.length} in the current asset selection</span>
-      </div>
-      <div class="strategy-failure-selector__summary">
-        ${selectedDecisionData ? `${selectedDecisionData.strategies.length} strategy option${selectedDecisionData.strategies.length === 1 ? "" : "s"}` : "No strategies yet"}
-      </div>
-    </div>
+  <section class="strategy-failure-selector" aria-label="Failure modes">
     <div class="strategy-failure-selector__list" role="list">
       ${failureModeInfos
         .map((entry) => {
           const decisionData = getFailureModeDecisionData(entry);
           const isSelected = selectedDecisionData?.failureModeInfo?.node?.id === entry.node.id;
           const exposure = decisionData?.effectEstimate?.baselineExposure || 0;
+          const failureModeTitle =
+            String(decisionData?.summary?.failureModeName || "").trim() ||
+            getNodeNameValue(entry.node, getNodeCodeValue(entry.node, nodeTypeMeta[entry.node.type]?.placeholder || "Untitled failure mode"));
           return `
             <button
               class="strategy-failure-pill ${isSelected ? "is-active" : ""}"
               type="button"
               data-select-failure-mode="${escapeHtml(entry.node.id)}"
             >
-              <strong>${escapeHtml(getNodeDisplayName(entry.node))}</strong>
+              <strong>${escapeHtml(failureModeTitle)}</strong>
               <span>${escapeHtml(formatCurrency(exposure, { compact: exposure >= 1000 }))} exposure</span>
             </button>
           `;
@@ -6985,37 +6979,6 @@ const renderFailureModeSelector = (failureModeInfos, selectedDecisionData) => `
     </div>
   </section>
 `;
-
-const renderFailureModeSummaryBand = (decisionData) => {
-  if (!decisionData) {
-    return "";
-  }
-
-  const { summary, effectEstimate } = decisionData;
-  const componentLabel = summary.componentName || "Failure mode";
-  const baselineExposureLabel = formatCurrency(effectEstimate.baselineExposure, {
-    compact: effectEstimate.baselineExposure >= 1000,
-  });
-
-  return `
-    <section class="strategy-summary-band">
-      <div class="strategy-summary-band__hero">
-        <div class="strategy-summary-band__copy">
-          <span class="strategy-summary-band__eyebrow">${escapeHtml(componentLabel)}</span>
-          <h3>${escapeHtml(summary.failureModeName)}</h3>
-          <p>${escapeHtml(summary.failureModeDescription || "No failure mode description set.")}</p>
-        </div>
-        <div class="strategy-summary-band__meta">
-          <span class="strategy-summary-band__risk-chip">${escapeHtml(summary.untreatedRiskLabel)}</span>
-          <div class="strategy-summary-band__metric-inline">
-            <span>Baseline exposure</span>
-            <strong>${escapeHtml(baselineExposureLabel)}</strong>
-          </div>
-        </div>
-      </div>
-    </section>
-  `;
-};
 
 const renderComparisonPanel = (decisionData) => {
   if (!decisionData) {
@@ -7028,24 +6991,20 @@ const renderComparisonPanel = (decisionData) => {
   return `
     <aside class="strategy-comparison-panel">
       <div class="strategy-comparison-panel__header">
-        <strong>Current PM selection</strong>
-        <span>Updates as you include or remove PMs</span>
+        <strong>Selection</strong>
       </div>
       <div class="strategy-comparison-panel__grid">
         <article class="strategy-impact-stat">
-          <span>Included PMs</span>
-          <strong>${escapeHtml(`${comparison.enabledCount} of ${comparison.totalCount}`)}</strong>
-          <small>${escapeHtml(getStrategySelectionSummary(comparison.enabledCount, comparison.totalCount, "PMs"))}</small>
+          <span>Included</span>
+          <strong>${escapeHtml(`${comparison.enabledCount} / ${comparison.totalCount}`)}</strong>
         </article>
         <article class="strategy-impact-stat">
-          <span>Total annual cost</span>
+          <span>Annual cost</span>
           <strong>${escapeHtml(formatCurrency(comparison.totalAnnualCost, { compact: comparison.totalAnnualCost >= 1000 }))}</strong>
-          <small>Annualised maintenance estimate</small>
         </article>
         <article class="strategy-impact-stat">
           <span>Residual exposure</span>
           <strong>${escapeHtml(formatCurrency(comparison.residualExposure, { compact: comparison.residualExposure >= 1000 }))}</strong>
-          <small>What remains after the current PM selection</small>
         </article>
       </div>
       <div class="strategy-impact-bar" aria-label="Baseline versus residual exposure">
@@ -7166,6 +7125,7 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
           <div class="strategy-option-card__badges">
             <span class="strategy-option-card__status">${escapeHtml(strategy.statusLabel)}</span>
             <span class="strategy-option-card__type">${escapeHtml(strategy.strategyType)}</span>
+            ${strategy.isRecommended && strategy.status !== "recommended" ? '<span class="strategy-option-card__recommended-dot" aria-hidden="true"></span>' : ""}
           </div>
           <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
         </div>
@@ -7259,12 +7219,7 @@ const renderDecisionWorkspace = (nodeInfo) => {
     ${renderFailureModeSelector(failureModeInfos, selectedDecisionData)}
     <div class="strategy-workspace">
       <div class="strategy-workspace__main">
-        ${renderFailureModeSummaryBand(selectedDecisionData)}
-        <section class="strategy-option-stack">
-          <div class="strategy-option-stack__header">
-            <strong>Maintenance options</strong>
-            <span>${sortedStrategies.length} option${sortedStrategies.length === 1 ? "" : "s"} to compare</span>
-          </div>
+        <section class="strategy-option-stack" aria-label="Maintenance options">
           <div class="strategy-option-stack__list">
             ${renderStrategyDecisionTileRows(sortedStrategies)}
           </div>
