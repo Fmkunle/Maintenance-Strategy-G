@@ -6800,7 +6800,20 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   justify-self: start;
 }
 
+.node-inspect-panel {
+  display: grid;
+  gap: 8px;
+  width: min(760px, 100%);
+  justify-self: start;
+}
+
 .equipment-info-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.node-inspect-panel__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 14px;
@@ -6810,17 +6823,42 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.node-inspect-panel__grid--triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .equipment-info-panel__item {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
 
+.node-inspect-panel__item {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(218, 226, 236, 0.92);
+  border-radius: 16px;
+  background: rgba(246, 249, 253, 0.92);
+}
+
 .equipment-info-panel__item--wide {
   grid-column: 1 / -1;
 }
 
+.node-inspect-panel__item--wide {
+  grid-column: 1 / -1;
+}
+
 .equipment-info-panel__label {
+  color: #60748c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.node-inspect-panel__label {
   color: #60748c;
   font-size: 0.72rem;
   font-weight: 700;
@@ -6835,7 +6873,21 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
   white-space: pre-wrap;
 }
 
+.node-inspect-panel__value {
+  color: #21374f;
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
 .equipment-info-panel__value.is-empty {
+  color: #8294aa;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.node-inspect-panel__value.is-empty {
   color: #8294aa;
   font-style: italic;
   font-weight: 400;
@@ -7968,12 +8020,29 @@ body[data-theme="dark"] .equipment-info-panel__label {
   color: #9fb0c7;
 }
 
+body[data-theme="dark"] .node-inspect-panel__label {
+  color: #9fb0c7;
+}
+
 body[data-theme="dark"] .equipment-info-panel__value {
+  color: #e3ecfb;
+}
+
+body[data-theme="dark"] .node-inspect-panel__value {
   color: #e3ecfb;
 }
 
 body[data-theme="dark"] .equipment-info-panel__value.is-empty {
   color: #8ea1bb;
+}
+
+body[data-theme="dark"] .node-inspect-panel__value.is-empty {
+  color: #8ea1bb;
+}
+
+body[data-theme="dark"] .node-inspect-panel__item {
+  border-color: rgba(148, 163, 184, 0.16);
+  background: rgba(19, 31, 52, 0.96);
 }
 
 .asset-context-entry-block {
@@ -8471,7 +8540,9 @@ body[data-theme="dark"] .asset-context-subdialog__header p {
   }
 
   .equipment-info-panel__grid,
-  .equipment-info-panel__grid--triple {
+  .equipment-info-panel__grid--triple,
+  .node-inspect-panel__grid,
+  .node-inspect-panel__grid--triple {
     grid-template-columns: 1fr;
   }
 
