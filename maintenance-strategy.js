@@ -4905,6 +4905,88 @@ const renderEquipmentListRows = (filterValue = "") =>
     })
     .join("");
 
+const updateVisibleRegisterRowSelectionUi = (nodeId) => {
+  if (!assetHierarchyTree) {
+    return false;
+  }
+
+  const normalizedNodeId = String(nodeId || "");
+  if (!normalizedNodeId) {
+    return false;
+  }
+
+  const rowElement = Array.from(assetHierarchyTree.querySelectorAll(".asset-register-row[data-select-node]")).find(
+    (element) => element.dataset.selectNode === normalizedNodeId
+  );
+  if (!(rowElement instanceof HTMLElement)) {
+    return false;
+  }
+
+  const nodeInfo = findNodeInfo(state.hierarchy, normalizedNodeId);
+  rowElement.classList.toggle("is-selected", state.selectedNodeId === normalizedNodeId);
+
+  const descriptionElement = rowElement.querySelector(".asset-register-row__description");
+  if (!(descriptionElement instanceof HTMLElement) || !nodeInfo) {
+    return true;
+  }
+
+  const existingAddButton = descriptionElement.querySelector(".asset-register-row__add");
+  const showAddButton = state.selectedNodeId === normalizedNodeId && getChildActions(nodeInfo.node.type).length > 0;
+
+  if (!showAddButton) {
+    existingAddButton?.remove();
+    return true;
+  }
+
+  if (existingAddButton instanceof HTMLButtonElement) {
+    existingAddButton.dataset.openChildCreator = normalizedNodeId;
+    existingAddButton.setAttribute("aria-label", `Add child under ${getNodeTitle(nodeInfo.node)}`);
+    existingAddButton.title = "Add child";
+    return true;
+  }
+
+  const addButton = document.createElement("button");
+  addButton.className = "asset-register-row__add";
+  addButton.type = "button";
+  addButton.dataset.openChildCreator = normalizedNodeId;
+  addButton.setAttribute("aria-label", `Add child under ${getNodeTitle(nodeInfo.node)}`);
+  addButton.title = "Add child";
+  addButton.textContent = "+";
+  descriptionElement.append(addButton);
+  return true;
+};
+
+const refreshVisibleRegisterSelection = (previousNodeId, nextNodeId) => {
+  const nodeIds = [...new Set([previousNodeId, nextNodeId].map((nodeId) => String(nodeId || "")).filter(Boolean))];
+  nodeIds.forEach((nodeId) => {
+    updateVisibleRegisterRowSelectionUi(nodeId);
+  });
+};
+
+const selectHierarchyNodeInLeftPane = (nodeId, options = {}) => {
+  const normalizedNodeId = String(nodeId || "");
+  if (!normalizedNodeId) {
+    return;
+  }
+
+  const previousNodeId = state.selectedNodeId;
+  const nodeInfo = options.nodeInfo || findNodeInfo(state.hierarchy, normalizedNodeId);
+  state.selectedNodeId = normalizedNodeId;
+
+  if (options.inspect) {
+    openRightPaneInspectMode(normalizedNodeId);
+    if (options.openEffectEditor && nodeInfo?.node?.type === "effect") {
+      openExistingHierarchyNodeEditor(nodeInfo);
+    }
+  } else {
+    closeRightPaneInspectMode();
+  }
+
+  persistDraftSilently();
+  refreshVisibleRegisterSelection(previousNodeId, normalizedNodeId);
+  renderSelectedNodePanel();
+};
+
 const renderHierarchyTree = () => {
   if (!state.hierarchy.length) {
     assetHierarchyTree.innerHTML = `
@@ -8263,12 +8345,7 @@ assetHierarchyTree?.addEventListener("click", (event) => {
 
   const selectButton = event.target.closest("[data-select-node]");
   if (selectButton) {
-    state.selectedNodeId = selectButton.dataset.selectNode;
-    closeRightPaneInspectMode();
-    persistDraftSilently();
-    renderAll({
-      includeEntryDynamic: false,
-    });
+    selectHierarchyNodeInLeftPane(selectButton.dataset.selectNode);
     return;
   }
 });
@@ -8293,15 +8370,11 @@ assetHierarchyTree?.addEventListener("dblclick", (event) => {
     return;
   }
 
-  state.selectedNodeId = nodeId;
-  openRightPaneInspectMode(nodeId);
   const nodeInfo = findNodeInfo(state.hierarchy, nodeId);
-  if (nodeInfo?.node?.type === "effect") {
-    openExistingHierarchyNodeEditor(nodeInfo);
-  }
-  persistDraftSilently();
-  renderAll({
-    includeEntryDynamic: false,
+  selectHierarchyNodeInLeftPane(nodeId, {
+    inspect: true,
+    openEffectEditor: true,
+    nodeInfo,
   });
 });
 
