@@ -8295,6 +8295,10 @@ assetHierarchyTree?.addEventListener("dblclick", (event) => {
 
   state.selectedNodeId = nodeId;
   openRightPaneInspectMode(nodeId);
+  const nodeInfo = findNodeInfo(state.hierarchy, nodeId);
+  if (nodeInfo?.node?.type === "effect") {
+    openExistingHierarchyNodeEditor(nodeInfo);
+  }
   persistDraftSilently();
   renderAll({
     includeEntryDynamic: false,
