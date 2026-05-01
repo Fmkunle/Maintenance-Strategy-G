@@ -6992,44 +6992,26 @@ const renderFailureModeSummaryBand = (decisionData) => {
   }
 
   const { summary, effectEstimate } = decisionData;
-  const alarmSummary = summary.alarmEnabled
-    ? `${summary.alarmDescription || "Alarm coverage"} | ${formatPercentValue(summary.alarmDetectionProbability)} detectability`
-    : "No alarm or online coverage configured";
+  const componentLabel = summary.componentName || "Failure mode";
+  const baselineExposureLabel = formatCurrency(effectEstimate.baselineExposure, {
+    compact: effectEstimate.baselineExposure >= 1000,
+  });
 
   return `
     <section class="strategy-summary-band">
       <div class="strategy-summary-band__hero">
         <div class="strategy-summary-band__copy">
-          <span class="strategy-summary-band__eyebrow">Failure mode decision workspace</span>
+          <span class="strategy-summary-band__eyebrow">${escapeHtml(componentLabel)}</span>
           <h3>${escapeHtml(summary.failureModeName)}</h3>
           <p>${escapeHtml(summary.failureModeDescription || "No failure mode description set.")}</p>
         </div>
-        <div class="strategy-summary-band__context">
-          <span>${escapeHtml(summary.componentName || "Component not set")}</span>
-          <strong>${escapeHtml(summary.untreatedRiskLabel)}</strong>
+        <div class="strategy-summary-band__meta">
+          <span class="strategy-summary-band__risk-chip">${escapeHtml(summary.untreatedRiskLabel)}</span>
+          <div class="strategy-summary-band__metric-inline">
+            <span>Baseline exposure</span>
+            <strong>${escapeHtml(baselineExposureLabel)}</strong>
+          </div>
         </div>
-      </div>
-      <div class="strategy-summary-band__metrics">
-        <article class="strategy-metric-card">
-          <span>Baseline exposure</span>
-          <strong>${escapeHtml(formatCurrency(effectEstimate.baselineExposure, { compact: effectEstimate.baselineExposure >= 1000 }))}</strong>
-          <small>${escapeHtml(summary.effectRangeLabel)}</small>
-        </article>
-        <article class="strategy-metric-card">
-          <span>Likely failure window</span>
-          <strong>${escapeHtml(formatTimeWindowFromHours(summary.mttfHours))}</strong>
-          <small>${escapeHtml(summary.mttfHours ? formatHoursLabel(summary.mttfHours) : "MTTF not set")}</small>
-        </article>
-        <article class="strategy-metric-card">
-          <span>Current untreated risk</span>
-          <strong>${escapeHtml(summary.untreatedRiskLabel)}</strong>
-          <small>${escapeHtml(effectEstimate.downtimeRate ? `${formatCurrency(effectEstimate.downtimeRate, { compact: true })} / hour down` : "No downtime proxy set")}</small>
-        </article>
-        <article class="strategy-metric-card">
-          <span>Existing alarm / monitoring</span>
-          <strong>${escapeHtml(summary.alarmEnabled ? "Present" : "None")}</strong>
-          <small>${escapeHtml(alarmSummary)}</small>
-        </article>
       </div>
     </section>
   `;
@@ -7046,29 +7028,24 @@ const renderComparisonPanel = (decisionData) => {
   return `
     <aside class="strategy-comparison-panel">
       <div class="strategy-comparison-panel__header">
-        <strong>Enabled strategy impact</strong>
-        <span>${escapeHtml(getStrategySelectionSummary(comparison.enabledCount, comparison.totalCount, "strategies"))}</span>
+        <strong>Current PM selection</strong>
+        <span>Updates as you include or remove PMs</span>
       </div>
       <div class="strategy-comparison-panel__grid">
         <article class="strategy-impact-stat">
-          <span>Total strategy cost</span>
-          <strong>${escapeHtml(formatCurrency(comparison.totalAnnualCost, { compact: comparison.totalAnnualCost >= 1000 }))}</strong>
-          <small>Annualised estimate</small>
+          <span>Included PMs</span>
+          <strong>${escapeHtml(`${comparison.enabledCount} of ${comparison.totalCount}`)}</strong>
+          <small>${escapeHtml(getStrategySelectionSummary(comparison.enabledCount, comparison.totalCount, "PMs"))}</small>
         </article>
         <article class="strategy-impact-stat">
-          <span>Exposure reduced</span>
-          <strong>${escapeHtml(formatCurrency(comparison.exposureReduction, { compact: comparison.exposureReduction >= 1000 }))}</strong>
-          <small>Against untreated baseline</small>
+          <span>Total annual cost</span>
+          <strong>${escapeHtml(formatCurrency(comparison.totalAnnualCost, { compact: comparison.totalAnnualCost >= 1000 }))}</strong>
+          <small>Annualised maintenance estimate</small>
         </article>
         <article class="strategy-impact-stat">
           <span>Residual exposure</span>
           <strong>${escapeHtml(formatCurrency(comparison.residualExposure, { compact: comparison.residualExposure >= 1000 }))}</strong>
-          <small>What remains after enabled coverage</small>
-        </article>
-        <article class="strategy-impact-stat">
-          <span>Net economic position</span>
-          <strong>${escapeHtml(formatSignedCurrency(comparison.netValue))}</strong>
-          <small>${escapeHtml(comparison.coverageConfidenceLabel)}</small>
+          <small>What remains after the current PM selection</small>
         </article>
       </div>
       <div class="strategy-impact-bar" aria-label="Baseline versus residual exposure">
@@ -7077,16 +7054,9 @@ const renderComparisonPanel = (decisionData) => {
           <span class="strategy-impact-bar__residual" style="width:${Math.max(8, residualRatio * 100)}%;"></span>
         </div>
         <div class="strategy-impact-bar__legend">
-          <span>Before</span>
-          <span>After</span>
+          <span>Untreated</span>
+          <span>After selection</span>
         </div>
-      </div>
-      <div class="strategy-confidence-meter">
-        <span>Coverage confidence</span>
-        <div class="strategy-confidence-meter__track">
-          <span class="strategy-confidence-meter__fill" style="width:${comparison.coverageConfidenceValue * 100}%;"></span>
-        </div>
-        <strong>${escapeHtml(formatPercentValue(comparison.coverageConfidenceValue))}</strong>
       </div>
     </aside>
   `;
@@ -7095,21 +7065,63 @@ const renderComparisonPanel = (decisionData) => {
 const renderStrategyDecisionDetails = (strategy, detailId) => `
   <section class="strategy-option-details" id="${escapeHtml(detailId)}">
     <div class="strategy-option-details__header">
-      <span>Technical details</span>
+      <span>PM details</span>
       <strong>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</strong>
     </div>
-    <dl class="strategy-option-card__detail-grid">
-      <div><dt>Task code</dt><dd>${escapeHtml(strategy.technicalDetails.taskCode || "Not set")}</dd></div>
-      <div><dt>Task type</dt><dd>${escapeHtml(strategy.scheduledTaskType || "Not set")}</dd></div>
-      <div><dt>Cadence</dt><dd>${escapeHtml(strategy.technicalDetails.intervalLabel || "Not set")}</dd></div>
-      <div><dt>PF interval</dt><dd>${escapeHtml(strategy.technicalDetails.pfIntervalLabel || "Not set")}</dd></div>
-      <div><dt>Duration</dt><dd>${escapeHtml(strategy.technicalDetails.durationLabel || "Not set")}</dd></div>
-      <div><dt>Labour</dt><dd>${escapeHtml(strategy.technicalDetails.labourLabel || "Not set")}</dd></div>
-      <div><dt>Detectability</dt><dd>${escapeHtml(formatPercentValue(strategy.detectionProbability))}</dd></div>
-      <div><dt>Expected occurrences</dt><dd>${escapeHtml(strategy.technicalDetails.annualOccurrenceLabel || "Not set")}</dd></div>
-      <div><dt>Per-intervention cost</dt><dd>${escapeHtml(formatCurrency(strategy.directEventCost, { compact: strategy.directEventCost >= 1000 }))}</dd></div>
-      <div><dt>Net value</dt><dd>${escapeHtml(formatSignedCurrency(strategy.netValue))}</dd></div>
-    </dl>
+    ${
+      strategy.whyStatement
+        ? `
+          <div class="strategy-option-details__section">
+            <span>Why this PM helps</span>
+            <p>${escapeHtml(strategy.whyStatement)}</p>
+          </div>
+        `
+        : ""
+    }
+    ${
+      strategy.tradeoffStatement
+        ? `
+          <div class="strategy-option-details__section">
+            <span>Trade-off</span>
+            <p>${escapeHtml(strategy.tradeoffStatement)}</p>
+          </div>
+        `
+        : ""
+    }
+    ${
+      strategy.weaknessFlags.length
+        ? `
+          <div class="strategy-option-details__section">
+            <span>Watch-outs</span>
+            <div class="strategy-option-details__flags">
+              ${strategy.weaknessFlags
+                .map((flag) => `<span class="strategy-option-card__flag">${escapeHtml(flag)}</span>`)
+                .join("")}
+            </div>
+          </div>
+        `
+        : ""
+    }
+    <div class="strategy-option-details__section">
+      <span>Technical details</span>
+      <dl class="strategy-option-card__detail-grid">
+        <div><dt>Task code</dt><dd>${escapeHtml(strategy.technicalDetails.taskCode || "Not set")}</dd></div>
+        <div><dt>Task type</dt><dd>${escapeHtml(strategy.scheduledTaskType || "Not set")}</dd></div>
+        <div><dt>Cadence</dt><dd>${escapeHtml(strategy.technicalDetails.intervalLabel || "Not set")}</dd></div>
+        <div><dt>PF interval</dt><dd>${escapeHtml(strategy.technicalDetails.pfIntervalLabel || "Not set")}</dd></div>
+        <div><dt>Duration</dt><dd>${escapeHtml(strategy.technicalDetails.durationLabel || "Not set")}</dd></div>
+        <div><dt>Labour</dt><dd>${escapeHtml(strategy.technicalDetails.labourLabel || "Not set")}</dd></div>
+        <div><dt>Detectability</dt><dd>${escapeHtml(formatPercentValue(strategy.detectionProbability))}</dd></div>
+        <div><dt>Expected occurrences</dt><dd>${escapeHtml(strategy.technicalDetails.annualOccurrenceLabel || "Not set")}</dd></div>
+        <div><dt>Per-intervention cost</dt><dd>${escapeHtml(formatCurrency(strategy.directEventCost, { compact: strategy.directEventCost >= 1000 }))}</dd></div>
+        <div><dt>Net value</dt><dd>${escapeHtml(formatSignedCurrency(strategy.netValue))}</dd></div>
+      </dl>
+    </div>
+    <div class="strategy-option-details__actions">
+      <button class="secondary-button strategy-option-card__action" type="button" data-open-task-editor="${escapeHtml(strategy.taskNodeId)}">
+        Edit task
+      </button>
+    </div>
   </section>
 `;
 
@@ -7140,13 +7152,10 @@ const getDecisionWorkspaceTileRows = (strategies) => {
   };
 };
 
-const renderStrategyDecisionCard = (strategy, decisionData, expandedTaskNodeId = "") => {
+const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
   const isExpanded = expandedTaskNodeId === strategy.taskNodeId;
   const isSelected = state.strategyTable.selectedTaskNodeId === strategy.taskNodeId;
   const detailId = `strategy-option-details-${strategy.taskNodeId}`;
-  const beforeAfterWidth = decisionData.effectEstimate.baselineExposure
-    ? clampNumber(strategy.residualExposure / decisionData.effectEstimate.baselineExposure, 0, 1) * 100
-    : 0;
   return `
     <article
       class="strategy-option-card strategy-option-card--${strategy.status} ${isSelected ? "is-selected" : ""} ${isExpanded ? "is-expanded" : ""}"
@@ -7157,57 +7166,28 @@ const renderStrategyDecisionCard = (strategy, decisionData, expandedTaskNodeId =
           <div class="strategy-option-card__badges">
             <span class="strategy-option-card__status">${escapeHtml(strategy.statusLabel)}</span>
             <span class="strategy-option-card__type">${escapeHtml(strategy.strategyType)}</span>
-            ${strategy.isRecommended && strategy.status !== "recommended" ? '<span class="strategy-option-card__hint">Worth reviewing</span>' : ""}
           </div>
           <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
-          <p>${escapeHtml(strategy.whyStatement)}</p>
         </div>
-        <label class="strategy-option-card__toggle" aria-label="Toggle strategy">
+        <label class="strategy-option-card__toggle" aria-label="Toggle PM inclusion">
           <input
             type="checkbox"
             data-strategy-task-node="${escapeHtml(strategy.taskNodeId)}"
             data-strategy-column="scheduledTaskIsEnabled"
             ${strategy.scheduledTaskIsEnabled ? "checked" : ""}
           >
-          <span>${strategy.scheduledTaskIsEnabled ? "Enabled" : "Disabled"}</span>
+          <span>${strategy.scheduledTaskIsEnabled ? "Included" : "Not included"}</span>
         </label>
       </div>
       <div class="strategy-option-card__metrics">
         <div>
-          <span>Exposure before</span>
-          <strong>${escapeHtml(formatCurrency(decisionData.effectEstimate.baselineExposure, { compact: decisionData.effectEstimate.baselineExposure >= 1000 }))}</strong>
-        </div>
-        <div>
-          <span>Exposure after</span>
+          <span>Residual exposure</span>
           <strong>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</strong>
         </div>
         <div>
-          <span>Cost to mitigate</span>
+          <span>Annual cost</span>
           <strong>${escapeHtml(formatCurrency(strategy.annualCost, { compact: strategy.annualCost >= 1000 }))}</strong>
         </div>
-        <div>
-          <span>Mitigation probability</span>
-          <strong>${escapeHtml(formatPercentValue(strategy.mitigationFactor))}</strong>
-        </div>
-      </div>
-      <div class="strategy-option-card__bar">
-        <div class="strategy-option-card__bar-track">
-          <span class="strategy-option-card__bar-base"></span>
-          <span class="strategy-option-card__bar-residual" style="width:${Math.max(8, beforeAfterWidth)}%;"></span>
-        </div>
-      </div>
-      <div class="strategy-option-card__footer">
-        <div class="strategy-option-card__tradeoff">
-          <strong>Trade-off</strong>
-          <span>${escapeHtml(strategy.tradeoffStatement)}</span>
-        </div>
-        ${
-          strategy.weaknessFlags.length
-            ? `<div class="strategy-option-card__flags">${strategy.weaknessFlags
-                .map((flag) => `<span class="strategy-option-card__flag">${escapeHtml(flag)}</span>`)
-                .join("")}</div>`
-            : ""
-        }
       </div>
       <div class="strategy-option-card__actions">
         <button
@@ -7217,17 +7197,14 @@ const renderStrategyDecisionCard = (strategy, decisionData, expandedTaskNodeId =
           aria-expanded="${isExpanded ? "true" : "false"}"
           aria-controls="${escapeHtml(detailId)}"
         >
-          ${isExpanded ? "Hide technical details" : "Show technical details"}
-        </button>
-        <button class="secondary-button strategy-option-card__action" type="button" data-open-task-editor="${escapeHtml(strategy.taskNodeId)}">
-          Edit task
+          ${isExpanded ? "Hide details" : "View details"}
         </button>
       </div>
     </article>
   `;
 };
 
-const renderStrategyDecisionTileRows = (strategies, decisionData) => {
+const renderStrategyDecisionTileRows = (strategies) => {
   const expandedTaskNodeId = state.strategyTable.expandedTaskNodeIds[0] || "";
   const { columnCount, rows } = getDecisionWorkspaceTileRows(strategies);
   const columnClass = columnCount === 3 ? "strategy-option-tile-row__tiles--cols-3" : columnCount === 2 ? "strategy-option-tile-row__tiles--cols-2" : "strategy-option-tile-row__tiles--cols-1";
@@ -7238,7 +7215,7 @@ const renderStrategyDecisionTileRows = (strategies, decisionData) => {
       return `
         <div class="strategy-option-tile-row">
           <div class="strategy-option-tile-row__tiles ${columnClass}">
-            ${row.map((strategy) => renderStrategyDecisionCard(strategy, decisionData, expandedTaskNodeId)).join("")}
+            ${row.map((strategy) => renderStrategyDecisionCard(strategy, expandedTaskNodeId)).join("")}
           </div>
           ${
             expandedStrategy
@@ -7285,11 +7262,11 @@ const renderDecisionWorkspace = (nodeInfo) => {
         ${renderFailureModeSummaryBand(selectedDecisionData)}
         <section class="strategy-option-stack">
           <div class="strategy-option-stack__header">
-            <strong>Mitigation strategies</strong>
+            <strong>Maintenance options</strong>
             <span>${sortedStrategies.length} option${sortedStrategies.length === 1 ? "" : "s"} to compare</span>
           </div>
           <div class="strategy-option-stack__list">
-            ${renderStrategyDecisionTileRows(sortedStrategies, selectedDecisionData)}
+            ${renderStrategyDecisionTileRows(sortedStrategies)}
           </div>
         </section>
       </div>
