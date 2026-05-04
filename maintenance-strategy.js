@@ -76,7 +76,6 @@ const layoutLimits = {
   descriptionMin: 160,
 };
 const resizableLayoutMediaQuery = "(max-width: 1180px)";
-let lastDecisionWorkspaceTileColumnCount = 0;
 
 const nodeTypeMeta = {
   plant: {
@@ -7424,37 +7423,12 @@ const renderStrategyDecisionDetails = (strategy, detailId) => `
   </section>
 `;
 
-const getDecisionWorkspaceTileColumnCount = () => {
-  const mainWidth =
-    strategyList?.querySelector(".strategy-workspace__main")?.clientWidth ||
-    strategyList?.clientWidth ||
-    (typeof window !== "undefined" ? window.innerWidth : 0);
-  if (mainWidth >= 1160) {
-    return 3;
-  }
-  if (mainWidth >= 720) {
-    return 2;
-  }
-  return 1;
-};
-
-const getDecisionWorkspaceTileRows = (strategies) => {
-  const columnCount = getDecisionWorkspaceTileColumnCount();
-  const rows = [];
-  for (let index = 0; index < strategies.length; index += columnCount) {
-    rows.push(strategies.slice(index, index + columnCount));
-  }
-  lastDecisionWorkspaceTileColumnCount = columnCount;
-  return {
-    columnCount,
-    rows,
-  };
-};
+const strategyDecisionDetailsDrawerId = "strategy-option-details-drawer";
 
 const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
   const isExpanded = expandedTaskNodeId === strategy.taskNodeId;
   const isSelected = state.strategyTable.selectedTaskNodeId === strategy.taskNodeId;
-  const detailId = `strategy-option-details-${strategy.taskNodeId}`;
+  const detailId = strategyDecisionDetailsDrawerId;
   return `
     <article
       class="strategy-option-card strategy-option-card--${strategy.status} ${isSelected ? "is-selected" : ""} ${isExpanded ? "is-expanded" : ""}"
@@ -7504,32 +7478,25 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
   `;
 };
 
-const renderStrategyDecisionTileRows = (strategies) => {
+const renderStrategyDecisionCards = (strategies) => {
   const expandedTaskNodeId = state.strategyTable.expandedTaskNodeIds[0] || "";
-  const { columnCount, rows } = getDecisionWorkspaceTileRows(strategies);
-  const columnClass = columnCount === 3 ? "strategy-option-tile-row__tiles--cols-3" : columnCount === 2 ? "strategy-option-tile-row__tiles--cols-2" : "strategy-option-tile-row__tiles--cols-1";
-  return rows
-    .map((row) => {
-      const expandedStrategy = row.find((strategy) => strategy.taskNodeId === expandedTaskNodeId) || null;
-      const detailId = expandedStrategy ? `strategy-option-details-${expandedStrategy.taskNodeId}` : "";
-      return `
-        <div class="strategy-option-tile-row">
-          <div class="strategy-option-tile-row__tiles ${columnClass}">
-            ${row.map((strategy) => renderStrategyDecisionCard(strategy, expandedTaskNodeId)).join("")}
-          </div>
-          ${
-            expandedStrategy
-              ? `
-                <div class="strategy-option-tile-row__details">
-                  ${renderStrategyDecisionDetails(expandedStrategy, detailId)}
-                </div>
-              `
-              : ""
-          }
-        </div>
-      `;
-    })
+  return strategies
+    .map((strategy) => renderStrategyDecisionCard(strategy, expandedTaskNodeId))
     .join("");
+};
+
+const renderStrategyDecisionDetailsDrawer = (strategies) => {
+  const expandedTaskNodeId = state.strategyTable.expandedTaskNodeIds[0] || "";
+  const expandedStrategy = strategies.find((strategy) => strategy.taskNodeId === expandedTaskNodeId) || null;
+  if (!expandedStrategy) {
+    return "";
+  }
+
+  return `
+    <div class="strategy-option-stack__details">
+      ${renderStrategyDecisionDetails(expandedStrategy, strategyDecisionDetailsDrawerId)}
+    </div>
+  `;
 };
 
 const renderDecisionWorkspace = (nodeInfo) => {
@@ -7561,8 +7528,9 @@ const renderDecisionWorkspace = (nodeInfo) => {
       <div class="strategy-workspace__main">
         <section class="strategy-option-stack" aria-label="Maintenance options">
           <div class="strategy-option-stack__list">
-            ${renderStrategyDecisionTileRows(sortedStrategies)}
+            ${renderStrategyDecisionCards(sortedStrategies)}
           </div>
+          ${renderStrategyDecisionDetailsDrawer(sortedStrategies)}
         </section>
       </div>
       ${renderComparisonPanel(selectedDecisionData)}
@@ -9569,19 +9537,6 @@ window.addEventListener("resize", () => {
 
   state.layout = normalizeLayoutState(state.layout);
   applyWorkspaceLayoutStyles();
-  const nextDecisionWorkspaceTileColumnCount = getDecisionWorkspaceTileColumnCount();
-  if (
-    nextDecisionWorkspaceTileColumnCount !== lastDecisionWorkspaceTileColumnCount &&
-    state.strategyTable.activeView === "decision" &&
-    strategyList &&
-    !strategyList.hidden
-  ) {
-    lastDecisionWorkspaceTileColumnCount = nextDecisionWorkspaceTileColumnCount;
-    renderAll({
-      includeEntryDynamic: false,
-    });
-    return;
-  }
   syncStrategyTableScrollbars();
 });
 
