@@ -5296,16 +5296,8 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 }
 
 .strategy-option-card--recommended {
-  border-color: rgba(222, 228, 237, 0.98);
-}
-
-.strategy-option-card__recommended-dot {
-  width: 8px;
-  height: 8px;
-  margin-block: auto;
-  border-radius: 999px;
-  background: #4c7fca;
-  box-shadow: 0 0 0 4px rgba(76, 127, 202, 0.14);
+  border-color: rgba(92, 129, 187, 0.36);
+  box-shadow: 0 14px 28px rgba(91, 123, 173, 0.1);
 }
 
 .strategy-option-card--enabled {
@@ -5355,6 +5347,7 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 
 .strategy-option-card__status,
 .strategy-option-card__type,
+.strategy-option-card__recommended-badge,
 .strategy-option-card__flag {
   display: inline-flex;
   align-items: center;
@@ -5374,6 +5367,11 @@ body[data-theme="dark"] .maintenance-strategy-page .topbar #themeToggle .moon-ic
 .strategy-option-card__type {
   background: rgba(246, 248, 251, 0.98);
   color: #6a7e94;
+}
+
+.strategy-option-card__recommended-badge {
+  background: rgba(232, 241, 253, 0.98);
+  color: #2c5fa8;
 }
 
 .strategy-option-card__flag {
@@ -7489,11 +7487,6 @@ body[data-theme="dark"] .strategy-failure-pill.is-active {
   background: linear-gradient(180deg, rgba(29, 46, 74, 0.98) 0%, rgba(35, 52, 82, 0.98) 100%);
 }
 
-body[data-theme="dark"] .strategy-option-card__recommended-dot {
-  background: #85aee6;
-  box-shadow: 0 0 0 4px rgba(133, 174, 230, 0.14);
-}
-
 body[data-theme="dark"] .strategy-option-details__header span,
 body[data-theme="dark"] .strategy-option-details__section > span,
 body[data-theme="dark"] .strategy-option-card__identity p,
@@ -7511,6 +7504,11 @@ body[data-theme="dark"] .strategy-option-card__status {
 body[data-theme="dark"] .strategy-option-card__type {
   background: rgba(22, 34, 54, 0.98);
   color: #9fb4cf;
+}
+
+body[data-theme="dark"] .strategy-option-card__recommended-badge {
+  background: rgba(31, 55, 89, 0.98);
+  color: #c8dcfb;
 }
 
 body[data-theme="dark"] .strategy-option-card__flag {

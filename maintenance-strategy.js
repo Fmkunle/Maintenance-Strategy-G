@@ -3201,6 +3201,55 @@ const getFailureModeExpectedFailureProfile = (failureModeInfo, dbJsonOverride = 
     mttfHours,
   };
 };
+const getFailureProfileReferenceIntervalHours = (likelihoodProfile) => {
+  if (!likelihoodProfile) {
+    return strategyModelHorizonHours;
+  }
+  const modeledInterval =
+    likelihoodProfile.etaHours ||
+    likelihoodProfile.mttfHours ||
+    (likelihoodProfile.expectedFailureCount > 0 ? strategyModelHorizonHours / likelihoodProfile.expectedFailureCount : 0);
+  return Math.max(1, modeledInterval || strategyModelHorizonHours);
+};
+const getFailureProfileCumulativeProbability = (likelihoodProfile, hours) => {
+  const modeledHours = parseNumericInput(hours);
+  if (!modeledHours || modeledHours <= 0) {
+    return 0;
+  }
+
+  if (likelihoodProfile?.source === "weibull" && likelihoodProfile.etaHours > 0 && likelihoodProfile.betaValue > 0) {
+    const adjustedHours = Math.max(0, modeledHours - Math.max(0, likelihoodProfile.gammaHours || 0));
+    if (adjustedHours <= 0) {
+      return 0;
+    }
+    return clampNumber(1 - Math.exp(-Math.pow(adjustedHours / likelihoodProfile.etaHours, likelihoodProfile.betaValue)));
+  }
+
+  if (likelihoodProfile?.mttfHours > 0) {
+    return clampNumber(1 - Math.exp(-modeledHours / likelihoodProfile.mttfHours));
+  }
+
+  return clampNumber(1 - Math.exp(-modeledHours / getFailureProfileReferenceIntervalHours(likelihoodProfile)));
+};
+const getFailureModeDemandFrequencyPerYear = (dbJson) => {
+  const numericValue = parseNumericInput(dbJson?.["Failure Mode Demand Frequency"]);
+  return numericValue && numericValue > 0 ? numericValue : 0;
+};
+const getFailureModeDemandProbabilityForWindow = (demandFrequencyPerYear, windowHours) => {
+  const modeledDemandFrequency = parseNumericInput(demandFrequencyPerYear);
+  const modeledWindowHours = parseNumericInput(windowHours);
+  if (!modeledDemandFrequency || modeledDemandFrequency <= 0 || !modeledWindowHours || modeledWindowHours <= 0) {
+    return 0;
+  }
+  return clampNumber(1 - Math.exp(-(modeledDemandFrequency / annualHours) * modeledWindowHours));
+};
+const getFailureModeRealizedConsequenceCount = ({ expectedFailureCount = 0, isDormant = false, demandFrequencyPerYear = 0, controlWindowHours = 0 }) => {
+  const modeledFailureCount = Math.max(0, Number(expectedFailureCount) || 0);
+  if (!isDormant) {
+    return modeledFailureCount;
+  }
+  return modeledFailureCount * getFailureModeDemandProbabilityForWindow(demandFrequencyPerYear, controlWindowHours);
+};
 const getFailureModePrimaryEffectEstimate = (failureModeInfo, dbJsonOverride = null) => {
   const dbJson =
     dbJsonOverride && typeof dbJsonOverride === "object"
@@ -3218,17 +3267,38 @@ const getFailureModePrimaryEffectEstimate = (failureModeInfo, dbJsonOverride = n
   const downtimeFallback = downtimeRate ? downtimeRate * 8 : 0;
   const perEventExposure = explicitTotalCost || explicitEffectCost || estimatedFromEffects || downtimeFallback || 0;
   const likelihoodProfile = getFailureModeExpectedFailureProfile(failureModeInfo, dbJson);
-  const baselineExposure = perEventExposure * likelihoodProfile.expectedFailureCount;
+  const isDormant = Boolean(dbJson?.["Failure Mode Is Dormant"]);
+  const demandFrequencyPerYear = getFailureModeDemandFrequencyPerYear(dbJson);
+  const referenceFailureIntervalHours = getFailureProfileReferenceIntervalHours(likelihoodProfile);
+  const baseDormantWindowHours = isDormant
+    ? Math.min(
+        strategyModelHorizonHours,
+        Math.max(referenceFailureIntervalHours, strategyModelHorizonHours / Math.max(likelihoodProfile.expectedFailureCount || 0, 1))
+      )
+    : 0;
+  const expectedConsequenceEventCount = getFailureModeRealizedConsequenceCount({
+    expectedFailureCount: likelihoodProfile.expectedFailureCount,
+    isDormant,
+    demandFrequencyPerYear,
+    controlWindowHours: baseDormantWindowHours,
+  });
+  const baselineExposure = perEventExposure * expectedConsequenceEventCount;
   const effectRangeLabel = ranges.length ? ranges.map((entry) => entry.label).join(" + ") : "Not set";
   return {
     baselineExposure,
     perEventExposure,
     expectedFailureCount: likelihoodProfile.expectedFailureCount,
+    expectedConsequenceEventCount,
     likelihoodSource: likelihoodProfile.source,
     etaHours: likelihoodProfile.etaHours,
     betaValue: likelihoodProfile.betaValue,
     gammaHours: likelihoodProfile.gammaHours,
     mttfHours: likelihoodProfile.mttfHours,
+    likelihoodProfile,
+    isDormant,
+    demandFrequencyPerYear,
+    referenceFailureIntervalHours,
+    baseDormantWindowHours,
     effectRangeLabel,
     downtimeRate,
     explicitTotalCost,
@@ -3246,6 +3316,18 @@ const getStrategyTaskDetectionProbabilityValue = (taskNode) => {
   const detectionValue = getStrategyTaskDetectionProbability(taskNode);
   return detectionValue !== null ? clampNumber(detectionValue / 100) : taskNode?.type === "pm" ? 0.72 : taskNode?.type === "ins" ? 0.62 : 0.45;
 };
+const getStrategyTaskTypeWeight = (taskNodeType) => {
+  switch (String(taskNodeType || "").toLowerCase()) {
+    case "pm":
+      return 0.92;
+    case "ins":
+      return 0.72;
+    default:
+      return 0;
+  }
+};
+const getStrategyTaskQualityFactor = (taskNode) =>
+  clampNumber(getStrategyTaskDetectionProbabilityValue(taskNode) * getStrategyTaskTypeWeight(taskNode?.type));
 const getStrategyTaskCadenceFactor = (taskNode) => {
   const intervalHours = getStrategyTaskIntervalHours(taskNode);
   const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
@@ -3264,59 +3346,174 @@ const getStrategyMitigationFactor = (taskNode) => {
       : 0.95;
   return clampNumber(baseDetection * typeWeight * cadenceFactor * enabledFactor);
 };
-const getStrategyCardStatus = (isEnabled, isRecommended) => {
-  if (!isEnabled) {
-    return "disabled";
+const getStrategyTaskDormantControlWindowHours = (effectEstimate, taskNode, overrideHours = null) => {
+  const baseWindowHours = effectEstimate?.baseDormantWindowHours || strategyModelHorizonHours;
+  if (overrideHours && overrideHours > 0) {
+    return Math.min(baseWindowHours || overrideHours, overrideHours);
   }
-  return isRecommended ? "recommended" : "enabled";
+  if (!taskNode) {
+    return baseWindowHours;
+  }
+
+  if (taskNode.type === "ins") {
+    const intervalHours = getStrategyTaskIntervalHours(taskNode);
+    const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
+    return Math.min(baseWindowHours, pfIntervalHours || intervalHours || baseWindowHours);
+  }
+
+  if (taskNode.type === "pm") {
+    return Math.min(baseWindowHours, getStrategyTaskIntervalHours(taskNode) || baseWindowHours);
+  }
+
+  return baseWindowHours;
 };
+const getStrategyTaskPmResidualFailureCount = (effectEstimate, taskNode) => {
+  const intervalHours = getStrategyTaskIntervalHours(taskNode);
+  if (!effectEstimate || !taskNode || !intervalHours || intervalHours <= 0) {
+    return effectEstimate?.expectedFailureCount || 0;
+  }
+
+  const fullCycles = Math.floor(strategyModelHorizonHours / intervalHours);
+  const remainderHours = Math.max(0, strategyModelHorizonHours - fullCycles * intervalHours);
+  const cycleFailureProbability = getFailureProfileCumulativeProbability(effectEstimate.likelihoodProfile, intervalHours);
+  const remainderFailureProbability = getFailureProfileCumulativeProbability(effectEstimate.likelihoodProfile, remainderHours);
+  return Math.max(0, fullCycles * cycleFailureProbability + remainderFailureProbability);
+};
+const getStrategyTaskPmPreventedFraction = (effectEstimate, taskNode) => {
+  const baselineFailureCount = effectEstimate?.expectedFailureCount || 0;
+  if (!(baselineFailureCount > 0) || !taskNode || !(getStrategyTaskIntervalHours(taskNode) > 0)) {
+    return 0;
+  }
+
+  const residualFailureCount = getStrategyTaskPmResidualFailureCount(effectEstimate, taskNode);
+  const intervalDrivenReduction = clampNumber(1 - residualFailureCount / baselineFailureCount);
+  const qualityFactor = 0.55 + getStrategyTaskQualityFactor(taskNode) * 0.45;
+  return clampNumber(intervalDrivenReduction * qualityFactor);
+};
+const getStrategyTaskInspectionPreventedFraction = (effectEstimate, taskNode) => {
+  if (!effectEstimate || !taskNode) {
+    return 0;
+  }
+  const intervalHours = getStrategyTaskIntervalHours(taskNode);
+  if (!(intervalHours > 0)) {
+    return 0;
+  }
+  const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
+  const cadenceWindowHours = pfIntervalHours || effectEstimate.referenceFailureIntervalHours || strategyModelHorizonHours;
+  const cadenceFactor = clampNumber(cadenceWindowHours / intervalHours, 0.18, 1);
+  return clampNumber(cadenceFactor * getStrategyTaskQualityFactor(taskNode));
+};
+const getStrategyTaskResidualConsequenceCount = (effectEstimate, residualFailureCount, controlWindowHours = null) =>
+  getFailureModeRealizedConsequenceCount({
+    expectedFailureCount: residualFailureCount,
+    isDormant: Boolean(effectEstimate?.isDormant),
+    demandFrequencyPerYear: effectEstimate?.demandFrequencyPerYear || 0,
+    controlWindowHours: controlWindowHours || effectEstimate?.baseDormantWindowHours || strategyModelHorizonHours,
+  });
+const createStrategyOutcomeMetrics = (effectEstimate, preventedFraction, executionCost, controlWindowHours = null) => {
+  const safePreventedFraction = clampNumber(preventedFraction);
+  const residualFailureCount = Math.max(0, (effectEstimate?.expectedFailureCount || 0) * (1 - safePreventedFraction));
+  const residualConsequenceCount = getStrategyTaskResidualConsequenceCount(effectEstimate, residualFailureCount, controlWindowHours);
+  const residualExposure = residualConsequenceCount * (effectEstimate?.perEventExposure || 0);
+  const baselineExposure = effectEstimate?.baselineExposure || 0;
+  const exposureReduction = Math.max(0, baselineExposure - residualExposure);
+  const modeledCost = Math.max(0, Number(executionCost) || 0);
+  return {
+    preventedFraction: safePreventedFraction,
+    residualFailureCount,
+    residualConsequenceCount,
+    residualExposure,
+    exposureReduction,
+    modeledCost,
+    totalExpectedCost: residualExposure + modeledCost,
+  };
+};
+const getStrategyCardStatus = (isEnabled) => (isEnabled ? "enabled" : "disabled");
 const getStrategyStatusLabel = (status) => {
   switch (status) {
-    case "recommended":
-      return "Recommended";
     case "enabled":
       return "Enabled";
     default:
       return "Disabled";
   }
 };
-const getStrategyWhyStatement = (taskNode, metrics) => {
-  if (metrics.mitigationFactor >= 0.6) {
-    return `${String(taskNode?.type || "").toUpperCase()} gives strong coverage against this failure path at the current settings.`;
+const getStrategyWhyStatement = (strategy, recommendedCandidate = null) => {
+  if (strategy.isRecommendedLead) {
+    if (strategy.recommendedPackageMemberNames.length > 1) {
+      return `This configured path has the lowest 10-year total expected cost when paired with ${strategy.recommendedPackageMemberNames
+        .filter((name) => name && name !== (strategy.scheduledTaskDescription || strategy.taskCode || ""))
+        .join(" + ")}.`;
+    }
+    return "This configured path has the lowest 10-year total expected cost of the current strategy options.";
   }
-  if (metrics.cadenceFactor < 0.65) {
-    return `${String(taskNode?.type || "").toUpperCase()} is directionally useful, but the current cadence trails the PF window.`;
+
+  if (strategy.taskNodeType === "cm") {
+    return "This is run-to-failure: the corrective task starts only after the failure consequence has already landed.";
   }
-  if (metrics.detectionProbability < 0.4) {
-    return `${String(taskNode?.type || "").toUpperCase()} has limited detectability, so risk reduction is modest.`;
+
+  if (strategy.isSecondaryAction) {
+    return strategy.secondaryActionWarning || "This PM only reduces risk when its linked inspection detects the failure in time.";
   }
-  return `${String(taskNode?.type || "").toUpperCase()} contributes some coverage, but it should be justified against the residual exposure left behind.`;
+
+  if (strategy.taskNodeType === "pm") {
+    return "Scheduled replacement reduces risk when the task interval stays inside the failure timing window.";
+  }
+
+  if (recommendedCandidate && recommendedCandidate.leadTaskNodeId && recommendedCandidate.leadTaskNodeId !== strategy.taskNodeId) {
+    return "Inspection value depends on catching the failure inside the PF window before the functional consequence lands.";
+  }
+
+  return "This strategy changes the 10-year residual exposure through its current cadence and detectability settings.";
 };
-const getStrategyTradeoffStatement = (metrics) => {
-  if (metrics.residualExposure <= metrics.baselineExposure * 0.25) {
-    return "Residual risk is comparatively small after this strategy is active.";
+const getStrategyTradeoffStatement = (strategy, recommendedCandidate = null) => {
+  if (strategy.isRecommendedLead) {
+    const residualExposureLabel = formatCurrency(strategy.recommendedPackageResidualExposure || strategy.residualExposure, {
+      compact: (strategy.recommendedPackageResidualExposure || strategy.residualExposure) >= 1000,
+    });
+    const executionCostLabel = formatCurrency(strategy.recommendedPackageExecutionCost || strategy.modeledCost, {
+      compact: (strategy.recommendedPackageExecutionCost || strategy.modeledCost) >= 1000,
+    });
+    return `It still leaves ${residualExposureLabel} residual exposure and ${executionCostLabel} in 10-year execution cost.`;
   }
-  if (metrics.modeledCost > metrics.exposureReduction) {
-    return "Cost outweighs the modeled exposure reduction, so the economics are weak.";
+
+  if (recommendedCandidate && Number.isFinite(strategy.totalExpectedCost) && Number.isFinite(recommendedCandidate.totalExpectedCost)) {
+    const costGap = strategy.totalExpectedCost - recommendedCandidate.totalExpectedCost;
+    if (Math.abs(costGap) >= 1) {
+      return `This path carries ${formatCurrency(Math.abs(costGap), { compact: Math.abs(costGap) >= 1000 })} ${
+        costGap > 0 ? "more" : "less"
+      } 10-year total expected cost than the recommended path.`;
+    }
   }
-  if (metrics.residualExposure >= metrics.baselineExposure * 0.65) {
-    return "A large share of exposure remains, so this should not be the only line of defense.";
+
+  if (strategy.residualExposure >= strategy.baselineExposure * 0.7) {
+    return "Most of the 10-year consequence exposure still remains after this path.";
   }
-  return "This reduces exposure, but there is still a material trade-off to accept.";
+
+  return "This path trades execution cost against the residual exposure still left in the 10-year horizon.";
 };
-const getStrategyWeaknessFlags = (metrics) => {
+const getStrategyWeaknessFlags = (strategy, recommendedCandidate = null) => {
   const flags = [];
-  if (metrics.secondaryActionWarning) {
-    flags.push(metrics.secondaryActionWarning);
+  if (strategy.secondaryActionWarning) {
+    flags.push(strategy.secondaryActionWarning);
   }
-  if (metrics.detectionProbability < 0.35) {
+  if (strategy.taskNodeType === "cm") {
+    flags.push("Run-to-failure only");
+  }
+  if (strategy.taskNodeType !== "cm" && strategy.detectionProbability < 0.35) {
     flags.push("Low mitigation probability");
   }
-  if (metrics.modeledCost > metrics.exposureReduction) {
+  if (strategy.modeledCost > strategy.exposureReduction) {
     flags.push("High cost for the reduction delivered");
   }
-  if (metrics.residualExposure >= metrics.baselineExposure * 0.65) {
+  if (strategy.residualExposure >= strategy.baselineExposure * 0.65) {
     flags.push("Large residual exposure remains");
+  }
+  if (
+    recommendedCandidate &&
+    recommendedCandidate.leadTaskNodeId !== strategy.taskNodeId &&
+    strategy.totalExpectedCost > recommendedCandidate.totalExpectedCost * 1.05
+  ) {
+    flags.push("Higher 10-year total expected cost than recommended");
   }
   return flags;
 };
@@ -3456,7 +3653,7 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       : buildFailureModeDbJson(failureModeInfo.node, failureModeInfo.path);
   const effectEstimate = getFailureModePrimaryEffectEstimate(failureModeInfo, dbJson);
   const strategyRows = getStrategyTableRowsForSelection(failureModeInfo);
-  const strategies = strategyRows.map((row) => {
+  const baseStrategies = strategyRows.map((row) => {
     const taskNodeInfo = findNodeInfo(state.hierarchy, row.taskNodeId);
     const taskNode = taskNodeInfo?.node || null;
     const taskConfig =
@@ -3467,8 +3664,6 @@ const getFailureModeDecisionData = (failureModeInfo) => {
           : normalizeCmConfig(taskNode?.cmConfig);
     const isTaskEnabled = Boolean(taskConfig?.isEnabled);
     const directExecutionCost = getStrategyTaskDirectExecutionCost(taskNode);
-    const expectedExecutions = getStrategyTaskExpectedExecutions(taskNode);
-    const standaloneMitigationFactor = getStrategyMitigationFactor(taskNode);
     const detectionProbability = getStrategyTaskDetectionProbabilityValue(taskNode);
     const isSecondaryAction = Boolean(taskNode?.type === "pm" && taskConfig?.isSecondaryAction);
     const secondaryLinkState =
@@ -3476,41 +3671,60 @@ const getFailureModeDecisionData = (failureModeInfo) => {
         ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig?.secondaryActionInspectionNodeId, taskConfig?.isSecondaryAction)
         : null;
     const linkedInspectionInfo = secondaryLinkState?.linkedInspection || null;
+    const secondaryRecommendationLinkIsValid = Boolean(isSecondaryAction && linkedInspectionInfo);
     const linkedInspectionDetectionProbability = linkedInspectionInfo ? getStrategyTaskDetectionProbabilityValue(linkedInspectionInfo.node) : 0;
-    const linkedInspectionMitigationFactor = linkedInspectionInfo ? getStrategyMitigationFactor(linkedInspectionInfo.node) : 0;
-    const secondaryTriggeredExecutions =
-      isSecondaryAction && secondaryLinkState?.isValid && linkedInspectionInfo
-        ? getStrategyTaskExpectedExecutions(linkedInspectionInfo.node) * linkedInspectionDetectionProbability
-        : 0;
-    const modeledCost = isSecondaryAction ? directExecutionCost * secondaryTriggeredExecutions : directExecutionCost * expectedExecutions;
-    const mitigationFactor =
-      isSecondaryAction && secondaryLinkState
-        ? secondaryLinkState.isValid
-          ? 1 - (1 - linkedInspectionMitigationFactor) * (1 - linkedInspectionDetectionProbability * standaloneMitigationFactor)
-          : 0
-        : standaloneMitigationFactor;
-    const displayedExposureReduction = effectEstimate.baselineExposure * mitigationFactor;
-    const residualExposure = Math.max(0, effectEstimate.baselineExposure - displayedExposureReduction);
-    const exposureReduction =
-      isSecondaryAction && secondaryLinkState?.isValid
-        ? effectEstimate.baselineExposure * Math.max(0, mitigationFactor - linkedInspectionMitigationFactor)
-        : displayedExposureReduction;
+    const linkedInspectionStandalonePreventedFraction = linkedInspectionInfo
+      ? getStrategyTaskInspectionPreventedFraction(effectEstimate, linkedInspectionInfo.node)
+      : 0;
     const intervalHours = getStrategyTaskIntervalHours(taskNode);
     const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
-    const cadenceFactor = getStrategyTaskCadenceFactor(taskNode);
-    const netValue = exposureReduction - modeledCost;
-    const isRecommended = netValue > 0 || mitigationFactor >= 0.48;
-    const status = getStrategyCardStatus(isTaskEnabled, isRecommended);
-    const metrics = {
-      baselineExposure: effectEstimate.baselineExposure,
-      mitigationFactor,
-      exposureReduction,
-      residualExposure,
+    const cadenceFactor =
+      taskNode?.type === "ins"
+        ? getStrategyTaskCadenceFactor(taskNode)
+        : taskNode?.type === "pm"
+          ? clampNumber(
+              (effectEstimate.referenceFailureIntervalHours || strategyModelHorizonHours) / Math.max(intervalHours || strategyModelHorizonHours, 1),
+              0.18,
+              1
+            )
+          : 0;
+    const expectedExecutions =
+      taskNode?.type === "cm"
+        ? effectEstimate.expectedConsequenceEventCount
+        : isSecondaryAction && secondaryRecommendationLinkIsValid && linkedInspectionInfo
+          ? getStrategyTaskExpectedExecutions(linkedInspectionInfo.node) * linkedInspectionDetectionProbability
+          : getStrategyTaskExpectedExecutions(taskNode);
+    const secondaryResponseFactor =
+      isSecondaryAction && secondaryRecommendationLinkIsValid
+        ? clampNumber(linkedInspectionDetectionProbability * (0.55 + getStrategyTaskQualityFactor(taskNode) * 0.45))
+        : 0;
+    const standalonePreventedFraction =
+      taskNode?.type === "pm"
+        ? isSecondaryAction
+          ? secondaryRecommendationLinkIsValid
+            ? clampNumber(1 - (1 - linkedInspectionStandalonePreventedFraction) * (1 - secondaryResponseFactor))
+            : 0
+          : getStrategyTaskPmPreventedFraction(effectEstimate, taskNode)
+        : taskNode?.type === "ins"
+          ? getStrategyTaskInspectionPreventedFraction(effectEstimate, taskNode)
+          : 0;
+    const preventiveControlWindowHours =
+      taskNode?.type === "pm" && isSecondaryAction && linkedInspectionInfo
+        ? getStrategyTaskDormantControlWindowHours(effectEstimate, linkedInspectionInfo.node)
+        : getStrategyTaskDormantControlWindowHours(effectEstimate, taskNode);
+    const secondaryTriggeredExecutions =
+      isSecondaryAction && secondaryRecommendationLinkIsValid && linkedInspectionInfo
+        ? getStrategyTaskExpectedExecutions(linkedInspectionInfo.node) * linkedInspectionDetectionProbability
+        : 0;
+    const modeledCost = directExecutionCost * expectedExecutions;
+    const outcome = createStrategyOutcomeMetrics(
+      effectEstimate,
+      standalonePreventedFraction,
       modeledCost,
-      detectionProbability,
-      cadenceFactor,
-      secondaryActionWarning: secondaryLinkState?.warningMessage || "",
-    };
+      preventiveControlWindowHours
+    );
+    const netValue = outcome.exposureReduction - outcome.modeledCost;
+    const status = getStrategyCardStatus(isTaskEnabled);
     return {
       ...row,
       taskNode,
@@ -3518,29 +3732,44 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       scheduledTaskIsEnabled: isTaskEnabled,
       status,
       statusLabel: getStrategyStatusLabel(status),
-      isRecommended,
-      modeledCost,
+      isRecommended: false,
+      modeledCost: outcome.modeledCost,
       directExecutionCost,
       expectedExecutions: isSecondaryAction ? secondaryTriggeredExecutions : expectedExecutions,
-      mitigationFactor,
-      standaloneMitigationFactor,
-      exposureReduction,
-      residualExposure,
+      mitigationFactor: standalonePreventedFraction,
+      standaloneMitigationFactor: standalonePreventedFraction,
+      standalonePreventedFraction,
+      exposureReduction: outcome.exposureReduction,
+      residualExposure: outcome.residualExposure,
+      residualConsequenceCost: outcome.residualExposure,
+      residualConsequenceCount: outcome.residualConsequenceCount,
+      residualFailureCount: outcome.residualFailureCount,
+      totalExpectedCost: outcome.totalExpectedCost,
       netValue,
       detectionProbability,
       cadenceFactor,
       isSecondaryAction,
+      secondaryLinkIsValid: Boolean(secondaryLinkState?.isValid),
+      secondaryRecommendationLinkIsValid,
       secondaryActionInspectionNodeId: secondaryLinkState?.linkedInspectionNodeId || "",
       secondaryActionInspectionName: secondaryLinkState?.linkedInspectionName || "",
-      secondaryActionWarning: secondaryLinkState?.warningMessage || "",
+      secondaryActionWarning:
+        secondaryRecommendationLinkIsValid && !secondaryLinkState?.isValid
+          ? "The linked inspection is currently not included, so this path only reduces risk after the inspection is included."
+          : secondaryLinkState?.warningMessage || "",
+      secondaryResponseFactor,
+      linkedInspectionDetectionProbability,
+      linkedInspectionStandalonePreventedFraction,
       secondaryTriggeredExecutions,
-      weaknessFlags: getStrategyWeaknessFlags(metrics),
-      whyStatement: getStrategyWhyStatement(taskNode, metrics),
-      tradeoffStatement: getStrategyTradeoffStatement(metrics),
+      weaknessFlags: [],
+      whyStatement: "",
+      tradeoffStatement: "",
       intervalHours,
       pfIntervalHours,
       durationHours: getStrategyTaskDurationHours(taskNode),
       labourHours: getStrategyTaskLabourHours(taskNode),
+      baselineExposure: effectEstimate.baselineExposure,
+      preventiveControlWindowHours,
       technicalDetails: {
         taskCode: row.taskCode,
         intervalLabel: row.scheduledTaskIntervalShortDescription || formatHoursLabel(intervalHours),
@@ -3551,55 +3780,215 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       },
     };
   });
+  const createCandidate = ({
+    id,
+    leadTaskNodeId,
+    memberTaskNodeIds,
+    packageType,
+    preventedFraction,
+    executionCost,
+    controlWindowHours,
+    leadStrategyType,
+  }) => {
+    const outcome = createStrategyOutcomeMetrics(effectEstimate, preventedFraction, executionCost, controlWindowHours);
+    return {
+      id,
+      leadTaskNodeId,
+      memberTaskNodeIds,
+      packageType,
+      leadStrategyType,
+      preventedFraction: outcome.preventedFraction,
+      executionCost: outcome.modeledCost,
+      residualExposure: outcome.residualExposure,
+      residualConsequenceCost: outcome.residualExposure,
+      residualConsequenceCount: outcome.residualConsequenceCount,
+      totalExpectedCost: outcome.totalExpectedCost,
+    };
+  };
+  const candidateStrategies = [];
+  baseStrategies.forEach((strategy) => {
+    if (!strategy.taskNode || (strategy.taskNodeType === "pm" && strategy.isSecondaryAction)) {
+      return;
+    }
+
+    candidateStrategies.push(
+      createCandidate({
+        id: `task:${strategy.taskNodeId}`,
+        leadTaskNodeId: strategy.taskNodeId,
+        memberTaskNodeIds: [strategy.taskNodeId],
+        packageType: strategy.taskNodeType,
+        preventedFraction: strategy.standalonePreventedFraction,
+        executionCost: strategy.modeledCost,
+        controlWindowHours: strategy.preventiveControlWindowHours,
+        leadStrategyType: strategy.taskNodeType,
+      })
+    );
+
+    if (strategy.taskNodeType !== "ins") {
+      return;
+    }
+
+    baseStrategies
+      .filter(
+        (entry) =>
+          entry.taskNodeType === "pm" &&
+          entry.isSecondaryAction &&
+          entry.secondaryRecommendationLinkIsValid &&
+          entry.secondaryActionInspectionNodeId === strategy.taskNodeId
+      )
+      .forEach((secondaryStrategy) => {
+        const chainPreventedFraction = clampNumber(
+          1 - (1 - strategy.standalonePreventedFraction) * (1 - secondaryStrategy.secondaryResponseFactor)
+        );
+        candidateStrategies.push(
+          createCandidate({
+            id: `package:${strategy.taskNodeId}:${secondaryStrategy.taskNodeId}`,
+            leadTaskNodeId: strategy.taskNodeId,
+            memberTaskNodeIds: [strategy.taskNodeId, secondaryStrategy.taskNodeId],
+            packageType: "ins-secondary-pm",
+            preventedFraction: chainPreventedFraction,
+            executionCost: strategy.modeledCost + secondaryStrategy.modeledCost,
+            controlWindowHours: strategy.preventiveControlWindowHours,
+            leadStrategyType: strategy.taskNodeType,
+          })
+        );
+      });
+  });
+  const rankedCandidates = [...candidateStrategies]
+    .sort((left, right) => {
+      if (left.totalExpectedCost !== right.totalExpectedCost) {
+        return left.totalExpectedCost - right.totalExpectedCost;
+      }
+      if (left.residualExposure !== right.residualExposure) {
+        return left.residualExposure - right.residualExposure;
+      }
+      return left.id.localeCompare(right.id, undefined, { numeric: true, sensitivity: "base" });
+    })
+    .map((candidate, index) => ({
+      ...candidate,
+      rank: index + 1,
+    }));
+  const recommendedCandidate = rankedCandidates[0] || null;
+  const strategyLabelById = new Map(
+    baseStrategies.map((strategy) => [strategy.taskNodeId, strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy"])
+  );
+  const strategies = baseStrategies.map((strategy) => {
+    const isRecommendedLead = Boolean(recommendedCandidate && recommendedCandidate.leadTaskNodeId === strategy.taskNodeId);
+    const isRecommendedPackageMember = Boolean(
+      recommendedCandidate && recommendedCandidate.memberTaskNodeIds.includes(strategy.taskNodeId)
+    );
+    const recommendedPackageMemberNames = recommendedCandidate
+      ? recommendedCandidate.memberTaskNodeIds.map((nodeId) => strategyLabelById.get(nodeId) || nodeId)
+      : [];
+    const finalizedStrategy = {
+      ...strategy,
+      isRecommended: isRecommendedLead,
+      isRecommendedLead,
+      isRecommendedPackageMember,
+      recommendedPackageId: recommendedCandidate?.id || "",
+      recommendedPackageLeadTaskNodeId: recommendedCandidate?.leadTaskNodeId || "",
+      recommendedPackageMemberTaskNodeIds: recommendedCandidate?.memberTaskNodeIds || [],
+      recommendedPackageMemberNames,
+      recommendedPackageType: recommendedCandidate?.packageType || "",
+      recommendedPackageResidualExposure: recommendedCandidate?.residualExposure || 0,
+      recommendedPackageResidualConsequenceCost: recommendedCandidate?.residualConsequenceCost || 0,
+      recommendedPackageExecutionCost: recommendedCandidate?.executionCost || 0,
+      recommendationRank:
+        recommendedCandidate?.leadTaskNodeId === strategy.taskNodeId
+          ? recommendedCandidate.rank
+          : rankedCandidates.find((candidate) => candidate.leadTaskNodeId === strategy.taskNodeId)?.rank || 0,
+    };
+    return {
+      ...finalizedStrategy,
+      whyStatement: getStrategyWhyStatement(finalizedStrategy, recommendedCandidate),
+      tradeoffStatement: getStrategyTradeoffStatement(finalizedStrategy, recommendedCandidate),
+      weaknessFlags: getStrategyWeaknessFlags(finalizedStrategy, recommendedCandidate),
+    };
+  });
   const enabledStrategies = strategies.filter((entry) => entry.scheduledTaskIsEnabled);
   const enabledSecondaryStrategiesByInspectionId = enabledStrategies
-    .filter((entry) => entry.taskNode?.type === "pm" && entry.isSecondaryAction && entry.secondaryActionInspectionNodeId)
+    .filter(
+      (entry) => entry.taskNode?.type === "pm" && entry.isSecondaryAction && entry.secondaryActionInspectionNodeId && entry.secondaryLinkIsValid
+    )
     .reduce((lookup, entry) => {
       const nextEntries = lookup.get(entry.secondaryActionInspectionNodeId) || [];
       nextEntries.push(entry);
       lookup.set(entry.secondaryActionInspectionNodeId, nextEntries);
       return lookup;
     }, new Map());
-  const combinedMitigationPathways = enabledStrategies.flatMap((entry) => {
+  const preventivePathways = [];
+  let totalModeledCost = 0;
+  enabledStrategies.forEach((entry) => {
     if (entry.taskNode?.type === "pm" && entry.isSecondaryAction) {
-      return [];
+      return;
     }
 
-    if (entry.taskNode?.type !== "ins") {
-      return [entry.mitigationFactor];
+    if (entry.taskNode?.type === "ins") {
+      const linkedSecondaryStrategies = enabledSecondaryStrategiesByInspectionId.get(entry.taskNodeId) || [];
+      if (linkedSecondaryStrategies.length) {
+        const chainPreventedFraction = linkedSecondaryStrategies.reduce(
+          (combinedMitigation, secondaryEntry) =>
+            clampNumber(1 - (1 - combinedMitigation) * (1 - secondaryEntry.secondaryResponseFactor)),
+          entry.standalonePreventedFraction
+        );
+        preventivePathways.push({
+          preventedFraction: chainPreventedFraction,
+          controlWindowHours: entry.preventiveControlWindowHours,
+        });
+        totalModeledCost += entry.modeledCost + linkedSecondaryStrategies.reduce((sum, secondaryEntry) => sum + secondaryEntry.modeledCost, 0);
+        return;
+      }
+
+      preventivePathways.push({
+        preventedFraction: entry.standalonePreventedFraction,
+        controlWindowHours: entry.preventiveControlWindowHours,
+      });
+      totalModeledCost += entry.modeledCost;
+      return;
     }
 
-    const linkedSecondaryStrategies = enabledSecondaryStrategiesByInspectionId.get(entry.taskNodeId) || [];
-    if (!linkedSecondaryStrategies.length) {
-      return [entry.mitigationFactor];
+    if (entry.taskNode?.type === "pm") {
+      preventivePathways.push({
+        preventedFraction: entry.standalonePreventedFraction,
+        controlWindowHours: entry.preventiveControlWindowHours,
+      });
+      totalModeledCost += entry.modeledCost;
+      return;
     }
 
-    const inspectionDetectionProbability = entry.detectionProbability;
-    const chainMitigationFactor = linkedSecondaryStrategies.reduce(
-      (combinedMitigation, secondaryEntry) =>
-        1 - (1 - combinedMitigation) * (1 - inspectionDetectionProbability * secondaryEntry.standaloneMitigationFactor),
-      entry.standaloneMitigationFactor
-    );
-    return [chainMitigationFactor];
+    totalModeledCost += entry.modeledCost;
   });
-  const combinedMitigationFactor = combinedMitigationPathways.length
-    ? 1 - combinedMitigationPathways.reduce((remainingRiskFactor, mitigationValue) => remainingRiskFactor * (1 - mitigationValue), 1)
+  const combinedMitigationFactor = preventivePathways.length
+    ? 1 - preventivePathways.reduce((remainingRiskFactor, pathway) => remainingRiskFactor * (1 - pathway.preventedFraction), 1)
     : 0;
-  const residualExposure = effectEstimate.baselineExposure * (1 - combinedMitigationFactor);
-  const exposureReduction = effectEstimate.baselineExposure - residualExposure;
-  const totalModeledCost = enabledStrategies.reduce((sum, entry) => sum + entry.modeledCost, 0);
+  const combinedControlWindowHours = preventivePathways.length
+    ? preventivePathways.reduce(
+        (smallestWindow, pathway) =>
+          Math.min(smallestWindow, pathway.controlWindowHours || effectEstimate.baseDormantWindowHours || strategyModelHorizonHours),
+        effectEstimate.baseDormantWindowHours || strategyModelHorizonHours
+      )
+    : effectEstimate.baseDormantWindowHours || strategyModelHorizonHours;
+  const comparisonOutcome = createStrategyOutcomeMetrics(
+    effectEstimate,
+    combinedMitigationFactor,
+    totalModeledCost,
+    combinedControlWindowHours
+  );
   return {
     failureModeInfo,
     dbJson,
     effectEstimate,
     strategies,
+    rankedCandidates,
+    recommendedCandidate,
     enabledStrategies,
     comparison: {
       baselineExposure: effectEstimate.baselineExposure,
-      exposureReduction,
-      residualExposure,
-      totalModeledCost,
-      netValue: exposureReduction - totalModeledCost,
+      exposureReduction: comparisonOutcome.exposureReduction,
+      residualExposure: comparisonOutcome.residualExposure,
+      totalModeledCost: comparisonOutcome.modeledCost,
+      totalExpectedCost: comparisonOutcome.totalExpectedCost,
+      netValue: comparisonOutcome.exposureReduction - comparisonOutcome.modeledCost,
       enabledCount: enabledStrategies.length,
       totalCount: strategies.length,
     },
@@ -3609,6 +3998,7 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       componentName: String(dbJson["Component Name"] || "").trim(),
       mttfHours: effectEstimate.mttfHours,
       expectedFailureCount: effectEstimate.expectedFailureCount,
+      expectedConsequenceEventCount: effectEstimate.expectedConsequenceEventCount,
       perEventExposure: effectEstimate.perEventExposure,
       untreatedRiskLabel: getFailureModeRiskLabel(effectEstimate.baselineExposure),
       alarmEnabled: Boolean(dbJson["Failure Mode Alarm Is Enabled"]),
@@ -3616,6 +4006,8 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       alarmDetectionProbability: clampNumber((parseNumericInput(dbJson["Failure Mode Alarm Detection Probability"]) || 0) / 100),
       effectRangeLabel: effectEstimate.effectRangeLabel,
       downtimeRate: effectEstimate.downtimeRate,
+      demandFrequencyPerYear: effectEstimate.demandFrequencyPerYear,
+      isDormant: effectEstimate.isDormant,
     },
   };
 };
@@ -7412,7 +7804,14 @@ const renderStrategyDecisionDetails = (strategy, detailId) => `
             ? `<div><dt>Triggering inspection</dt><dd>${escapeHtml(strategy.secondaryActionInspectionName || (strategy.isSecondaryAction ? "Not linked" : "Not required"))}</dd></div>`
             : ""
         }
-        <div><dt>10-year net value</dt><dd>${escapeHtml(formatSignedCurrency(strategy.netValue))}</dd></div>
+        <div><dt>10-year residual exposure</dt><dd>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</dd></div>
+        <div><dt>10-year execution cost</dt><dd>${escapeHtml(formatCurrency(strategy.modeledCost, { compact: strategy.modeledCost >= 1000 }))}</dd></div>
+        <div><dt>10-year total expected cost</dt><dd>${escapeHtml(formatCurrency(strategy.totalExpectedCost, { compact: strategy.totalExpectedCost >= 1000 }))}</dd></div>
+        ${
+          strategy.isRecommendedLead && strategy.recommendedPackageMemberNames.length > 1
+            ? `<div><dt>Recommended path</dt><dd>${escapeHtml(strategy.recommendedPackageMemberNames.join(" + "))}</dd></div>`
+            : ""
+        }
       </dl>
     </div>
     <div class="strategy-option-details__actions">
@@ -7431,7 +7830,7 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
   const detailId = strategyDecisionDetailsDrawerId;
   return `
     <article
-      class="strategy-option-card strategy-option-card--${strategy.status} ${isSelected ? "is-selected" : ""} ${isExpanded ? "is-expanded" : ""}"
+      class="strategy-option-card strategy-option-card--${strategy.status} ${strategy.isRecommendedLead ? "strategy-option-card--recommended" : ""} ${isSelected ? "is-selected" : ""} ${isExpanded ? "is-expanded" : ""}"
       data-strategy-task-row="${escapeHtml(strategy.taskNodeId)}"
     >
       <div class="strategy-option-card__header">
@@ -7439,7 +7838,7 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
           <div class="strategy-option-card__badges">
             <span class="strategy-option-card__status">${escapeHtml(strategy.statusLabel)}</span>
             <span class="strategy-option-card__type">${escapeHtml(strategy.strategyType)}</span>
-            ${strategy.isRecommended && strategy.status !== "recommended" ? '<span class="strategy-option-card__recommended-dot" aria-hidden="true"></span>' : ""}
+            ${strategy.isRecommendedLead ? '<span class="strategy-option-card__recommended-badge">Recommended</span>' : ""}
           </div>
           <h4>${escapeHtml(strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy")}</h4>
         </div>
@@ -7512,13 +7911,20 @@ const renderDecisionWorkspace = (nodeInfo) => {
   }
 
   const sortedStrategies = [...selectedDecisionData.strategies].sort((left, right) => {
-    const statusWeight = { recommended: 0, enabled: 1, disabled: 2 };
-    const leftWeight = statusWeight[left.status] ?? 3;
-    const rightWeight = statusWeight[right.status] ?? 3;
+    const recommendationWeight = left.isRecommendedLead === right.isRecommendedLead ? 0 : left.isRecommendedLead ? -1 : 1;
+    if (recommendationWeight) {
+      return recommendationWeight;
+    }
+    const statusWeight = { enabled: 0, disabled: 1 };
+    const leftWeight = statusWeight[left.status] ?? 2;
+    const rightWeight = statusWeight[right.status] ?? 2;
     if (leftWeight !== rightWeight) {
       return leftWeight - rightWeight;
     }
-    return right.netValue - left.netValue;
+    if (left.totalExpectedCost !== right.totalExpectedCost) {
+      return left.totalExpectedCost - right.totalExpectedCost;
+    }
+    return left.taskCode.localeCompare(right.taskCode, undefined, { numeric: true, sensitivity: "base" });
   });
 
   return `
