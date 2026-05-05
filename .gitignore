@@ -1,7 +1,7 @@
 nextgenmaint-newui-main/
-nextgenmaint-newui-main/
-nextgenmaint-newui-main/
-nextgenmaint-newui-main/
-nextgenmaint-newui-main/
-nextgenmaint-newui-main/
 .app-data/
+node_modules/
+dist/
+coverage/
+.vite/
+__risk_slice*.txt

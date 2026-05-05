@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maintenance Strategy Generator | Existing Workspace</title>
+</head>
+<body class="maintenance-strategy-page" data-theme="light">
+  <div class="app-shell">
+    <aside class="sidebar" aria-hidden="true">
+      <div class="sidebar__brand">
+        <button id="sidebarToggle" class="sidebar-logo" aria-label="Toggle sidebar" aria-expanded="false" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+            <path d="M9 8v8M15 8l-4 4 4 4"></path>
+          </svg>
+        </button>
+        <div class="sidebar__brand-copy">
+          <strong>AgenticAI</strong>
+          <span>Reliability workspace</span>
+        </div>
+      </div>
+
+      <button class="org-switcher" aria-label="Current workspace" type="button">
+        <span>Namin</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6"></path>
+        </svg>
+      </button>
+
+      <nav class="sidebar-nav" aria-label="Primary">
+        <a class="nav-pill" href="index.html">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+            </svg>
+          </span>
+          <span>Home</span>
+        </a>
+        <button class="nav-pill is-active" type="button">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14.5 5.5a3 3 0 0 1 4 4l-2 2-4-4zM4 20l4.5-1 8-8-3.5-3.5-8 8z"></path>
+            </svg>
+          </span>
+          <span>Maintenance Strategy</span>
+        </button>
+      </nav>
+
+      <div class="sidebar__section-label">Workflow</div>
+      <nav class="sidebar-nav sidebar-nav--stacked" aria-label="Workflow steps">
+        <button class="nav-row nav-row--active" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </span>
+          <span>1. Asset &amp; Context</span>
+        </button>
+        <button class="nav-row" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 6h10M7 12h10M7 18h10"></path>
+              <path d="M4 6h.01M4 12h.01M4 18h.01"></path>
+            </svg>
+          </span>
+          <span>2. Failure Definition</span>
+        </button>
+        <button class="nav-row" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M5 12h14"></path>
+            </svg>
+          </span>
+          <span>3. Task Logic</span>
+        </button>
+        <button class="nav-row" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 18h16"></path>
+              <path d="M6 18V9l6-4 6 4v9"></path>
+            </svg>
+          </span>
+          <span>4. Interval Review</span>
+        </button>
+        <button class="nav-row" type="button">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 4h12v16H6z"></path>
+              <path d="M9 8h6M9 12h6M9 16h4"></path>
+            </svg>
+          </span>
+          <span>5. Review &amp; Export</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a class="nav-row nav-row--footer" href="index.html">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+          </span>
+          <span>Back to home</span>
+        </a>
+        <section class="upgrade-card">
+          <div class="upgrade-card__title">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13 2L4 14h6l-1 8 9-12h-6z"></path>
+            </svg>
+            <strong>Step 1 goal</strong>
+          </div>
+          <p>Place the strategy on the right asset hierarchy before the rest of the workflow begins.</p>
+        </section>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="search-shell search-shell--page">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 12h16"></path>
+            <path d="M4 6h9"></path>
+            <path d="M4 18h12"></path>
+          </svg>
+          <div class="search-shell__copy">
+            <strong>Maintenance Strategy Generator</strong>
+            <span>Asset taxonomy workspace</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="themeToggle" class="icon-button" aria-label="Toggle theme" type="button">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"></path>
+            </svg>
+          </button>
+          <a class="icon-button icon-button--link" href="index.html" aria-label="Return home">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+          </a>
+        </div>
+      </header>
+
+      <nav class="maintenance-menu-bar" aria-label="Workspace menu">
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Context</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Asset hierarchy</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Asset templates</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Operating context</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Criticality and redundancy</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Constraints</button>
+          </div>
+        </div>
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Failure</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">FMEA linkage</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Import FMEA</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Quick failure modes</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Severity and consequence</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Detectability intent</button>
+          </div>
+        </div>
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Strategy</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Strategy type</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Task definition</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Detection strategy</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Frequency and interval logic</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Resource definition</button>
+          </div>
+        </div>
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Planning</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Execution inputs</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Cost modelling</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Risk trade-off</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Strategy output</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Export and packaging</button>
+          </div>
+        </div>
+        <div class="maintenance-menu" data-menu>
+          <button class="maintenance-menu__button" type="button" data-menu-trigger aria-expanded="false">Help</button>
+          <div class="maintenance-menu__panel" role="menu" hidden>
+            <button class="maintenance-menu__item" type="button" role="menuitem">How it works</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Field definitions</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Strategy examples</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">Standards and guidance</button>
+            <button class="maintenance-menu__item" type="button" role="menuitem">About</button>
+          </div>
+        </div>
+      </nav>
+
+      <main id="maintenanceWorkspace" class="workspace workspace--wide workspace--maintenance workspace--maintenance-modal">
+        <section id="assetWorkspace" class="asset-workspace">
+          <aside class="asset-register asset-workspace__hierarchy" aria-label="Asset hierarchy browser">
+            <div class="asset-register__toolbar">
+              <div class="asset-register__titlebar">
+                <strong>Assets</strong>
+                <div class="asset-register__view-toggle" role="group" aria-label="Asset browser view">
+                  <button
+                    id="assetHierarchyTreeViewButton"
+                    class="asset-register__view-button is-active"
+                    type="button"
+                    aria-label="Show grouped asset hierarchy"
+                    aria-pressed="true"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 5h6v6H4zM14 5h6v6h-6zM4 13h6v6H4zM14 13h6v6h-6z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    id="assetHierarchyListViewButton"
+                    class="asset-register__view-button"
+                    type="button"
+                    aria-label="Show equipment list"
+                    aria-pressed="false"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7h16M4 12h16M4 17h16"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <label class="asset-register__filter" for="assetHierarchyFilter">
+                <span>filter by</span>
+                <div class="asset-register__filter-shell">
+                  <input id="assetHierarchyFilter" type="search" placeholder="Assets">
+                  <span class="asset-register__filter-caret" aria-hidden="true"></span>
+                </div>
+              </label>
+            </div>
+
+            <div class="asset-register__table" role="treegrid" aria-label="Asset hierarchy">
+              <div class="asset-register__header">
+                <span aria-hidden="true"></span>
+                <span class="asset-register__header-cell asset-register__header-cell--location">
+                  <span>Name</span>
+                  <button id="assetRegisterColumnResizeHandle" class="asset-register__column-resize" type="button" aria-label="Resize name and description columns"></button>
+                </span>
+                <span class="asset-register__header-cell asset-register__header-cell--description">Description</span>
+              </div>
+              <div id="assetHierarchyTree" class="asset-register__body"></div>
+            </div>
+          </aside>
+
+          <div
+            id="assetWorkspacePaneResizeHandle"
+            class="asset-workspace__resize-handle"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize asset hierarchy pane"
+          >
+            <button
+              id="assetWorkspaceCollapseToggle"
+              class="asset-workspace__collapse-toggle"
+              type="button"
+              aria-label="Collapse asset browser"
+              aria-pressed="false"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 6l-6 6 6 6"></path>
+              </svg>
+            </button>
+          </div>
+
+          <section class="asset-workspace__main">
+            <section class="strategy-surface strategy-surface--flat asset-workspace__panel">
+              <div class="strategy-surface__header strategy-surface__header--spread">
+                <div>
+                  <strong id="selectedNodeTypeLabel">Strategies</strong>
+                </div>
+                <div id="selectedNodeActions" class="maintenance-panel__actions"></div>
+              </div>
+
+              <div class="strategy-detail">
+                <h2 id="backgroundDetailHeading">Asset context pending</h2>
+                <p id="backgroundDetailSummary">The strategy workspace will open once the asset hierarchy is defined.</p>
+              </div>
+
+              <div id="childCreatorPanel" class="asset-child-creator" hidden></div>
+              <div id="strategyList" class="strategy-draft-list"></div>
+            </section>
+          </section>
+        </section>
+
+        <section id="assetContextOverlay" class="asset-context-overlay">
+          <div class="asset-context-modal" role="dialog" aria-modal="true" aria-labelledby="assetContextTitle">
+            <div class="asset-context-modal__header">
+              <h1 id="assetContextTitle">Asset Taxonomy</h1>
+              <p>Define the starting asset hierarchy for this strategy.</p>
+            </div>
+
+            <div id="workflowNotice" class="maintenance-notice" hidden></div>
+
+            <form id="assetContextForm" class="asset-context-form">
+              <div class="asset-context-entry-block">
+                <span class="asset-context-entry-block__label">Plant / Unit</span>
+                <div class="asset-context-entry-grid">
+                  <label class="field">
+                    <span>Code segment</span>
+                    <input id="plantUnitCodeInput" type="text" placeholder="Enter code segment">
+                  </label>
+                  <label class="field">
+                    <span>Name</span>
+                    <input id="plantUnitNameInput" type="text" placeholder="Enter name">
+                  </label>
+                </div>
+              </div>
+
+              <div class="asset-context-entry-block">
+                <span class="asset-context-entry-block__label">Section / System</span>
+                <div class="asset-context-entry-grid">
+                  <label class="field">
+                    <span>Code segment</span>
+                    <div class="hierarchy-code-field" id="sectionSystemCodeField">
+                      <span id="sectionSystemCodePrefix" class="hierarchy-code-field__prefix"></span>
+                      <input id="sectionSystemCodeInput" type="text" placeholder="Enter code segment" disabled>
+                    </div>
+                  </label>
+                  <label class="field">
+                    <span>Name</span>
+                    <input id="sectionSystemNameInput" type="text" placeholder="Enter name" disabled>
+                  </label>
+                </div>
+              </div>
+
+              <div class="asset-context-dynamic-list">
+                <button id="addSubsystemButton" class="asset-context-inline-action" type="button">+ Add sub-system</button>
+              </div>
+
+              <div id="subsystemList" class="asset-context-dynamic-list"></div>
+
+              <div class="asset-context-entry-block">
+                <span class="asset-context-entry-block__label">Equipment Unit</span>
+                <div class="asset-context-entry-grid">
+                  <label class="field">
+                    <span>Code segment</span>
+                    <div class="hierarchy-code-field" id="equipmentUnitCodeField">
+                      <span id="equipmentUnitCodePrefix" class="hierarchy-code-field__prefix"></span>
+                      <input id="equipmentUnitCodeInput" type="text" placeholder="Enter code segment" disabled>
+                    </div>
+                  </label>
+                  <label class="field">
+                    <span>Name</span>
+                    <input id="equipmentUnitNameInput" type="text" placeholder="Enter name" disabled>
+                  </label>
+                </div>
+              </div>
+
+              <div class="asset-context-dynamic-list">
+                <button
+                  id="equipmentUnitMoreInfoButton"
+                  class="asset-context-inline-action asset-context-inline-action--secondary"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-controls="equipmentEntryInfoPopup"
+                  disabled
+                >
+                  More information
+                </button>
+              </div>
+
+              <div class="asset-context-dynamic-list">
+                <button id="addSubunitButton" class="asset-context-inline-action asset-context-inline-action--secondary" type="button">+ Add subunit</button>
+              </div>
+
+              <div id="subunitContainer" class="asset-context-dynamic-list"></div>
+            </form>
+
+            <div class="asset-context-path">
+              <span class="asset-context-path__label">Functional location preview</span>
+              <strong id="assetPathPreview">Functional location preview updates as you define the hierarchy.</strong>
+            </div>
+
+            <footer class="asset-context-modal__footer">
+              <a class="secondary-button maintenance-footer__back" href="index.html">Cancel</a>
+              <div class="maintenance-footer__actions">
+                <button id="saveDraftButton" class="secondary-button" type="button">Save draft</button>
+                <button id="continueButton" class="primary-button" type="button" disabled>Continue</button>
+              </div>
+            </footer>
+          </div>
+          <div id="equipmentEntryInfoPopup" class="asset-context-subdialog" hidden></div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="./src/entries/maintenance-strategy-existing.ts"></script>
+</body>
+</html>

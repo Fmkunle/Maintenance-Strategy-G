@@ -918,7 +918,18 @@ const escapeHtml = (value) =>
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+// Product bridge:
+// This is the hierarchy-side equivalent of the extracted risk bridge. During the
+// modular migration, the legacy runtime can prefer typed domain helpers without
+// giving up the current in-file implementations as a safe fallback.
+const getProductHierarchyBridge = () => globalThis.__maintenanceProductBridge?.hierarchy || null;
+
 const findNodeInfo = (nodes, nodeId, parent = null, path = []) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.findNodeInfo) {
+    return hierarchyBridge.findNodeInfo(nodes, nodeId, parent, path);
+  }
+
   for (const node of nodes) {
     const nextPath = [...path, node];
     if (node.id === nodeId) {
@@ -929,7 +940,7 @@ const findNodeInfo = (nodes, nodeId, parent = null, path = []) => {
       };
     }
 
-    const childMatch = findNodeInfo(node.children, nodeId, node, nextPath);
+    const childMatch = findNodeInfo(node.children || [], nodeId, node, nextPath);
     if (childMatch) {
       return childMatch;
     }
@@ -939,29 +950,59 @@ const findNodeInfo = (nodes, nodeId, parent = null, path = []) => {
 };
 
 const getFirstNode = (nodes) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.getFirstNode) {
+    return hierarchyBridge.getFirstNode(nodes);
+  }
+
   if (!nodes.length) {
     return null;
   }
 
   let current = nodes[0];
-  while (current.children.length) {
+  while ((current.children || []).length) {
     current = current.children[0];
   }
   return current;
 };
 
-const removeNodeFromHierarchy = (nodes, nodeId) =>
-  nodes
+const removeNodeFromHierarchy = (nodes, nodeId) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.removeNodeFromHierarchy) {
+    return hierarchyBridge.removeNodeFromHierarchy(nodes, nodeId);
+  }
+
+  return nodes
     .filter((node) => node.id !== nodeId)
     .map((node) => ({
       ...node,
-      children: removeNodeFromHierarchy(node.children, nodeId),
+      children: removeNodeFromHierarchy(node.children || [], nodeId),
     }));
+};
 
-const isCodeLikeHierarchyValue = (value) => /^[A-Z0-9]+(?:[._-][A-Z0-9]+)*$/.test(String(value || "").trim());
-const getHierarchySeparatorForType = (nodeType) => (strategyHierarchyNodeTypes.has(nodeType) ? "." : "-");
+const isCodeLikeHierarchyValue = (value) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.isCodeLikeHierarchyValue) {
+    return hierarchyBridge.isCodeLikeHierarchyValue(value);
+  }
+
+  return /^[A-Z0-9]+(?:[._-][A-Z0-9]+)*$/.test(String(value || "").trim());
+};
+const getHierarchySeparatorForType = (nodeType) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.getHierarchySeparatorForType) {
+    return hierarchyBridge.getHierarchySeparatorForType(nodeType);
+  }
+
+  return strategyHierarchyNodeTypes.has(nodeType) ? "." : "-";
+};
 
 const joinInheritedCode = (parentFullCode, childSegment, childType = "") => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.joinInheritedCode) {
+    return hierarchyBridge.joinInheritedCode(parentFullCode, childSegment, childType);
+  }
+
   const parentValue = String(parentFullCode || "").trim();
   const childValue = String(childSegment || "").trim();
   if (!parentValue) {
@@ -974,6 +1015,11 @@ const joinInheritedCode = (parentFullCode, childSegment, childType = "") => {
 };
 
 const extractLocalCodeSegment = (value, parentFullCode = "", childType = "") => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.extractLocalCodeSegment) {
+    return hierarchyBridge.extractLocalCodeSegment(value, parentFullCode, childType);
+  }
+
   const rawValue = String(value || "").trim();
   const parentValue = String(parentFullCode || "").trim();
   if (!rawValue) {
@@ -1646,8 +1692,14 @@ const applyInheritedPrefix = (fieldElement, prefixElement, prefixValue) => {
   fieldElement.classList.toggle("has-prefix", Boolean(prefixValue));
 };
 
-const getFullCodeFromPath = (path) =>
-  path.reduce((fullCode, node) => joinInheritedCode(fullCode, String(node?.code || "").trim(), node?.type || ""), "");
+const getFullCodeFromPath = (path) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.getFullCodeFromPath) {
+    return hierarchyBridge.getFullCodeFromPath(path);
+  }
+
+  return path.reduce((fullCode, node) => joinInheritedCode(fullCode, String(node?.code || "").trim(), node?.type || ""), "");
+};
 
 const getFullNameFromPath = (path) =>
   path
@@ -1932,6 +1984,13 @@ const hideNotice = () => {
 };
 
 const persistDraft = (message = "") => {
+  // Product note:
+  // This is the central persistence checkpoint for the workspace. Any future
+  // state-store migration must preserve the order here:
+  // 1. refresh derived failure-mode snapshots
+  // 2. stamp the saved timestamp
+  // 3. persist locally
+  // 4. queue backend synchronization
   refreshDerivedFailureModeJson();
   state = {
     ...state,
@@ -2852,9 +2911,29 @@ const getNodeBrowserDescription = (nodePath, node) =>
   getNodeDescription(node) || getFullCodeFromPath(nodePath) || getNodeLabel(node);
 const getNodeFullCode = (node, path = []) =>
   getNodeNameValue(node, getFullCodeFromPath(path) || getNodeCodeValue(node, nodeTypeMeta[node.type]?.placeholder || "Untitled node"));
-const getParentPath = (path) => (Array.isArray(path) && path.length > 1 ? path.slice(0, -1) : []);
-const getParentFullCodeFromPath = (path) => getFullCodeFromPath(getParentPath(path));
+const getParentPath = (path) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.getParentPath) {
+    return hierarchyBridge.getParentPath(path);
+  }
+
+  return Array.isArray(path) && path.length > 1 ? path.slice(0, -1) : [];
+};
+const getParentFullCodeFromPath = (path) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.getParentFullCodeFromPath) {
+    return hierarchyBridge.getParentFullCodeFromPath(path);
+  }
+
+  return getFullCodeFromPath(getParentPath(path));
+};
+const getProductPersistenceMapperBridge = () => globalThis.__maintenanceProductBridge?.persistenceMappers || null;
 const getFailureModeJsonForPath = (path = []) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.getFailureModeJsonForPath) {
+    return persistenceMapperBridge.getFailureModeJsonForPath(path);
+  }
+
   const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
   return failureModeNode?.failureConfig?.dbJson && typeof failureModeNode.failureConfig.dbJson === "object"
     ? failureModeNode.failureConfig.dbJson
@@ -2863,6 +2942,14 @@ const getFailureModeJsonForPath = (path = []) => {
 const annualHours = 8760;
 const strategyModelHorizonYears = 10;
 const strategyModelHorizonHours = annualHours * strategyModelHorizonYears;
+// Product bridge:
+// During the migration from demo script to modular product packages, the web app
+// can inject a typed risk engine here. The legacy runtime still owns the DOM, but
+// it no longer needs to be the only source of truth for business calculations.
+const getProductRiskBridge = () => globalThis.__maintenanceProductBridge?.risk || null;
+const getProductNodePanelRendererBridge = () => globalThis.__maintenanceProductBridge?.workspaceRenderers?.nodePanel || null;
+const getProductEditorRendererBridge = () => globalThis.__maintenanceProductBridge?.workspaceRenderers?.editors || null;
+const getProductWorkspaceRendererBridge = () => globalThis.__maintenanceProductBridge?.workspaceRenderers?.strategy || null;
 const defaultStrategyExecutionRate = 125;
 const strategyResourceHourlyRates = {
   "ELECT TECH": 125,
@@ -3167,6 +3254,16 @@ const getFailureModeExpectedFailureProfile = (failureModeInfo, dbJsonOverride = 
   const etaHours = parseNumericInput(dbJson?.["Failure Mode Eta 1"]);
   const betaValue = parseNumericInput(dbJson?.["Failure Mode Beta 1"]);
   const gammaHours = parseNumericInput(dbJson?.["Failure Mode Gamma 1"]) || 0;
+  const productRiskBridge = getProductRiskBridge();
+  if (productRiskBridge) {
+    return productRiskBridge.calculateExpectedFailureProfile({
+      horizonHours: strategyModelHorizonHours,
+      etaHours,
+      betaValue,
+      gammaHours,
+      mttfHours: parseNumericInput(dbJson?.["Failure Mode MTTF"]),
+    });
+  }
   if (etaHours && etaHours > 0 && betaValue && betaValue > 0) {
     const adjustedHorizonHours = Math.max(0, strategyModelHorizonHours - Math.max(0, gammaHours));
     const expectedFailureCount = adjustedHorizonHours > 0 ? Math.pow(adjustedHorizonHours / etaHours, betaValue) : 0;
@@ -3202,6 +3299,10 @@ const getFailureModeExpectedFailureProfile = (failureModeInfo, dbJsonOverride = 
   };
 };
 const getFailureProfileReferenceIntervalHours = (likelihoodProfile) => {
+  const productRiskBridge = getProductRiskBridge();
+  if (productRiskBridge) {
+    return productRiskBridge.calculateReferenceFailureIntervalHours(likelihoodProfile, strategyModelHorizonHours);
+  }
   if (!likelihoodProfile) {
     return strategyModelHorizonHours;
   }
@@ -3215,6 +3316,10 @@ const getFailureProfileCumulativeProbability = (likelihoodProfile, hours) => {
   const modeledHours = parseNumericInput(hours);
   if (!modeledHours || modeledHours <= 0) {
     return 0;
+  }
+  const productRiskBridge = getProductRiskBridge();
+  if (productRiskBridge) {
+    return productRiskBridge.calculateCumulativeFailureProbability(likelihoodProfile, modeledHours, strategyModelHorizonHours);
   }
 
   if (likelihoodProfile?.source === "weibull" && likelihoodProfile.etaHours > 0 && likelihoodProfile.betaValue > 0) {
@@ -3241,14 +3346,44 @@ const getFailureModeDemandProbabilityForWindow = (demandFrequencyPerYear, window
   if (!modeledDemandFrequency || modeledDemandFrequency <= 0 || !modeledWindowHours || modeledWindowHours <= 0) {
     return 0;
   }
+  const productRiskBridge = getProductRiskBridge();
+  if (productRiskBridge) {
+    return productRiskBridge.calculateDemandProbabilityForWindow(modeledDemandFrequency, modeledWindowHours, annualHours);
+  }
   return clampNumber(1 - Math.exp(-(modeledDemandFrequency / annualHours) * modeledWindowHours));
+};
+const getDormantFailureAverageExposureWindowHours = (controlWindowHours) => {
+  const modeledWindowHours = parseNumericInput(controlWindowHours);
+  if (!modeledWindowHours || modeledWindowHours <= 0) {
+    return 0;
+  }
+  const productRiskBridge = getProductRiskBridge();
+  if (productRiskBridge) {
+    return productRiskBridge.calculateDormantAverageExposureWindowHours(modeledWindowHours);
+  }
+  return Math.max(1, modeledWindowHours / 2);
+};
+const getFailureModeCorrectiveDownTimeHours = (dbJson) => {
+  const configuredDownTimeHours = parseNumericInput(dbJson?.["Failure Mode Corrective Down Time"]);
+  return configuredDownTimeHours && configuredDownTimeHours > 0 ? configuredDownTimeHours : 8;
 };
 const getFailureModeRealizedConsequenceCount = ({ expectedFailureCount = 0, isDormant = false, demandFrequencyPerYear = 0, controlWindowHours = 0 }) => {
   const modeledFailureCount = Math.max(0, Number(expectedFailureCount) || 0);
+  const productRiskBridge = getProductRiskBridge();
+  if (productRiskBridge) {
+    return productRiskBridge.calculateRealizedConsequenceCount({
+      expectedFailureCount: modeledFailureCount,
+      isDormant,
+      demandFrequencyPerYear,
+      controlWindowHours,
+      annualHours,
+    });
+  }
   if (!isDormant) {
     return modeledFailureCount;
   }
-  return modeledFailureCount * getFailureModeDemandProbabilityForWindow(demandFrequencyPerYear, controlWindowHours);
+  const averageExposureWindowHours = getDormantFailureAverageExposureWindowHours(controlWindowHours);
+  return modeledFailureCount * getFailureModeDemandProbabilityForWindow(demandFrequencyPerYear, averageExposureWindowHours);
 };
 const getFailureModePrimaryEffectEstimate = (failureModeInfo, dbJsonOverride = null) => {
   const dbJson =
@@ -3264,7 +3399,8 @@ const getFailureModePrimaryEffectEstimate = (failureModeInfo, dbJsonOverride = n
   const explicitTotalCost = parseCurrencyAmount(dbJson?.["Failure Mode Total Cost"]);
   const equipmentNode = getNearestAncestorNodeFromPath(failureModeInfo?.path || [], "equipment");
   const downtimeRate = parseCurrencyAmount(equipmentNode?.equipmentContext?.effectPerHourDown);
-  const downtimeFallback = downtimeRate ? downtimeRate * 8 : 0;
+  const correctiveDownTimeHours = getFailureModeCorrectiveDownTimeHours(dbJson);
+  const downtimeFallback = downtimeRate ? downtimeRate * correctiveDownTimeHours : 0;
   const perEventExposure = explicitTotalCost || explicitEffectCost || estimatedFromEffects || downtimeFallback || 0;
   const likelihoodProfile = getFailureModeExpectedFailureProfile(failureModeInfo, dbJson);
   const isDormant = Boolean(dbJson?.["Failure Mode Is Dormant"]);
@@ -3301,6 +3437,7 @@ const getFailureModePrimaryEffectEstimate = (failureModeInfo, dbJsonOverride = n
     baseDormantWindowHours,
     effectRangeLabel,
     downtimeRate,
+    correctiveDownTimeHours,
     explicitTotalCost,
     explicitEffectCost,
   };
@@ -3372,6 +3509,14 @@ const getStrategyTaskPmResidualFailureCount = (effectEstimate, taskNode) => {
   if (!effectEstimate || !taskNode || !intervalHours || intervalHours <= 0) {
     return effectEstimate?.expectedFailureCount || 0;
   }
+  const productRiskBridge = getProductRiskBridge();
+  if (productRiskBridge) {
+    return productRiskBridge.calculatePmResidualFailureCount({
+      likelihoodProfile: effectEstimate.likelihoodProfile,
+      intervalHours,
+      horizonHours: strategyModelHorizonHours,
+    });
+  }
 
   const fullCycles = Math.floor(strategyModelHorizonHours / intervalHours);
   const remainderHours = Math.max(0, strategyModelHorizonHours - fullCycles * intervalHours);
@@ -3386,9 +3531,7 @@ const getStrategyTaskPmPreventedFraction = (effectEstimate, taskNode) => {
   }
 
   const residualFailureCount = getStrategyTaskPmResidualFailureCount(effectEstimate, taskNode);
-  const intervalDrivenReduction = clampNumber(1 - residualFailureCount / baselineFailureCount);
-  const qualityFactor = 0.55 + getStrategyTaskQualityFactor(taskNode) * 0.45;
-  return clampNumber(intervalDrivenReduction * qualityFactor);
+  return clampNumber(1 - residualFailureCount / baselineFailureCount);
 };
 const getStrategyTaskInspectionPreventedFraction = (effectEstimate, taskNode) => {
   if (!effectEstimate || !taskNode) {
@@ -3399,9 +3542,20 @@ const getStrategyTaskInspectionPreventedFraction = (effectEstimate, taskNode) =>
     return 0;
   }
   const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
-  const cadenceWindowHours = pfIntervalHours || effectEstimate.referenceFailureIntervalHours || strategyModelHorizonHours;
-  const cadenceFactor = clampNumber(cadenceWindowHours / intervalHours, 0.18, 1);
-  return clampNumber(cadenceFactor * getStrategyTaskQualityFactor(taskNode));
+  if (!(pfIntervalHours > 0)) {
+    return 0;
+  }
+  const detectionProbability = getStrategyTaskDetectionProbabilityValue(taskNode);
+  const productRiskBridge = getProductRiskBridge();
+  if (productRiskBridge) {
+    return productRiskBridge.calculateInspectionPreventedFraction({
+      inspectionIntervalHours: intervalHours,
+      pfIntervalHours,
+      detectionProbability,
+    });
+  }
+  const timingFactor = clampNumber(pfIntervalHours / intervalHours);
+  return clampNumber(timingFactor * detectionProbability);
 };
 const getStrategyTaskResidualConsequenceCount = (effectEstimate, residualFailureCount, controlWindowHours = null) =>
   getFailureModeRealizedConsequenceCount({
@@ -3410,23 +3564,43 @@ const getStrategyTaskResidualConsequenceCount = (effectEstimate, residualFailure
     demandFrequencyPerYear: effectEstimate?.demandFrequencyPerYear || 0,
     controlWindowHours: controlWindowHours || effectEstimate?.baseDormantWindowHours || strategyModelHorizonHours,
   });
-const createStrategyOutcomeMetrics = (effectEstimate, preventedFraction, executionCost, controlWindowHours = null) => {
-  const safePreventedFraction = clampNumber(preventedFraction);
-  const residualFailureCount = Math.max(0, (effectEstimate?.expectedFailureCount || 0) * (1 - safePreventedFraction));
-  const residualConsequenceCount = getStrategyTaskResidualConsequenceCount(effectEstimate, residualFailureCount, controlWindowHours);
+const createStrategyOutcomeMetricsFromResidualFailureCount = (
+  effectEstimate,
+  residualFailureCount,
+  executionCost,
+  controlWindowHours = null
+) => {
+  const baselineFailureCount = Math.max(0, effectEstimate?.expectedFailureCount || 0);
+  const modeledResidualFailureCount = Math.max(0, Number(residualFailureCount) || 0);
+  const safePreventedFraction = baselineFailureCount > 0 ? clampNumber(1 - modeledResidualFailureCount / baselineFailureCount) : 0;
+  const residualConsequenceCount = getStrategyTaskResidualConsequenceCount(
+    effectEstimate,
+    modeledResidualFailureCount,
+    controlWindowHours
+  );
   const residualExposure = residualConsequenceCount * (effectEstimate?.perEventExposure || 0);
   const baselineExposure = effectEstimate?.baselineExposure || 0;
   const exposureReduction = Math.max(0, baselineExposure - residualExposure);
   const modeledCost = Math.max(0, Number(executionCost) || 0);
   return {
     preventedFraction: safePreventedFraction,
-    residualFailureCount,
+    residualFailureCount: modeledResidualFailureCount,
     residualConsequenceCount,
     residualExposure,
     exposureReduction,
     modeledCost,
     totalExpectedCost: residualExposure + modeledCost,
   };
+};
+const createStrategyOutcomeMetrics = (effectEstimate, preventedFraction, executionCost, controlWindowHours = null) => {
+  const safePreventedFraction = clampNumber(preventedFraction);
+  const residualFailureCount = Math.max(0, (effectEstimate?.expectedFailureCount || 0) * (1 - safePreventedFraction));
+  return createStrategyOutcomeMetricsFromResidualFailureCount(
+    effectEstimate,
+    residualFailureCount,
+    executionCost,
+    controlWindowHours
+  );
 };
 const getStrategyCardStatus = (isEnabled) => (isEnabled ? "enabled" : "disabled");
 const getStrategyStatusLabel = (status) => {
@@ -3451,8 +3625,12 @@ const getStrategyWhyStatement = (strategy, recommendedCandidate = null) => {
     return "This is run-to-failure: the corrective task starts only after the failure consequence has already landed.";
   }
 
+  if (strategy.taskNodeType === "ins" && !strategy.hasValidLinkedSecondaryActionPath) {
+    return "Inspection alone adds inspection cost, but it does not receive failure-prevention credit until a linked secondary action is enabled.";
+  }
+
   if (strategy.isSecondaryAction) {
-    return strategy.secondaryActionWarning || "This PM only reduces risk when its linked inspection detects the failure in time.";
+    return strategy.secondaryActionWarning || "This PM only reduces risk when its linked inspection detects the failure in time and triggers the follow-up action.";
   }
 
   if (strategy.taskNodeType === "pm") {
@@ -3496,6 +3674,9 @@ const getStrategyWeaknessFlags = (strategy, recommendedCandidate = null) => {
   if (strategy.secondaryActionWarning) {
     flags.push(strategy.secondaryActionWarning);
   }
+  if (strategy.taskNodeType === "ins" && !strategy.hasValidLinkedSecondaryActionPath) {
+    flags.push("No linked secondary action");
+  }
   if (strategy.taskNodeType === "cm") {
     flags.push("Run-to-failure only");
   }
@@ -3516,6 +3697,107 @@ const getStrategyWeaknessFlags = (strategy, recommendedCandidate = null) => {
     flags.push("Higher 10-year total expected cost than recommended");
   }
   return flags;
+};
+const getDecisionComparisonOutcome = (effectEstimate, selectedStrategies = []) => {
+  const enabledSecondaryStrategiesByInspectionId = selectedStrategies
+    .filter(
+      (entry) => entry.taskNode?.type === "pm" && entry.isSecondaryAction && entry.secondaryActionInspectionNodeId && entry.secondaryLinkIsValid
+    )
+    .reduce((lookup, entry) => {
+      const nextEntries = lookup.get(entry.secondaryActionInspectionNodeId) || [];
+      nextEntries.push(entry);
+      lookup.set(entry.secondaryActionInspectionNodeId, nextEntries);
+      return lookup;
+    }, new Map());
+  const preventivePathways = [];
+  let plannedCost = 0;
+  let inspectionCost = 0;
+  let secondaryActionCost = 0;
+  let correctiveCostPerEvent = 0;
+
+  selectedStrategies.forEach((entry) => {
+    if (entry.taskNode?.type === "pm" && entry.isSecondaryAction) {
+      secondaryActionCost += entry.secondaryActionCost || 0;
+      return;
+    }
+
+    if (entry.taskNode?.type === "ins") {
+      const linkedSecondaryStrategies = enabledSecondaryStrategiesByInspectionId.get(entry.taskNodeId) || [];
+      inspectionCost += entry.inspectionScheduledCost || 0;
+      if (linkedSecondaryStrategies.length && entry.inspectionPathPreventedFraction > 0) {
+        preventivePathways.push({
+          preventedFraction: entry.inspectionPathPreventedFraction,
+          controlWindowHours: entry.preventiveControlWindowHours,
+        });
+      }
+      return;
+    }
+
+    if (entry.taskNode?.type === "pm") {
+      plannedCost += entry.plannedCost || 0;
+      preventivePathways.push({
+        preventedFraction: entry.standalonePreventedFraction,
+        controlWindowHours: entry.preventiveControlWindowHours,
+      });
+      return;
+    }
+
+    correctiveCostPerEvent += entry.directExecutionCost || 0;
+  });
+
+  const combinedMitigationFactor = preventivePathways.length
+    ? (() => {
+        const productRiskBridge = getProductRiskBridge();
+        if (productRiskBridge) {
+          const combinedPathwayOutcome = productRiskBridge.combinePreventivePathways({
+            pathways: preventivePathways,
+            baseControlWindowHours: effectEstimate.baseDormantWindowHours || strategyModelHorizonHours,
+            horizonHours: strategyModelHorizonHours,
+          });
+          return combinedPathwayOutcome.combinedPreventedFraction;
+        }
+        return 1 - preventivePathways.reduce((remainingRiskFactor, pathway) => remainingRiskFactor * (1 - pathway.preventedFraction), 1);
+      })()
+    : 0;
+  const combinedControlWindowHours = preventivePathways.length
+    ? (() => {
+        const productRiskBridge = getProductRiskBridge();
+        if (productRiskBridge) {
+          const combinedPathwayOutcome = productRiskBridge.combinePreventivePathways({
+            pathways: preventivePathways,
+            baseControlWindowHours: effectEstimate.baseDormantWindowHours || strategyModelHorizonHours,
+            horizonHours: strategyModelHorizonHours,
+          });
+          return combinedPathwayOutcome.combinedControlWindowHours;
+        }
+        return preventivePathways.reduce(
+          (smallestWindow, pathway) =>
+            Math.min(smallestWindow, pathway.controlWindowHours || effectEstimate.baseDormantWindowHours || strategyModelHorizonHours),
+          effectEstimate.baseDormantWindowHours || strategyModelHorizonHours
+        );
+      })()
+    : effectEstimate.baseDormantWindowHours || strategyModelHorizonHours;
+
+  const preventiveOutcome = createStrategyOutcomeMetrics(
+    effectEstimate,
+    combinedMitigationFactor,
+    plannedCost + inspectionCost + secondaryActionCost,
+    combinedControlWindowHours
+  );
+  const correctiveEventCount = preventiveOutcome.residualFailureCount;
+  const correctiveCost = correctiveEventCount * correctiveCostPerEvent;
+  const totalModeledCost = preventiveOutcome.modeledCost + correctiveCost;
+  return {
+    ...preventiveOutcome,
+    modeledCost: totalModeledCost,
+    totalExpectedCost: preventiveOutcome.residualExposure + totalModeledCost,
+    plannedCost,
+    inspectionCost,
+    secondaryActionCost,
+    correctiveCost,
+    correctiveEventCount,
+    correctiveCostPerEvent,
+  };
 };
 const getFailureModeInspectionOptions = (failureModeInfo) => {
   if (!failureModeInfo || failureModeInfo.node.type !== "cause") {
@@ -3642,7 +3924,7 @@ const getStrategySelectionSummary = (selectedCount, totalCount, label) => {
   }
   return `${selectedCount} of ${totalCount} ${label} selected`;
 };
-const getFailureModeDecisionData = (failureModeInfo) => {
+const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hierarchy) => {
   if (!failureModeInfo || failureModeInfo.node.type !== "cause") {
     return null;
   }
@@ -3654,7 +3936,7 @@ const getFailureModeDecisionData = (failureModeInfo) => {
   const effectEstimate = getFailureModePrimaryEffectEstimate(failureModeInfo, dbJson);
   const strategyRows = getStrategyTableRowsForSelection(failureModeInfo);
   const baseStrategies = strategyRows.map((row) => {
-    const taskNodeInfo = findNodeInfo(state.hierarchy, row.taskNodeId);
+    const taskNodeInfo = findNodeInfo(hierarchyNodes, row.taskNodeId);
     const taskNode = taskNodeInfo?.node || null;
     const taskConfig =
       taskNode?.type === "ins"
@@ -3671,9 +3953,12 @@ const getFailureModeDecisionData = (failureModeInfo) => {
         ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig?.secondaryActionInspectionNodeId, taskConfig?.isSecondaryAction)
         : null;
     const linkedInspectionInfo = secondaryLinkState?.linkedInspection || null;
-    const secondaryRecommendationLinkIsValid = Boolean(isSecondaryAction && linkedInspectionInfo);
+    const secondaryLinkIsValid = Boolean(secondaryLinkState?.isValid);
+    const secondaryRecommendationLinkIsValid = Boolean(isSecondaryAction && secondaryLinkIsValid && linkedInspectionInfo);
     const linkedInspectionDetectionProbability = linkedInspectionInfo ? getStrategyTaskDetectionProbabilityValue(linkedInspectionInfo.node) : 0;
-    const linkedInspectionStandalonePreventedFraction = linkedInspectionInfo
+    const inspectionPathPreventedFraction =
+      taskNode?.type === "ins" ? getStrategyTaskInspectionPreventedFraction(effectEstimate, taskNode) : 0;
+    const linkedInspectionPathPreventedFraction = linkedInspectionInfo
       ? getStrategyTaskInspectionPreventedFraction(effectEstimate, linkedInspectionInfo.node)
       : 0;
     const intervalHours = getStrategyTaskIntervalHours(taskNode);
@@ -3688,41 +3973,51 @@ const getFailureModeDecisionData = (failureModeInfo) => {
               1
             )
           : 0;
-    const expectedExecutions =
-      taskNode?.type === "cm"
-        ? effectEstimate.expectedConsequenceEventCount
-        : isSecondaryAction && secondaryRecommendationLinkIsValid && linkedInspectionInfo
-          ? getStrategyTaskExpectedExecutions(linkedInspectionInfo.node) * linkedInspectionDetectionProbability
-          : getStrategyTaskExpectedExecutions(taskNode);
-    const secondaryResponseFactor =
-      isSecondaryAction && secondaryRecommendationLinkIsValid
-        ? clampNumber(linkedInspectionDetectionProbability * (0.55 + getStrategyTaskQualityFactor(taskNode) * 0.45))
-        : 0;
-    const standalonePreventedFraction =
-      taskNode?.type === "pm"
-        ? isSecondaryAction
-          ? secondaryRecommendationLinkIsValid
-            ? clampNumber(1 - (1 - linkedInspectionStandalonePreventedFraction) * (1 - secondaryResponseFactor))
-            : 0
-          : getStrategyTaskPmPreventedFraction(effectEstimate, taskNode)
-        : taskNode?.type === "ins"
-          ? getStrategyTaskInspectionPreventedFraction(effectEstimate, taskNode)
-          : 0;
+    const scheduledExecutions = taskNode?.type === "cm" ? effectEstimate.expectedFailureCount : getStrategyTaskExpectedExecutions(taskNode);
+    const inspectionScheduledCost = taskNode?.type === "ins" ? directExecutionCost * scheduledExecutions : 0;
+    const plannedCost = taskNode?.type === "pm" && !isSecondaryAction ? directExecutionCost * scheduledExecutions : 0;
+    const pmResidualFailureCount =
+      taskNode?.type === "pm" && !isSecondaryAction ? getStrategyTaskPmResidualFailureCount(effectEstimate, taskNode) : effectEstimate.expectedFailureCount || 0;
+    const standalonePmPreventedFraction =
+      taskNode?.type === "pm" && !isSecondaryAction ? getStrategyTaskPmPreventedFraction(effectEstimate, taskNode) : 0;
     const preventiveControlWindowHours =
       taskNode?.type === "pm" && isSecondaryAction && linkedInspectionInfo
         ? getStrategyTaskDormantControlWindowHours(effectEstimate, linkedInspectionInfo.node)
         : getStrategyTaskDormantControlWindowHours(effectEstimate, taskNode);
     const secondaryTriggeredExecutions =
       isSecondaryAction && secondaryRecommendationLinkIsValid && linkedInspectionInfo
-        ? getStrategyTaskExpectedExecutions(linkedInspectionInfo.node) * linkedInspectionDetectionProbability
+        ? (effectEstimate.expectedFailureCount || 0) * linkedInspectionPathPreventedFraction
         : 0;
-    const modeledCost = directExecutionCost * expectedExecutions;
-    const outcome = createStrategyOutcomeMetrics(
-      effectEstimate,
-      standalonePreventedFraction,
-      modeledCost,
-      preventiveControlWindowHours
-    );
+    const secondaryActionCost = isSecondaryAction ? directExecutionCost * secondaryTriggeredExecutions : 0;
+    const correctiveExecutionCount = taskNode?.type === "cm" ? effectEstimate.expectedFailureCount || 0 : 0;
+    const correctiveCost = taskNode?.type === "cm" ? directExecutionCost * correctiveExecutionCount : 0;
+    const standalonePreventedFraction =
+      taskNode?.type === "pm"
+        ? isSecondaryAction
+          ? secondaryRecommendationLinkIsValid
+            ? linkedInspectionPathPreventedFraction
+            : 0
+          : standalonePmPreventedFraction
+        : 0;
+    const modeledCost =
+      taskNode?.type === "ins"
+        ? inspectionScheduledCost
+        : taskNode?.type === "pm"
+          ? isSecondaryAction
+            ? secondaryActionCost
+            : plannedCost
+          : correctiveCost;
+    const outcome =
+      taskNode?.type === "pm" && !isSecondaryAction
+        ? createStrategyOutcomeMetricsFromResidualFailureCount(
+            effectEstimate,
+            pmResidualFailureCount,
+            plannedCost,
+            preventiveControlWindowHours
+          )
+        : createStrategyOutcomeMetrics(effectEstimate, standalonePreventedFraction, modeledCost, preventiveControlWindowHours);
+    const expectedExecutions =
+      taskNode?.type === "cm" ? correctiveExecutionCount : isSecondaryAction ? secondaryTriggeredExecutions : scheduledExecutions;
     const netValue = outcome.exposureReduction - outcome.modeledCost;
     const status = getStrategyCardStatus(isTaskEnabled);
     return {
@@ -3735,7 +4030,7 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       isRecommended: false,
       modeledCost: outcome.modeledCost,
       directExecutionCost,
-      expectedExecutions: isSecondaryAction ? secondaryTriggeredExecutions : expectedExecutions,
+      expectedExecutions,
       mitigationFactor: standalonePreventedFraction,
       standaloneMitigationFactor: standalonePreventedFraction,
       standalonePreventedFraction,
@@ -3749,18 +4044,20 @@ const getFailureModeDecisionData = (failureModeInfo) => {
       detectionProbability,
       cadenceFactor,
       isSecondaryAction,
-      secondaryLinkIsValid: Boolean(secondaryLinkState?.isValid),
+      secondaryLinkIsValid,
       secondaryRecommendationLinkIsValid,
       secondaryActionInspectionNodeId: secondaryLinkState?.linkedInspectionNodeId || "",
       secondaryActionInspectionName: secondaryLinkState?.linkedInspectionName || "",
-      secondaryActionWarning:
-        secondaryRecommendationLinkIsValid && !secondaryLinkState?.isValid
-          ? "The linked inspection is currently not included, so this path only reduces risk after the inspection is included."
-          : secondaryLinkState?.warningMessage || "",
-      secondaryResponseFactor,
+      secondaryActionWarning: secondaryLinkState?.warningMessage || "",
       linkedInspectionDetectionProbability,
-      linkedInspectionStandalonePreventedFraction,
+      inspectionPathPreventedFraction,
+      linkedInspectionPathPreventedFraction,
       secondaryTriggeredExecutions,
+      inspectionScheduledCost,
+      plannedCost,
+      secondaryActionCost,
+      correctiveCost,
+      correctiveExecutionCount,
       weaknessFlags: [],
       whyStatement: "",
       tradeoffStatement: "",
@@ -3776,7 +4073,7 @@ const getFailureModeDecisionData = (failureModeInfo) => {
         durationLabel: formatHoursLabel(getStrategyTaskDurationHours(taskNode)),
         labourLabel: formatHoursLabel(getStrategyTaskLabourHours(taskNode)),
         pfIntervalLabel: formatHoursLabel(pfIntervalHours),
-        expectedExecutionLabel: formatExpectedExecutionLabel(isSecondaryAction ? secondaryTriggeredExecutions : expectedExecutions),
+        expectedExecutionLabel: formatExpectedExecutionLabel(expectedExecutions),
       },
     };
   });
@@ -3837,17 +4134,14 @@ const getFailureModeDecisionData = (failureModeInfo) => {
           entry.secondaryActionInspectionNodeId === strategy.taskNodeId
       )
       .forEach((secondaryStrategy) => {
-        const chainPreventedFraction = clampNumber(
-          1 - (1 - strategy.standalonePreventedFraction) * (1 - secondaryStrategy.secondaryResponseFactor)
-        );
         candidateStrategies.push(
           createCandidate({
             id: `package:${strategy.taskNodeId}:${secondaryStrategy.taskNodeId}`,
             leadTaskNodeId: strategy.taskNodeId,
             memberTaskNodeIds: [strategy.taskNodeId, secondaryStrategy.taskNodeId],
             packageType: "ins-secondary-pm",
-            preventedFraction: chainPreventedFraction,
-            executionCost: strategy.modeledCost + secondaryStrategy.modeledCost,
+            preventedFraction: strategy.inspectionPathPreventedFraction,
+            executionCost: strategy.inspectionScheduledCost + secondaryStrategy.secondaryActionCost,
             controlWindowHours: strategy.preventiveControlWindowHours,
             leadStrategyType: strategy.taskNodeType,
           })
@@ -3871,6 +4165,11 @@ const getFailureModeDecisionData = (failureModeInfo) => {
   const recommendedCandidate = rankedCandidates[0] || null;
   const strategyLabelById = new Map(
     baseStrategies.map((strategy) => [strategy.taskNodeId, strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy"])
+  );
+  const validSecondaryInspectionIds = new Set(
+    baseStrategies
+      .filter((strategy) => strategy.isSecondaryAction && strategy.secondaryLinkIsValid && strategy.secondaryActionInspectionNodeId)
+      .map((strategy) => strategy.secondaryActionInspectionNodeId)
   );
   const strategies = baseStrategies.map((strategy) => {
     const isRecommendedLead = Boolean(recommendedCandidate && recommendedCandidate.leadTaskNodeId === strategy.taskNodeId);
@@ -3897,6 +4196,7 @@ const getFailureModeDecisionData = (failureModeInfo) => {
         recommendedCandidate?.leadTaskNodeId === strategy.taskNodeId
           ? recommendedCandidate.rank
           : rankedCandidates.find((candidate) => candidate.leadTaskNodeId === strategy.taskNodeId)?.rank || 0,
+      hasValidLinkedSecondaryActionPath: strategy.taskNodeType === "ins" && validSecondaryInspectionIds.has(strategy.taskNodeId),
     };
     return {
       ...finalizedStrategy,
@@ -3906,88 +4206,36 @@ const getFailureModeDecisionData = (failureModeInfo) => {
     };
   });
   const enabledStrategies = strategies.filter((entry) => entry.scheduledTaskIsEnabled);
-  const enabledSecondaryStrategiesByInspectionId = enabledStrategies
-    .filter(
-      (entry) => entry.taskNode?.type === "pm" && entry.isSecondaryAction && entry.secondaryActionInspectionNodeId && entry.secondaryLinkIsValid
-    )
-    .reduce((lookup, entry) => {
-      const nextEntries = lookup.get(entry.secondaryActionInspectionNodeId) || [];
-      nextEntries.push(entry);
-      lookup.set(entry.secondaryActionInspectionNodeId, nextEntries);
-      return lookup;
-    }, new Map());
-  const preventivePathways = [];
-  let totalModeledCost = 0;
-  enabledStrategies.forEach((entry) => {
-    if (entry.taskNode?.type === "pm" && entry.isSecondaryAction) {
-      return;
-    }
-
-    if (entry.taskNode?.type === "ins") {
-      const linkedSecondaryStrategies = enabledSecondaryStrategiesByInspectionId.get(entry.taskNodeId) || [];
-      if (linkedSecondaryStrategies.length) {
-        const chainPreventedFraction = linkedSecondaryStrategies.reduce(
-          (combinedMitigation, secondaryEntry) =>
-            clampNumber(1 - (1 - combinedMitigation) * (1 - secondaryEntry.secondaryResponseFactor)),
-          entry.standalonePreventedFraction
-        );
-        preventivePathways.push({
-          preventedFraction: chainPreventedFraction,
-          controlWindowHours: entry.preventiveControlWindowHours,
-        });
-        totalModeledCost += entry.modeledCost + linkedSecondaryStrategies.reduce((sum, secondaryEntry) => sum + secondaryEntry.modeledCost, 0);
-        return;
-      }
-
-      preventivePathways.push({
-        preventedFraction: entry.standalonePreventedFraction,
-        controlWindowHours: entry.preventiveControlWindowHours,
-      });
-      totalModeledCost += entry.modeledCost;
-      return;
-    }
-
-    if (entry.taskNode?.type === "pm") {
-      preventivePathways.push({
-        preventedFraction: entry.standalonePreventedFraction,
-        controlWindowHours: entry.preventiveControlWindowHours,
-      });
-      totalModeledCost += entry.modeledCost;
-      return;
-    }
-
-    totalModeledCost += entry.modeledCost;
-  });
-  const combinedMitigationFactor = preventivePathways.length
-    ? 1 - preventivePathways.reduce((remainingRiskFactor, pathway) => remainingRiskFactor * (1 - pathway.preventedFraction), 1)
-    : 0;
-  const combinedControlWindowHours = preventivePathways.length
-    ? preventivePathways.reduce(
-        (smallestWindow, pathway) =>
-          Math.min(smallestWindow, pathway.controlWindowHours || effectEstimate.baseDormantWindowHours || strategyModelHorizonHours),
-        effectEstimate.baseDormantWindowHours || strategyModelHorizonHours
-      )
-    : effectEstimate.baseDormantWindowHours || strategyModelHorizonHours;
-  const comparisonOutcome = createStrategyOutcomeMetrics(
-    effectEstimate,
-    combinedMitigationFactor,
-    totalModeledCost,
-    combinedControlWindowHours
-  );
+  const comparisonOutcome = getDecisionComparisonOutcome(effectEstimate, enabledStrategies);
+  const strategiesWithSelectionContext = strategies.map((strategy) => ({
+    ...strategy,
+    selectedSetResidualExposure: strategy.scheduledTaskIsEnabled ? comparisonOutcome.residualExposure : strategy.residualExposure,
+    selectedSetExposureReduction: strategy.scheduledTaskIsEnabled ? comparisonOutcome.exposureReduction : strategy.exposureReduction,
+    selectedSetTotalExpectedCost: strategy.scheduledTaskIsEnabled ? comparisonOutcome.totalExpectedCost : strategy.totalExpectedCost,
+    selectedSetIncludesOtherStrategies: Boolean(strategy.scheduledTaskIsEnabled && enabledStrategies.length > 1),
+  }));
+  const enabledStrategiesWithSelectionContext = strategiesWithSelectionContext.filter((entry) => entry.scheduledTaskIsEnabled);
   return {
     failureModeInfo,
     dbJson,
     effectEstimate,
-    strategies,
+    strategies: strategiesWithSelectionContext,
     rankedCandidates,
     recommendedCandidate,
-    enabledStrategies,
+    enabledStrategies: enabledStrategiesWithSelectionContext,
     comparison: {
       baselineExposure: effectEstimate.baselineExposure,
       exposureReduction: comparisonOutcome.exposureReduction,
       residualExposure: comparisonOutcome.residualExposure,
       totalModeledCost: comparisonOutcome.modeledCost,
       totalExpectedCost: comparisonOutcome.totalExpectedCost,
+      plannedCost: comparisonOutcome.plannedCost,
+      inspectionCost: comparisonOutcome.inspectionCost,
+      secondaryActionCost: comparisonOutcome.secondaryActionCost,
+      correctiveCost: comparisonOutcome.correctiveCost,
+      correctiveEventCount: comparisonOutcome.correctiveEventCount,
+      residualFailureCount: comparisonOutcome.residualFailureCount,
+      residualConsequenceCount: comparisonOutcome.residualConsequenceCount,
       netValue: comparisonOutcome.exposureReduction - comparisonOutcome.modeledCost,
       enabledCount: enabledStrategies.length,
       totalCount: strategies.length,
@@ -4150,6 +4398,11 @@ const normalizeStrategyTableStateSafely = (value) => {
   }
 };
 const getEffectJsonEntryForNode = (path = [], node = null) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.getEffectJsonEntryForNode) {
+    return persistenceMapperBridge.getEffectJsonEntryForNode(path, node);
+  }
+
   const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
   const dbJson = getFailureModeJsonForPath(path);
   if (!failureModeNode || !dbJson || !Array.isArray(dbJson.effects) || !node) {
@@ -4161,6 +4414,11 @@ const getEffectJsonEntryForNode = (path = [], node = null) => {
   return effectIndex >= 0 ? dbJson.effects[effectIndex] || null : null;
 };
 const getTaskJsonEntryForNode = (path = [], node = null) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.getTaskJsonEntryForNode) {
+    return persistenceMapperBridge.getTaskJsonEntryForNode(path, node);
+  }
+
   const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
   const dbJson = getFailureModeJsonForPath(path);
   if (!failureModeNode || !dbJson || !Array.isArray(dbJson.tasks) || !node) {
@@ -4606,8 +4864,14 @@ const getLeftPanelRowDescription = (node, path = []) => {
 
   return getNodeBrowserDescription(path, node);
 };
-const getNearestAncestorNodeFromPath = (path, type) =>
-  Array.isArray(path) ? [...path].reverse().find((node) => node.type === type) || null : null;
+const getNearestAncestorNodeFromPath = (path, type) => {
+  const hierarchyBridge = getProductHierarchyBridge();
+  if (hierarchyBridge?.getNearestAncestorNodeFromPath) {
+    return hierarchyBridge.getNearestAncestorNodeFromPath(path, type);
+  }
+
+  return Array.isArray(path) ? [...path].reverse().find((node) => node.type === type) || null : null;
+};
 const getFailureModeRedundancyFactor = (equipmentNode) => {
   if (!equipmentNode?.equipmentContext) {
     return "";
@@ -4620,8 +4884,74 @@ const getFailureModeRedundancyFactor = (equipmentNode) => {
 
   return String(redundancyMode || "").trim();
 };
+const preservedFailureModeDbJsonFieldKeys = [
+  "Failure Mode Cost Benefit Ratio",
+  "Failure Mode Total Cost",
+  "Failure Mode Effect Cost",
+  "Failure Mode Corrective Down Time",
+  "Failure Mode Corrective Event Count",
+  "Failure Mode Corrective Cost",
+  "Failure Mode Planned Cost",
+  "Failure Mode Secondary Action Cost",
+  "Failure Mode Inspection Cost",
+  "Failure Mode Failure Rate",
+  "Failure Mode Availability",
+];
+const getPersistenceMapperBuildDependencies = () => ({
+  normalizeCauseFailureConfig,
+  normalizeInsConfig,
+  normalizePmConfig,
+  normalizeCmConfig,
+  getSecondaryActionInspectionLinkState,
+  getNodeDescription,
+  getNodeFullCode,
+  getNodeCodeValue,
+});
+const getPersistenceMapperSnapshotDependencies = () => ({
+  normalizeCauseFailureConfig,
+  getFailureModeDecisionData,
+});
+const getPersistenceMapperDependencies = () => ({
+  ...getPersistenceMapperBuildDependencies(),
+  ...getPersistenceMapperSnapshotDependencies(),
+});
+const getPreservedFailureModeDbJsonFields = (causeNode) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.getPreservedFailureModeDbJsonFields) {
+    return persistenceMapperBridge.getPreservedFailureModeDbJsonFields(causeNode);
+  }
+
+  const existingDbJson =
+    causeNode?.failureConfig?.dbJson && typeof causeNode.failureConfig.dbJson === "object" ? causeNode.failureConfig.dbJson : null;
+  if (!existingDbJson) {
+    return {};
+  }
+
+  return preservedFailureModeDbJsonFieldKeys.reduce((fields, key) => {
+    fields[key] = Object.prototype.hasOwnProperty.call(existingDbJson, key) ? existingDbJson[key] : "";
+    return fields;
+  }, {});
+};
+const formatFailureModeDerivedSnapshotValue = (value) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.formatFailureModeDerivedSnapshotValue) {
+    return persistenceMapperBridge.formatFailureModeDerivedSnapshotValue(value);
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return "";
+  }
+  return numberFormatter.format(Math.max(0, numericValue));
+};
 const buildFailureModeDbJson = (causeNode, path = []) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.buildFailureModeDbJson) {
+    return persistenceMapperBridge.buildFailureModeDbJson(causeNode, path, getPersistenceMapperBuildDependencies());
+  }
+
   const failureConfig = normalizeCauseFailureConfig(causeNode?.failureConfig);
+  const preservedFields = getPreservedFailureModeDbJsonFields(causeNode);
   const equipmentNode = getNearestAncestorNodeFromPath(path, "equipment");
   const equipmentPath =
     equipmentNode && Array.isArray(path)
@@ -4696,22 +5026,31 @@ const buildFailureModeDbJson = (causeNode, path = []) => {
     "Failure Mode Alarm Description": String(failureConfig.alarmDescription || "").trim(),
     "Failure Mode Alarm PF Interval": String(failureConfig.alarmPfInterval || "").trim(),
     "Failure Mode Alarm Detection Probability": String(failureConfig.alarmDetectionProbability || "").trim(),
-    "Failure Mode Cost Benefit Ratio": "",
-    "Failure Mode Total Cost": "",
-    "Failure Mode Effect Cost": "",
-    "Failure Mode Corrective Down Time": "",
-    "Failure Mode Corrective Event Count": "",
-    "Failure Mode Corrective Cost": "",
-    "Failure Mode Planned Cost": "",
-    "Failure Mode Secondary Action Cost": "",
-    "Failure Mode Inspection Cost": "",
-    "Failure Mode Failure Rate": "",
-    "Failure Mode Availability": "",
+    "Failure Mode Cost Benefit Ratio": preservedFields["Failure Mode Cost Benefit Ratio"] || "",
+    "Failure Mode Total Cost": preservedFields["Failure Mode Total Cost"] || "",
+    "Failure Mode Effect Cost": preservedFields["Failure Mode Effect Cost"] || "",
+    "Failure Mode Corrective Down Time": preservedFields["Failure Mode Corrective Down Time"] || "",
+    "Failure Mode Corrective Event Count": preservedFields["Failure Mode Corrective Event Count"] || "",
+    "Failure Mode Corrective Cost": preservedFields["Failure Mode Corrective Cost"] || "",
+    "Failure Mode Planned Cost": preservedFields["Failure Mode Planned Cost"] || "",
+    "Failure Mode Secondary Action Cost": preservedFields["Failure Mode Secondary Action Cost"] || "",
+    "Failure Mode Inspection Cost": preservedFields["Failure Mode Inspection Cost"] || "",
+    "Failure Mode Failure Rate": preservedFields["Failure Mode Failure Rate"] || "",
+    "Failure Mode Availability": preservedFields["Failure Mode Availability"] || "",
     effects: effectRows,
     tasks: taskRows,
   };
 };
-const refreshFailureModeDbJsonForHierarchy = (nodes, parentPath = []) => {
+const refreshFailureModeDbJsonBaseForHierarchy = (nodes, parentPath = []) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.refreshFailureModeDbJsonBaseForHierarchy) {
+    return persistenceMapperBridge.refreshFailureModeDbJsonBaseForHierarchy(
+      nodes,
+      parentPath,
+      getPersistenceMapperBuildDependencies()
+    );
+  }
+
   nodes.forEach((node) => {
     const path = [...parentPath, node];
     if (node.type === "cause") {
@@ -4721,9 +5060,52 @@ const refreshFailureModeDbJsonForHierarchy = (nodes, parentPath = []) => {
       };
     }
     if (Array.isArray(node.children) && node.children.length) {
-      refreshFailureModeDbJsonForHierarchy(node.children, path);
+      refreshFailureModeDbJsonBaseForHierarchy(node.children, path);
     }
   });
+};
+const applyFailureModeDecisionSnapshotsForHierarchy = (nodes, hierarchyNodes = nodes) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.applyFailureModeDecisionSnapshotsForHierarchy) {
+    return persistenceMapperBridge.applyFailureModeDecisionSnapshotsForHierarchy(
+      nodes,
+      hierarchyNodes,
+      getPersistenceMapperSnapshotDependencies()
+    );
+  }
+
+  nodes.forEach((node) => {
+    if (node.type === "cause") {
+      const failureModeInfo = findNodeInfo(hierarchyNodes, node.id);
+      const decisionData = failureModeInfo ? getFailureModeDecisionData(failureModeInfo, hierarchyNodes) : null;
+      if (decisionData?.comparison && node.failureConfig?.dbJson && typeof node.failureConfig.dbJson === "object") {
+        node.failureConfig = {
+          ...normalizeCauseFailureConfig(node.failureConfig),
+          dbJson: {
+            ...node.failureConfig.dbJson,
+            "Failure Mode Corrective Event Count": formatFailureModeDerivedSnapshotValue(decisionData.comparison.correctiveEventCount),
+            "Failure Mode Corrective Cost": formatFailureModeDerivedSnapshotValue(decisionData.comparison.correctiveCost),
+            "Failure Mode Planned Cost": formatFailureModeDerivedSnapshotValue(decisionData.comparison.plannedCost),
+            "Failure Mode Secondary Action Cost": formatFailureModeDerivedSnapshotValue(decisionData.comparison.secondaryActionCost),
+            "Failure Mode Inspection Cost": formatFailureModeDerivedSnapshotValue(decisionData.comparison.inspectionCost),
+          },
+        };
+      }
+    }
+
+    if (Array.isArray(node.children) && node.children.length) {
+      applyFailureModeDecisionSnapshotsForHierarchy(node.children, hierarchyNodes);
+    }
+  });
+};
+const refreshFailureModeDbJsonForHierarchy = (nodes) => {
+  const persistenceMapperBridge = getProductPersistenceMapperBridge();
+  if (persistenceMapperBridge?.refreshFailureModeDbJsonForHierarchy) {
+    return persistenceMapperBridge.refreshFailureModeDbJsonForHierarchy(nodes, getPersistenceMapperDependencies());
+  }
+
+  refreshFailureModeDbJsonBaseForHierarchy(nodes);
+  applyFailureModeDecisionSnapshotsForHierarchy(nodes, nodes);
 };
 const refreshDerivedFailureModeJson = () => {
   refreshFailureModeDbJsonForHierarchy(state.hierarchy);
@@ -6690,10 +7072,47 @@ const renderCauseConfigFields = (draft, options = {}) => {
     </section>
   `;
 };
+const buildEditorSelectOptionViewModel = (value, label, selected = false, disabled = false) => ({
+  value: String(value ?? ""),
+  label: String(label ?? ""),
+  selected: Boolean(selected),
+  disabled: Boolean(disabled),
+});
+const buildCauseConfigEditorViewModel = (nodeInfo) => {
+  const draft = causeConfigState.draft;
+  if (!nodeInfo || !draft) {
+    return null;
+  }
+
+  return {
+    fullCode: getNodeFullCode(nodeInfo.node, nodeInfo.path),
+    requiredComponentNameLabel: getRequiredFieldLabel("Component Name"),
+    requiredDescriptionLabel: getRequiredFieldLabel("Failure Mode Description"),
+    componentName: draft.componentName,
+    description: draft.description,
+    fieldsMarkup: renderCauseConfigFields(draft, {
+      idPrefix: "causeConfig",
+      isCreateMode: false,
+      isAdvancedOpen: causeConfigState.advancedOpen,
+      isAlarmOpen: causeConfigState.alarmOpen,
+    }),
+    saveDisabled: !isCauseConfigDraftReady(draft),
+  };
+};
 
 const renderCauseConfigEditor = (nodeInfo) => {
   if (!childCreatorPanel || !causeConfigState.draft) {
     return;
+  }
+
+  const editorRendererBridge = getProductEditorRendererBridge();
+  if (editorRendererBridge?.renderCauseConfigEditor) {
+    const viewModel = buildCauseConfigEditorViewModel(nodeInfo);
+    if (viewModel) {
+      childCreatorPanel.hidden = false;
+      childCreatorPanel.innerHTML = editorRendererBridge.renderCauseConfigEditor(viewModel);
+      return;
+    }
   }
 
   const draft = causeConfigState.draft;
@@ -6823,6 +7242,16 @@ const renderEquipmentInfoEditor = (nodeInfo) => {
     return;
   }
 
+  const editorRendererBridge = getProductEditorRendererBridge();
+  if (editorRendererBridge?.renderEquipmentInfoEditor) {
+    const viewModel = buildEquipmentInfoEditorViewModel(nodeInfo);
+    if (viewModel) {
+      childCreatorPanel.hidden = false;
+      childCreatorPanel.innerHTML = editorRendererBridge.renderEquipmentInfoEditor(viewModel);
+      return;
+    }
+  }
+
   const draft = equipmentInfoState.draft;
   const parentPrefix = buildInheritedCodePrefix([getParentFullCodeFromPath(nodeInfo.path)]);
   childCreatorPanel.hidden = false;
@@ -6940,6 +7369,247 @@ const renderEquipmentInfoEditor = (nodeInfo) => {
     </section>
   `;
 };
+const buildEquipmentInfoEditorViewModel = (nodeInfo) => {
+  const draft = equipmentInfoState.draft;
+  if (!nodeInfo || !draft) {
+    return null;
+  }
+
+  return {
+    requiredNameLabel: getRequiredFieldLabel("Name"),
+    requiredDescriptionLabel: getRequiredFieldLabel("Description"),
+    parentPrefix: buildInheritedCodePrefix([getParentFullCodeFromPath(nodeInfo.path)]),
+    codeSegment: draft.codeSegment,
+    description: draft.description,
+    equipmentFunction: draft.equipmentFunction,
+    equipmentType: draft.equipmentType,
+    operatingContext: draft.operatingContext,
+    effectPerHourDownOptions: effectPerHourDownOptions.map((option) =>
+      buildEditorSelectOptionViewModel(option, option, draft.effectPerHourDown === option)
+    ),
+    demandFrequencyOptions: demandFrequencyOptions.map((option) =>
+      buildEditorSelectOptionViewModel(option, option, draft.demandFrequency === option)
+    ),
+    redundancyOptions: redundancyOptions.map((option) =>
+      buildEditorSelectOptionViewModel(option, option, draft.redundancyMode === option)
+    ),
+    redundancyMode: draft.redundancyMode,
+    redundancyPercent: draft.redundancyPercent,
+    maeCategoryOptions: maeCategoryOptions.map((option) =>
+      buildEditorSelectOptionViewModel(option, option, draft.maeCategory === option)
+    ),
+    criticalityOptions: criticalityOptions.map((option) =>
+      buildEditorSelectOptionViewModel(option, option, draft.criticality === option)
+    ),
+    saveDisabled: !isEquipmentInfoDraftReady(),
+  };
+};
+const buildNodeInspectFieldViewModel = (label, value, isWide = false) => ({
+  label,
+  value: getDisplayValue(value, "Not set"),
+  isWide: Boolean(isWide),
+  isEmpty: !hasValue(value),
+});
+const buildNodeInspectPanelViewModel = (nodeInfo) => {
+  if (!nodeInfo) {
+    return {
+      sections: [],
+    };
+  }
+
+  const { node, path, parent } = nodeInfo;
+  const strategyRowCount = getStrategyTableRowsForSelection(nodeInfo).length;
+  const pathLabel = getNodeInspectPathLabel(nodeInfo);
+  const sections = [
+    {
+      title: "Definition",
+      gridVariant: "default",
+      items: [
+        buildNodeInspectFieldViewModel("Type", getNodeLabel(node)),
+        buildNodeInspectFieldViewModel("Code", getNodeCodeValue(node)),
+        buildNodeInspectFieldViewModel("Name", getLeftPanelRowName(node, path)),
+        buildNodeInspectFieldViewModel("Description", getLeftPanelRowDescription(node, path), true),
+        buildNodeInspectFieldViewModel("Path", pathLabel, true),
+      ],
+    },
+    {
+      title: "Context",
+      gridVariant: "triple",
+      items: [
+        buildNodeInspectFieldViewModel("Parent", parent ? getLeftPanelRowName(parent, path.slice(0, -1)) : "Root node"),
+        buildNodeInspectFieldViewModel("Children", String((node.children || []).length)),
+        buildNodeInspectFieldViewModel("Related strategies", String(strategyRowCount)),
+      ],
+    },
+  ];
+
+  if (node.type === "equipment") {
+    const context = node.equipmentContext || defaultEquipmentContext();
+    sections.push(
+      {
+        title: "Equipment Context",
+        gridVariant: "default",
+        items: [
+          buildNodeInspectFieldViewModel("Equipment Function", context.equipmentFunction),
+          buildNodeInspectFieldViewModel("Type of Equipment", context.equipmentType),
+          buildNodeInspectFieldViewModel("Operating Context", context.operatingContext, true),
+        ],
+      },
+      {
+        title: "Consequence",
+        gridVariant: "triple",
+        items: [
+          buildNodeInspectFieldViewModel("Effect", context.effectPerHourDown),
+          buildNodeInspectFieldViewModel("Demand Frequency", context.demandFrequency),
+          buildNodeInspectFieldViewModel(
+            "Redundancy",
+            context.redundancyMode === "Custom" && hasValue(context.redundancyPercent)
+              ? `${context.redundancyMode} (${context.redundancyPercent}%)`
+              : context.redundancyMode
+          ),
+          buildNodeInspectFieldViewModel("MAE", context.maeCategory),
+          buildNodeInspectFieldViewModel("Criticality", context.criticality),
+        ],
+      }
+    );
+  } else if (node.type === "cause") {
+    const config = normalizeCauseFailureConfig(node.failureConfig);
+    sections.push({
+      title: "Failure Mode Configuration",
+      gridVariant: "triple",
+      items: [
+        buildNodeInspectFieldViewModel("Component", config.componentName),
+        buildNodeInspectFieldViewModel("Distribution", config.distribution),
+        buildNodeInspectFieldViewModel("Demand Frequency", config.demandFrequency),
+        buildNodeInspectFieldViewModel("MTTF", config.mttf),
+        buildNodeInspectFieldViewModel("Dormant", getNodeInspectBooleanLabel(config.isDormant)),
+        buildNodeInspectFieldViewModel("Alarm", config.alarmDescription),
+      ],
+    });
+  } else if (node.type === "effect") {
+    const effectJson = getEffectJsonEntryForNode(path, node);
+    sections.push({
+      title: "Effect Details",
+      gridVariant: "triple",
+      items: [
+        buildNodeInspectFieldViewModel("Effect", effectJson?.["Failure Mode Effect Effect"] || getNodeDescription(node), true),
+        buildNodeInspectFieldViewModel("Redundancy Factor", effectJson?.["Failure Mode Effect Redundancy Factor"] || ""),
+        buildNodeInspectFieldViewModel("Effect Cost", effectJson?.["Failure Mode Effect Cost"] || ""),
+      ],
+    });
+  } else if (["cm", "pm", "ins"].includes(node.type)) {
+    const taskJson = getTaskJsonEntryForNode(path, node);
+    const taskConfig =
+      node.type === "ins"
+        ? normalizeInsConfig(node.insConfig)
+        : node.type === "pm"
+          ? normalizePmConfig(node.pmConfig)
+          : normalizeCmConfig(node.cmConfig);
+    const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
+    const failureModeInfo = failureModeNode ? findNodeInfo(state.hierarchy, failureModeNode.id) : null;
+    const secondaryInspectionLinkState =
+      node.type === "pm" ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig.secondaryActionInspectionNodeId, taskConfig.isSecondaryAction) : null;
+    const hasEnabledValue = Boolean(taskJson) && Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Is Enabled");
+    const hasDoNotDeliverValue = Boolean(taskJson) && Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Do Not Deliver");
+    const items = [
+      buildNodeInspectFieldViewModel("Task Name", taskJson?.["Task Name"] || getNodeCodeValue(node)),
+      buildNodeInspectFieldViewModel("Task Type", taskJson?.["Scheduled Task Type"] || taskConfig.type || taskConfig.scheduledTaskType || ""),
+      buildNodeInspectFieldViewModel(
+        "Enabled",
+        getNodeInspectBooleanLabel(hasEnabledValue ? Boolean(taskJson?.["Scheduled Task Is Enabled"]) : Boolean(taskConfig.isEnabled))
+      ),
+      buildNodeInspectFieldViewModel(
+        "Do Not Deliver",
+        getNodeInspectBooleanLabel(hasDoNotDeliverValue ? Boolean(taskJson?.["Scheduled Task Do Not Deliver"]) : Boolean(taskConfig.doNotDeliver))
+      ),
+    ];
+
+    if (node.type === "pm") {
+      items.push(
+        buildNodeInspectFieldViewModel(
+          "Secondary Action",
+          getNodeInspectBooleanLabel(
+            Object.prototype.hasOwnProperty.call(taskJson || {}, "Scheduled Task Is Secondary Action")
+              ? Boolean(taskJson?.["Scheduled Task Is Secondary Action"])
+              : Boolean(taskConfig.isSecondaryAction)
+          )
+        ),
+        buildNodeInspectFieldViewModel(
+          "Triggering Inspection",
+          taskJson?.["Scheduled Task Secondary Inspection"] ||
+            secondaryInspectionLinkState?.linkedInspectionName ||
+            (taskConfig.isSecondaryAction ? "Not linked" : "Not required")
+        )
+      );
+    }
+
+    items.push(
+      buildNodeInspectFieldViewModel("Interval", taskJson?.["Scheduled Task Interval"] || taskConfig.intervalHours || taskConfig.interval || ""),
+      buildNodeInspectFieldViewModel("PF Interval", taskJson?.["Scheduled Task PF Interval"] || taskConfig.pfInterval || ""),
+      buildNodeInspectFieldViewModel("Detection Probability", taskJson?.["Scheduled Task Detection Probability"] || taskConfig.detectionProbability || ""),
+      buildNodeInspectFieldViewModel("Duration", taskJson?.["Scheduled Task Duration"] || taskConfig.durationHours || taskConfig.duration || ""),
+      buildNodeInspectFieldViewModel("Labour", taskJson?.["Scheduled Task Labor Labor"] || taskConfig.labourDurationHours || taskConfig.laborLabor || "")
+    );
+
+    sections.push({
+      title: "Task Details",
+      gridVariant: "triple",
+      items,
+      notice: node.type === "pm" ? secondaryInspectionLinkState?.warningMessage || "" : "",
+    });
+  }
+
+  return {
+    sections,
+  };
+};
+const buildInspectNodeActionsViewModel = (nodeInfo) => ({
+  kind: "inspect",
+  editNodeId: nodeInfo?.node?.id || "",
+});
+const buildSelectedNodeActionsViewModel = (nodeInfo, options = {}) => {
+  const isAddMode = Boolean(options.isAddMode);
+  const isEditorMode = Boolean(options.isEditorMode);
+  const equipmentInfoMode = options.equipmentInfoMode || "closed";
+  const selectedTaskNodeInfo =
+    options.selectedTaskNodeInfo && ["cm", "pm", "ins"].includes(options.selectedTaskNodeInfo.node?.type)
+      ? options.selectedTaskNodeInfo
+      : nodeInfo && ["cm", "pm", "ins"].includes(nodeInfo.node.type)
+        ? nodeInfo
+        : null;
+  const showEquipmentInfoAction =
+    Boolean(nodeInfo && nodeInfo.node.type === "equipment" && !isAddMode && !isEditorMode && equipmentInfoMode !== "edit");
+  const showFailureModeAction =
+    Boolean(nodeInfo && nodeInfo.node.type === "cause" && !isAddMode && !isEditorMode);
+  const showTaskEditAction =
+    Boolean(selectedTaskNodeInfo && !isAddMode && !isEditorMode);
+  const taskFailureModeNode = selectedTaskNodeInfo ? getNearestAncestorNodeFromPath(selectedTaskNodeInfo.path, "cause") : null;
+  const showTaskFailureModeAction = Boolean(
+    showTaskEditAction && taskFailureModeNode && (!showFailureModeAction || taskFailureModeNode.id !== nodeInfo?.node.id)
+  );
+  const showDeleteAction =
+    Boolean(nodeInfo && isNodeDeletable(nodeInfo.node) && !isAddMode && !isEditorMode && equipmentInfoMode !== "edit");
+
+  if (!showEquipmentInfoAction && !showFailureModeAction && !showTaskEditAction && !showTaskFailureModeAction && !showDeleteAction) {
+    return {
+      kind: "hidden",
+    };
+  }
+
+  return {
+    kind: "selected",
+    equipmentInfoAction: showEquipmentInfoAction
+      ? {
+          nodeId: nodeInfo.node.id,
+          menuOpen: Boolean(equipmentInfoState.menuOpen && equipmentInfoState.nodeId === nodeInfo.node.id),
+        }
+      : null,
+    failureModeNodeId: showFailureModeAction ? nodeInfo.node.id : "",
+    taskNodeId: showTaskEditAction ? selectedTaskNodeInfo.node.id : "",
+    taskFailureModeNodeId: showTaskFailureModeAction ? taskFailureModeNode.id : "",
+    deleteNodeId: showDeleteAction ? nodeInfo.node.id : "",
+  };
+};
 const getNodeInspectValueMarkup = (label, value, isWide = false) => `
   <div class="node-inspect-panel__item ${isWide ? "node-inspect-panel__item--wide" : ""}">
     <span class="node-inspect-panel__label">${escapeHtml(label)}</span>
@@ -6953,6 +7623,13 @@ const getNodeInspectPathLabel = (nodeInfo) =>
 const getNodeInspectBooleanLabel = (value) => (value ? "Yes" : "No");
 const renderNodeInspectPanel = (nodeInfo) => {
   if (!childCreatorPanel || !nodeInfo) {
+    return;
+  }
+
+  const nodePanelRendererBridge = getProductNodePanelRendererBridge();
+  if (nodePanelRendererBridge?.renderInspectPanel) {
+    childCreatorPanel.hidden = false;
+    childCreatorPanel.innerHTML = nodePanelRendererBridge.renderInspectPanel(buildNodeInspectPanelViewModel(nodeInfo));
     return;
   }
 
@@ -7129,6 +7806,16 @@ const renderExistingHierarchyNodeEditor = (nodeInfo) => {
     return;
   }
 
+  const editorRendererBridge = getProductEditorRendererBridge();
+  if (editorRendererBridge?.renderExistingHierarchyNodeEditor) {
+    const viewModel = buildExistingHierarchyNodeEditorViewModel(nodeInfo);
+    if (viewModel) {
+      childCreatorPanel.hidden = false;
+      childCreatorPanel.innerHTML = editorRendererBridge.renderExistingHierarchyNodeEditor(viewModel);
+      return;
+    }
+  }
+
   const { node, parent, path } = nodeInfo;
   const isEffectNode = node.type === "effect";
   const isAutoGeneratedNode = autoGeneratedChildTypes.has(node.type) && !["cm", "pm", "ins", "cause"].includes(node.type);
@@ -7216,8 +7903,61 @@ const renderExistingHierarchyNodeEditor = (nodeInfo) => {
     </section>
   `;
 };
+const buildExistingHierarchyNodeEditorViewModel = (nodeInfo) => {
+  if (!nodeInfo || !childDraftState.isOpen || childDraftState.editNodeId !== nodeInfo?.node?.id) {
+    return null;
+  }
+
+  const { node, parent, path } = nodeInfo;
+  const isEffectNode = node.type === "effect";
+  const isAutoGeneratedNode = autoGeneratedChildTypes.has(node.type) && !["cm", "pm", "ins", "cause"].includes(node.type);
+  const parentFullCode = parent ? getNodeFullCode(parent, path.slice(0, -1)) : "";
+  const inheritedPrefix = buildInheritedCodePrefix([parentFullCode]);
+  const siblingEffectCodes = parent ? getUsedEffectCodesForParent(parent) : new Set();
+
+  if (isEffectNode) {
+    return {
+      kind: "effect",
+      requiredEffectLabel: getRequiredFieldLabel("Effect"),
+      effectOptions: effectCatalog.map((option) => {
+        const isSelected = childDraftState.codeSegment === option.code;
+        const isUsed = siblingEffectCodes.has(option.code) && !isSelected;
+        return buildEditorSelectOptionViewModel(option.code, `${getEffectCatalogLabel(option)}${isUsed ? " (Already added)" : ""}`, isSelected, isUsed);
+      }),
+      saveDisabled: !isChildDraftReady(),
+    };
+  }
+
+  if (isAutoGeneratedNode) {
+    return {
+      kind: "autoGenerated",
+      fullCode: getNodeFullCode(node, path),
+      requiredDescriptionLabel: getRequiredFieldLabel(getChildDescriptionLabel(node.type)),
+      description: childDraftState.description,
+      descriptionPlaceholder: `Enter ${getNodeLabel(node).toLowerCase()} description`,
+      saveDisabled: !isChildDraftReady(),
+    };
+  }
+
+  return {
+    kind: "standard",
+    inheritedPrefix,
+    requiredNameLabel: getRequiredFieldLabel("Name"),
+    requiredDescriptionLabel: getRequiredFieldLabel("Description"),
+    codeSegment: childDraftState.codeSegment,
+    description: childDraftState.description,
+    saveDisabled: !isChildDraftReady(),
+  };
+};
 const renderInspectNodeActions = (nodeInfo) => {
   if (!selectedNodeActions || !nodeInfo) {
+    return;
+  }
+
+  const nodePanelRendererBridge = getProductNodePanelRendererBridge();
+  if (nodePanelRendererBridge?.renderNodeActions) {
+    selectedNodeActions.hidden = false;
+    selectedNodeActions.innerHTML = nodePanelRendererBridge.renderNodeActions(buildInspectNodeActionsViewModel(nodeInfo));
     return;
   }
 
@@ -7230,6 +7970,20 @@ const renderInspectNodeActions = (nodeInfo) => {
 
 const renderSelectedNodeActions = (nodeInfo, options = {}) => {
   if (!selectedNodeActions) {
+    return;
+  }
+
+  const nodePanelRendererBridge = getProductNodePanelRendererBridge();
+  if (nodePanelRendererBridge?.renderNodeActions) {
+    const viewModel = buildSelectedNodeActionsViewModel(nodeInfo, options);
+    if (viewModel.kind === "hidden") {
+      selectedNodeActions.innerHTML = "";
+      selectedNodeActions.hidden = true;
+      return;
+    }
+
+    selectedNodeActions.hidden = false;
+    selectedNodeActions.innerHTML = nodePanelRendererBridge.renderNodeActions(viewModel);
     return;
   }
 
@@ -7656,6 +8410,343 @@ const getActiveFailureModeDecisionData = (nodeInfo) => {
   };
 };
 
+const strategyWorkspaceRendererDetailId = "strategy-option-details-drawer";
+
+const buildStrategyWorkspaceTabsViewModel = () => ({
+  activeView: state.strategyTable.activeView,
+});
+
+const buildStrategyFailureModeSelectorItemViewModel = (entry, selectedDecisionData) => {
+  const decisionData = getFailureModeDecisionData(entry);
+  const exposure = decisionData?.effectEstimate?.baselineExposure || 0;
+  const failureModeTitle =
+    String(decisionData?.summary?.failureModeName || "").trim() ||
+    getNodeNameValue(entry.node, getNodeCodeValue(entry.node, nodeTypeMeta[entry.node.type]?.placeholder || "Untitled failure mode"));
+  return {
+    nodeId: entry.node.id,
+    title: failureModeTitle,
+    exposureLabel: `${formatCurrency(exposure, { compact: exposure >= 1000 })} 10-year exposure`,
+    isSelected: selectedDecisionData?.failureModeInfo?.node?.id === entry.node.id,
+  };
+};
+
+const buildStrategyComparisonPanelViewModel = (decisionData) => {
+  if (!decisionData) {
+    return null;
+  }
+
+  const { comparison } = decisionData;
+  const residualRatio =
+    comparison.baselineExposure > 0 ? clampNumber(comparison.residualExposure / comparison.baselineExposure, 0, 1) : 0;
+  return {
+    title: "Selection",
+    stats: [
+      { label: "Included", value: `${comparison.enabledCount} / ${comparison.totalCount}` },
+      {
+        label: "10-year cost",
+        value: formatCurrency(comparison.totalModeledCost, { compact: comparison.totalModeledCost >= 1000 }),
+      },
+      {
+        label: "10-year residual exposure",
+        value: formatCurrency(comparison.residualExposure, { compact: comparison.residualExposure >= 1000 }),
+      },
+    ],
+    residualWidthPercent: Math.max(8, residualRatio * 100),
+    untreatedLabel: "Untreated",
+    residualLabel: "After selection",
+  };
+};
+
+const buildStrategyDecisionExpandedDetailViewModel = (strategy) => {
+  if (!strategy) {
+    return null;
+  }
+
+  const metrics = [
+    { label: "Task code", value: strategy.technicalDetails.taskCode || "Not set" },
+    { label: "Task type", value: strategy.scheduledTaskType || "Not set" },
+    { label: "Cadence", value: strategy.technicalDetails.intervalLabel || "Not set" },
+    { label: "PF interval", value: strategy.technicalDetails.pfIntervalLabel || "Not set" },
+    { label: "Duration", value: strategy.technicalDetails.durationLabel || "Not set" },
+    { label: "Labour", value: strategy.technicalDetails.labourLabel || "Not set" },
+    { label: "Detectability", value: formatPercentValue(strategy.detectionProbability) },
+    { label: "Expected executions (10-year)", value: strategy.technicalDetails.expectedExecutionLabel || "Not set" },
+    {
+      label: "Per-intervention cost",
+      value: formatCurrency(strategy.directExecutionCost, { compact: strategy.directExecutionCost >= 1000 }),
+    },
+  ];
+
+  if (strategy.taskNodeType === "pm") {
+    metrics.push({
+      label: "Triggering inspection",
+      value: strategy.secondaryActionInspectionName || (strategy.isSecondaryAction ? "Not linked" : "Not required"),
+    });
+  }
+
+  metrics.push(
+    {
+      label: strategy.selectedSetIncludesOtherStrategies ? "Current selection residual exposure" : "10-year residual exposure",
+      value: formatCurrency(strategy.selectedSetResidualExposure, {
+        compact: strategy.selectedSetResidualExposure >= 1000,
+      }),
+    },
+    {
+      label: "10-year execution cost",
+      value: formatCurrency(strategy.modeledCost, { compact: strategy.modeledCost >= 1000 }),
+    },
+    {
+      label: "10-year total expected cost",
+      value: formatCurrency(strategy.totalExpectedCost, { compact: strategy.totalExpectedCost >= 1000 }),
+    }
+  );
+
+  if (strategy.isRecommendedLead && strategy.recommendedPackageMemberNames.length > 1) {
+    metrics.push({
+      label: "Recommended path",
+      value: strategy.recommendedPackageMemberNames.join(" + "),
+    });
+  }
+
+  return {
+    detailId: strategyWorkspaceRendererDetailId,
+    titleLabel: "Task details",
+    title: strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy",
+    whyStatement: strategy.whyStatement || "",
+    tradeoffStatement: strategy.tradeoffStatement || "",
+    weaknessFlags: Array.isArray(strategy.weaknessFlags) ? strategy.weaknessFlags : [],
+    metrics,
+    editTaskNodeId: strategy.taskNodeId,
+  };
+};
+
+const buildStrategyDecisionCardViewModel = (strategy, expandedTaskNodeId = "") => {
+  const isExpanded = expandedTaskNodeId === strategy.taskNodeId;
+  const displayedResidualExposure = strategy.selectedSetResidualExposure ?? strategy.residualExposure;
+  return {
+    taskNodeId: strategy.taskNodeId,
+    status: strategy.status,
+    statusLabel: strategy.statusLabel,
+    strategyType: strategy.strategyType,
+    isRecommendedLead: Boolean(strategy.isRecommendedLead),
+    isSelected: state.strategyTable.selectedTaskNodeId === strategy.taskNodeId,
+    isExpanded,
+    title: strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy",
+    isEnabled: Boolean(strategy.scheduledTaskIsEnabled),
+    inclusionLabel: strategy.scheduledTaskIsEnabled ? "Included" : "Not included",
+    residualLabel: strategy.selectedSetIncludesOtherStrategies ? "Current selection residual exposure" : "10-year residual exposure",
+    residualValue: formatCurrency(displayedResidualExposure, { compact: displayedResidualExposure >= 1000 }),
+    costValue: formatCurrency(strategy.modeledCost, { compact: strategy.modeledCost >= 1000 }),
+    detailId: strategyWorkspaceRendererDetailId,
+  };
+};
+
+const buildStrategyDecisionWorkspaceViewModel = (nodeInfo) => {
+  const { failureModeInfos, selectedDecisionData } = getActiveFailureModeDecisionData(nodeInfo);
+  if (!failureModeInfos.length || !selectedDecisionData) {
+    return {
+      kind: "noFailureModes",
+      tabs: buildStrategyWorkspaceTabsViewModel(),
+      emptyState: {
+        title: "No failure modes in this selection",
+        description: "Select a function, failure mode, or asset with strategy content to start the decision workflow.",
+      },
+    };
+  }
+
+  const sortedStrategies = [...selectedDecisionData.strategies].sort((left, right) => {
+    const recommendationWeight = left.isRecommendedLead === right.isRecommendedLead ? 0 : left.isRecommendedLead ? -1 : 1;
+    if (recommendationWeight) {
+      return recommendationWeight;
+    }
+    const statusWeight = { enabled: 0, disabled: 1 };
+    const leftWeight = statusWeight[left.status] ?? 2;
+    const rightWeight = statusWeight[right.status] ?? 2;
+    if (leftWeight !== rightWeight) {
+      return leftWeight - rightWeight;
+    }
+    if (left.totalExpectedCost !== right.totalExpectedCost) {
+      return left.totalExpectedCost - right.totalExpectedCost;
+    }
+    return left.taskCode.localeCompare(right.taskCode, undefined, { numeric: true, sensitivity: "base" });
+  });
+
+  const expandedTaskNodeId = state.strategyTable.expandedTaskNodeIds[0] || "";
+  const expandedStrategy = sortedStrategies.find((strategy) => strategy.taskNodeId === expandedTaskNodeId) || null;
+
+  return {
+    kind: "decision",
+    decision: {
+      tabs: buildStrategyWorkspaceTabsViewModel(),
+      selectorItems: failureModeInfos.map((entry) => buildStrategyFailureModeSelectorItemViewModel(entry, selectedDecisionData)),
+      cards: sortedStrategies.map((strategy) => buildStrategyDecisionCardViewModel(strategy, expandedTaskNodeId)),
+      expandedDetail: buildStrategyDecisionExpandedDetailViewModel(expandedStrategy),
+      comparison: buildStrategyComparisonPanelViewModel(selectedDecisionData),
+    },
+  };
+};
+
+const buildStrategyAuditHeaderFilterPopoverViewModel = (column, rows) => {
+  const currentValue = String(state.strategyTable.columnFilters[column.key] || "");
+  if (state.strategyTable.headerFilterColumnKey !== column.key) {
+    return null;
+  }
+
+  if (strategyTableBooleanColumnKeys.has(column.key)) {
+    return {
+      kind: "boolean",
+      columnKey: column.key,
+      label: column.label,
+      currentValue,
+    };
+  }
+
+  if (strategyTableExactMatchColumnKeys.has(column.key)) {
+    return {
+      kind: "exact",
+      columnKey: column.key,
+      label: column.label,
+      currentValue,
+      exactMatchOptions: getStrategyTableDistinctColumnValues(rows, column.key),
+    };
+  }
+
+  return {
+    kind: "contains",
+    columnKey: column.key,
+    label: column.label,
+    currentValue,
+  };
+};
+
+const buildStrategyAuditHeaderViewModel = (column, rows) => ({
+  key: column.key,
+  label: column.label,
+  isFiltered: Boolean(String(state.strategyTable.columnFilters[column.key] || "").trim()),
+  isOpen: state.strategyTable.headerFilterColumnKey === column.key,
+  filterPopover: buildStrategyAuditHeaderFilterPopoverViewModel(column, rows),
+});
+
+const buildStrategyAuditToolbarViewModel = (rows, filteredRows) => ({
+  searchQuery: state.strategyTable.searchQuery,
+  filteredCount: filteredRows.length,
+  totalCount: rows.length,
+  optionsOpen: Boolean(state.strategyTable.optionsOpen),
+  orderedColumns: getOrderedStrategyTableColumns().map((column, index, columns) => ({
+    key: column.key,
+    label: column.label,
+    isVisible: state.strategyTable.visibleColumnKeys.includes(column.key),
+    canMoveLeft: index > 0,
+    canMoveRight: index < columns.length - 1,
+  })),
+});
+
+const buildStrategyAuditCellViewModel = (row, column) => {
+  const rawValue = row[column.key];
+  const stringValue = typeof rawValue === "boolean" ? "" : String(rawValue || "");
+
+  if (column.editable) {
+    if (column.inputType === "checkbox") {
+      const isSecondaryActionCheckbox = column.key === "scheduledTaskIsSecondaryAction";
+      const isSecondaryActionEditable = !isSecondaryActionCheckbox || row.taskNodeType === "pm";
+      return {
+        kind: "editableCheckbox",
+        taskNodeId: row.taskNodeId,
+        columnKey: column.key,
+        value: stringValue,
+        checked: Boolean(rawValue),
+        disabled: !isSecondaryActionEditable,
+        inputType: "text",
+      };
+    }
+
+    return {
+      kind: "editableText",
+      taskNodeId: row.taskNodeId,
+      columnKey: column.key,
+      value: stringValue,
+      checked: false,
+      disabled: false,
+      inputType: column.inputType === "number" ? "number" : "text",
+    };
+  }
+
+  if (typeof rawValue === "boolean") {
+    return {
+      kind: "readonlyCheckbox",
+      taskNodeId: row.taskNodeId,
+      columnKey: column.key,
+      value: "",
+      checked: rawValue,
+      disabled: true,
+      inputType: "text",
+    };
+  }
+
+  return {
+    kind: "readonlyText",
+    taskNodeId: row.taskNodeId,
+    columnKey: column.key,
+    value: stringValue,
+    checked: false,
+    disabled: true,
+    inputType: "text",
+  };
+};
+
+const buildStrategyAuditWorkspaceViewModel = (nodeInfo, strategyRows, filteredRows) => {
+  const auditRows = getAuditRowsForCurrentWorkspace(nodeInfo, strategyRows, filteredRows);
+  const visibleColumns = getVisibleStrategyTableColumns();
+  return {
+    kind: "audit",
+    audit: {
+      tabs: buildStrategyWorkspaceTabsViewModel(),
+      toolbar: buildStrategyAuditToolbarViewModel(auditRows.strategyRows, auditRows.filteredRows),
+      header: {
+        title: "Audit table",
+        subtitle: `${auditRows.filteredRows.length} visible row${auditRows.filteredRows.length === 1 ? "" : "s"} | Raw field view`,
+      },
+      headers: visibleColumns.map((column) => buildStrategyAuditHeaderViewModel(column, auditRows.strategyRows)),
+      rows: auditRows.filteredRows.map((row) => ({
+        taskNodeId: row.taskNodeId,
+        isSelected: state.strategyTable.selectedTaskNodeId === row.taskNodeId,
+        cells: visibleColumns.map((column) => buildStrategyAuditCellViewModel(row, column)),
+      })),
+    },
+  };
+};
+
+const buildStrategyWorkspaceViewModel = (nodeInfo, strategyRows = [], filteredRows = []) => {
+  if (!nodeInfo) {
+    return {
+      kind: "noSelection",
+      emptyState: {
+        title: "No asset selected",
+        description: "Select a node in the asset register to see strategies related to that system or asset.",
+      },
+    };
+  }
+
+  if (!strategyRows.length) {
+    return {
+      kind: "noRows",
+      tabs: buildStrategyWorkspaceTabsViewModel(),
+      header: {
+        title: "Strategies",
+        subtitle: "No strategy rows yet",
+      },
+      emptyState: {
+        title: "No strategy rows under this selection yet",
+        description: "Select another asset or add hierarchy children to keep building the strategy structure.",
+      },
+    };
+  }
+
+  return state.strategyTable.activeView === "audit"
+    ? buildStrategyAuditWorkspaceViewModel(nodeInfo, strategyRows, filteredRows)
+    : buildStrategyDecisionWorkspaceViewModel(nodeInfo);
+};
+
 const renderStrategyWorkspaceTabs = () => `
   <div class="strategy-workspace__tabs" role="tablist" aria-label="Strategy workspace view">
     <button
@@ -7804,7 +8895,9 @@ const renderStrategyDecisionDetails = (strategy, detailId) => `
             ? `<div><dt>Triggering inspection</dt><dd>${escapeHtml(strategy.secondaryActionInspectionName || (strategy.isSecondaryAction ? "Not linked" : "Not required"))}</dd></div>`
             : ""
         }
-        <div><dt>10-year residual exposure</dt><dd>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</dd></div>
+        <div><dt>${escapeHtml(strategy.selectedSetIncludesOtherStrategies ? "Current selection residual exposure" : "10-year residual exposure")}</dt><dd>${escapeHtml(
+          formatCurrency(strategy.selectedSetResidualExposure, { compact: strategy.selectedSetResidualExposure >= 1000 })
+        )}</dd></div>
         <div><dt>10-year execution cost</dt><dd>${escapeHtml(formatCurrency(strategy.modeledCost, { compact: strategy.modeledCost >= 1000 }))}</dd></div>
         <div><dt>10-year total expected cost</dt><dd>${escapeHtml(formatCurrency(strategy.totalExpectedCost, { compact: strategy.totalExpectedCost >= 1000 }))}</dd></div>
         ${
@@ -7828,6 +8921,8 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
   const isExpanded = expandedTaskNodeId === strategy.taskNodeId;
   const isSelected = state.strategyTable.selectedTaskNodeId === strategy.taskNodeId;
   const detailId = strategyDecisionDetailsDrawerId;
+  const displayedResidualExposure = strategy.selectedSetResidualExposure ?? strategy.residualExposure;
+  const displayedResidualLabel = strategy.selectedSetIncludesOtherStrategies ? "Current selection residual exposure" : "10-year residual exposure";
   return `
     <article
       class="strategy-option-card strategy-option-card--${strategy.status} ${strategy.isRecommendedLead ? "strategy-option-card--recommended" : ""} ${isSelected ? "is-selected" : ""} ${isExpanded ? "is-expanded" : ""}"
@@ -7854,8 +8949,8 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
       </div>
       <div class="strategy-option-card__metrics">
         <div>
-          <span>10-year residual exposure</span>
-          <strong>${escapeHtml(formatCurrency(strategy.residualExposure, { compact: strategy.residualExposure >= 1000 }))}</strong>
+          <span>${escapeHtml(displayedResidualLabel)}</span>
+          <strong>${escapeHtml(formatCurrency(displayedResidualExposure, { compact: displayedResidualExposure >= 1000 }))}</strong>
         </div>
         <div>
           <span>10-year cost</span>
@@ -8020,36 +9115,43 @@ const renderStrategyDrafts = (nodeInfo, strategyRowsOverride = null, filteredRow
     if (renderExistingRecoveryDebugPanel()) {
       return;
     }
+    const workspaceRendererBridge = getProductWorkspaceRendererBridge();
     strategyList.hidden = false;
-    strategyList.innerHTML = `
-      <article class="asset-workspace-empty asset-workspace-empty--soft">
-        <strong>No asset selected</strong>
-        <p>Select a node in the asset register to see strategies related to that system or asset.</p>
-      </article>
-    `;
+    strategyList.innerHTML = workspaceRendererBridge?.renderStrategyWorkspace
+      ? workspaceRendererBridge.renderStrategyWorkspace(buildStrategyWorkspaceViewModel(null, [], []))
+      : `
+          <article class="asset-workspace-empty asset-workspace-empty--soft">
+            <strong>No asset selected</strong>
+            <p>Select a node in the asset register to see strategies related to that system or asset.</p>
+          </article>
+        `;
     return;
   }
 
   const strategyRows = Array.isArray(strategyRowsOverride) ? strategyRowsOverride : getStrategyTableRowsForSelection(nodeInfo);
   const filteredRows = Array.isArray(filteredRowsOverride) ? filteredRowsOverride : getFilteredStrategyTableRows(strategyRows);
+  const workspaceRendererBridge = getProductWorkspaceRendererBridge();
   strategyList.hidden = false;
-  strategyList.innerHTML = strategyRows.length
-    ? state.strategyTable.activeView === "audit"
-      ? renderAuditWorkspace(nodeInfo, strategyRows, filteredRows)
-      : renderDecisionWorkspace(nodeInfo)
-    : `
-        <section class="strategy-draft-list__section">
-          ${renderStrategyWorkspaceTabs()}
-          <div class="strategy-surface__header">
-            <strong>Strategies</strong>
-            <span>No strategy rows yet</span>
-          </div>
-          <article class="asset-workspace-empty asset-workspace-empty--soft">
-            <strong>No strategy rows under this selection yet</strong>
-            <p>Select another asset or add hierarchy children to keep building the strategy structure.</p>
-          </article>
-        </section>
-      `;
+  strategyList.innerHTML =
+    workspaceRendererBridge?.renderStrategyWorkspace
+      ? workspaceRendererBridge.renderStrategyWorkspace(buildStrategyWorkspaceViewModel(nodeInfo, strategyRows, filteredRows))
+      : strategyRows.length
+        ? state.strategyTable.activeView === "audit"
+          ? renderAuditWorkspace(nodeInfo, strategyRows, filteredRows)
+          : renderDecisionWorkspace(nodeInfo)
+        : `
+            <section class="strategy-draft-list__section">
+              ${renderStrategyWorkspaceTabs()}
+              <div class="strategy-surface__header">
+                <strong>Strategies</strong>
+                <span>No strategy rows yet</span>
+              </div>
+              <article class="asset-workspace-empty asset-workspace-empty--soft">
+                <strong>No strategy rows under this selection yet</strong>
+                <p>Select another asset or add hierarchy children to keep building the strategy structure.</p>
+              </article>
+            </section>
+          `;
   if (strategyRows.length && state.strategyTable.activeView === "audit") {
     syncStrategyTableScrollbars();
   }
@@ -8241,6 +9343,9 @@ const renderWorkspaceState = () => {
 };
 
 const renderAll = (options = {}) => {
+  // This remains the top-level UI orchestration entrypoint during the migration.
+  // As feature renderers move into modules, this function becomes the clearest
+  // place to understand which parts of the screen are recomputed together.
   renderEntryForm({
     includeDynamic: options.includeEntryDynamic !== false,
   });

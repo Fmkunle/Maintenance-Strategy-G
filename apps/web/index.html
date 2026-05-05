@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maintenance Strategy Generator Demo</title>
+</head>
+<body data-theme="light">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <button id="sidebarToggle" class="sidebar-logo" aria-label="Toggle sidebar" aria-expanded="false" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+            <path d="M9 8v8M15 8l-4 4 4 4"></path>
+          </svg>
+        </button>
+        <div class="sidebar__brand-copy">
+          <strong>AgenticAI</strong>
+          <span>Reliability workspace</span>
+        </div>
+      </div>
+
+      <button class="org-switcher" aria-label="Current workspace">
+        <span>Namin</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6"></path>
+        </svg>
+      </button>
+
+      <nav class="sidebar-nav" aria-label="Primary">
+        <button class="nav-pill is-active">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+            </svg>
+          </span>
+          <span>Home</span>
+        </button>
+        <button class="nav-pill">
+          <span class="nav-pill__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h6l2 2h8v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path>
+            </svg>
+          </span>
+          <span>Projects</span>
+        </button>
+      </nav>
+
+      <div class="sidebar__section-label">Administration</div>
+      <nav class="sidebar-nav sidebar-nav--stacked" aria-label="Administration">
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"></path>
+            </svg>
+          </span>
+          <span>Admin Dashboard</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20a7 7 0 0 1 14 0"></path>
+            </svg>
+          </span>
+          <span>Users</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 5h12v14H6zM9 9h6M9 13h6"></path>
+            </svg>
+          </span>
+          <span>Organizations</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M17 7.5c0-1.9-1.8-3.5-5-3.5s-5 1.6-5 3.5 1.4 2.9 5 3.5 5 1.6 5 3.5-1.8 3.5-5 3.5-5-1.6-5-3.5"></path>
+            </svg>
+          </span>
+          <span>AI Config</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 8a4 4 0 1 1 0 8a4 4 0 0 1 0-8z"></path>
+              <path d="M4 12h2M18 12h2M12 4v2M12 18v2"></path>
+            </svg>
+          </span>
+          <span>Platform Settings</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 8h12M6 12h12M6 16h8"></path>
+            </svg>
+          </span>
+          <span>Demo Requests</span>
+        </button>
+        <button class="nav-row">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16v12H4z"></path>
+              <path d="M4 8l8 6 8-6"></path>
+            </svg>
+          </span>
+          <span>SMTP / Email</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-row nav-row--footer">
+          <span class="nav-row__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M7 4v16M17 4v16"></path>
+            </svg>
+          </span>
+          <span>Customize layout</span>
+        </button>
+        <section class="upgrade-card">
+          <div class="upgrade-card__title">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13 2L4 14h6l-1 8 9-12h-6z"></path>
+            </svg>
+            <strong>Upgrade plan</strong>
+          </div>
+          <p>Unlock more projects, AI features, and exports.</p>
+          <button class="upgrade-button">View plans</button>
+        </section>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="search-shell">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6"></circle>
+            <path d="M20 20l-4.35-4.35"></path>
+          </svg>
+          <input type="search" placeholder="Search projects..." aria-label="Search projects">
+          <span class="shortcut">Ctrl+K</span>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="themeToggle" class="icon-button" aria-label="Toggle theme">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+            </svg>
+          </button>
+          <button class="icon-button" aria-label="AI helpers">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 4l1.6 3.9L18 9.5l-3.2 2.6.9 4.1-3.7-2.3-3.7 2.3.9-4.1L6 9.5l4.4-1.6z"></path>
+            </svg>
+          </button>
+          <button class="icon-button" aria-label="Profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20a7 7 0 0 1 14 0"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace workspace--welcome">
+        <section class="welcome-grid">
+          <div class="welcome-main">
+            <div class="section-heading">
+              <h1>Welcome</h1>
+              <p>Start a new analysis or open a recent project</p>
+            </div>
+
+            <section class="hero-card">
+              <div class="hero-card__header">
+                <div id="selectedToolMark" class="product-mark">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+                  </svg>
+                </div>
+                <div class="hero-copy">
+                  <div class="hero-copy__topline">
+                    <h2 id="selectedToolTitle">AI-Assisted FMEA Builder</h2>
+                    <span id="selectedToolBadge" class="badge badge-ai">AI-ready</span>
+                  </div>
+                  <p id="selectedToolDescription">
+                    Generate structured failure modes, effects, and actions with guardrails.
+                  </p>
+                  <div id="selectedToolMeta" class="hero-meta">
+                    <span>SAE J1739 compatible</span>
+                    <span>RPN heatmap</span>
+                    <span>Export ready</span>
+                  </div>
+                  <p id="selectedToolStatus" class="hero-status" hidden></p>
+                </div>
+              </div>
+
+              <div class="hero-actions">
+                <button id="primaryAction" class="primary-button" type="button">
+                  Create new FMEA
+                </button>
+                <button id="secondaryAction" class="secondary-button" type="button">
+                  Open existing
+                </button>
+              </div>
+            </section>
+
+            <section class="tools-section">
+              <div class="section-heading section-heading--compact">
+                <h3>Tools</h3>
+              </div>
+
+              <div class="tool-selector" role="tablist" aria-label="Available tools">
+                <button type="button" class="tool-selector__option" data-tool="maintenance" aria-pressed="false" role="tab" aria-selected="false">
+                  <span class="tool-selector__circle" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M14.5 5.5a3 3 0 0 1 4 4l-2 2-4-4zM4 20l4.5-1 8-8-3.5-3.5-8 8z"></path>
+                    </svg>
+                  </span>
+                  <span class="tool-selector__label">
+                    <span>Maintenance</span>
+                    <span>Strategy</span>
+                  </span>
+                </button>
+
+                <button type="button" class="tool-selector__option" data-tool="cba" aria-pressed="false" role="tab" aria-selected="false">
+                  <span class="tool-selector__circle" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 3v18M17 7.5c0-1.9-1.8-3.5-5-3.5s-5 1.6-5 3.5 1.4 2.9 5 3.5 5 1.6 5 3.5-1.8 3.5-5 3.5-5-1.6-5-3.5"></path>
+                    </svg>
+                  </span>
+                  <span class="tool-selector__label">
+                    <span>Reliability</span>
+                    <span>Insights</span>
+                  </span>
+                </button>
+
+                <button type="button" class="tool-selector__option tool-selector__option--coming-soon" data-tool="pareto" aria-pressed="false" role="tab" aria-selected="false">
+                  <span class="tool-selector__circle" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 19V9M10 19V5M15 19v-7M20 19v-3"></path>
+                    </svg>
+                  </span>
+                  <span class="tool-selector__label">
+                    <span>Weibull</span>
+                    <span>Analysis</span>
+                  </span>
+                </button>
+
+                <button type="button" class="tool-selector__option is-selected" data-tool="fmea" aria-pressed="true" role="tab" aria-selected="true">
+                  <span class="tool-selector__circle" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path>
+                    </svg>
+                  </span>
+                  <span class="tool-selector__label">
+                    <span>FMEA</span>
+                  </span>
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <aside class="welcome-side">
+            <details class="welcome-accordion side-card">
+              <summary class="welcome-accordion__summary">
+                <div class="welcome-accordion__copy">
+                  <h3>Quick actions</h3>
+                  <p>Designed to reduce clicks.</p>
+                </div>
+                <span class="badge">Pinned</span>
+              </summary>
+
+              <div class="welcome-accordion__content">
+                <div class="action-list">
+                  <button class="action-card">
+                    <strong>Import Excel/CSV</strong>
+                    <span>Bring an existing FMEA and upgrade it.</span>
+                  </button>
+                  <button class="action-card">
+                    <strong>Start from a template</strong>
+                    <span>Common equipment and process libraries.</span>
+                  </button>
+                  <button class="action-card">
+                    <strong>Ask Copilot</strong>
+                    <span>Suggest causes and controls for this failure mode.</span>
+                  </button>
+                </div>
+              </div>
+            </details>
+
+            <details class="welcome-accordion recent-block side-card" open>
+              <summary class="welcome-accordion__summary">
+                <div class="welcome-accordion__copy">
+                  <h3>Recent analyses</h3>
+                  <p>Jump back in where you left off.</p>
+                </div>
+              </summary>
+
+              <div class="welcome-accordion__content">
+                <div class="recent-list">
+                  <button class="recent-item">
+                    <div class="recent-item__title-row">
+                      <strong>FMEA-CocoaCola-Sept2025</strong>
+                      <span class="risk-chip risk-chip--high">High</span>
+                    </div>
+                    <span>FTSA &bull; Compressor &bull; 140 failure modes</span>
+                  </button>
+                  <button class="recent-item">
+                    <div class="recent-item__title-row">
+                      <strong>Magnetite Tramp Iron Removal</strong>
+                      <span class="risk-chip risk-chip--medium">Medium</span>
+                    </div>
+                    <span>Magnetic Separator &bull; Other</span>
+                  </button>
+                  <button class="recent-item">
+                    <div class="recent-item__title-row">
+                      <strong>Gas Turbine FMEA</strong>
+                      <span class="risk-chip risk-chip--high">High</span>
+                    </div>
+                    <span>Power Island &bull; 48 failure modes</span>
+                  </button>
+                  <button class="recent-item">
+                    <div class="recent-item__title-row">
+                      <strong>FlexSAF - Maint</strong>
+                      <span class="risk-chip risk-chip--critical">Critical</span>
+                    </div>
+                    <span>Supersonic Jet &bull; Other</span>
+                  </button>
+                </div>
+              </div>
+            </details>
+          </aside>
+        </section>
+
+        <footer class="workspace-footer">
+          <p><strong>AgenticAI</strong> | Built for reliability engineering workflows</p>
+          <p>Keyboard-first editing | Audit-ready exports | AI assistance you can control</p>
+        </footer>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="./src/entries/home.ts"></script>
+</body>
+</html>
