@@ -94,7 +94,7 @@ const renderStrategyDecisionCard = (card: StrategyDecisionCardViewModel): string
         <strong>${escapeHtml(card.residualValue)}</strong>
       </div>
       <div>
-        <span>10-year cost</span>
+        <span>10-year total cost</span>
         <strong>${escapeHtml(card.costValue)}</strong>
       </div>
     </div>

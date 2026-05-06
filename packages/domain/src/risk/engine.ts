@@ -206,25 +206,32 @@ export const calculatePmPreventedFraction = ({
 
 /**
  * INS + secondary PM uses a deliberately simple timing model for v1:
- * - inspection must happen during the PF window
+ * - the failure must still be within the usable timing window before functional failure
  * - the inspection must then successfully detect the issue
  *
  * We do not model lead time yet because the current product does not collect it.
  */
 export const calculateInspectionPreventedFraction = ({
+  referenceFailureIntervalHours,
   inspectionIntervalHours,
   pfIntervalHours,
   detectionProbability
 }: {
+  referenceFailureIntervalHours: number;
   inspectionIntervalHours: number;
   pfIntervalHours: number;
   detectionProbability: number;
 }): number => {
-  if (!(inspectionIntervalHours > 0) || !(pfIntervalHours > 0)) {
+  if (!(referenceFailureIntervalHours > 0) || !(inspectionIntervalHours > 0) || !(pfIntervalHours > 0)) {
     return 0;
   }
 
-  const timingFactor = clampNumber(pfIntervalHours / inspectionIntervalHours);
+  const usableInspectionWindowHours = Math.max(0, referenceFailureIntervalHours - pfIntervalHours);
+  if (!(usableInspectionWindowHours > 0)) {
+    return 0;
+  }
+
+  const timingFactor = clampNumber(usableInspectionWindowHours / inspectionIntervalHours);
   return clampNumber(timingFactor * clampNumber(detectionProbability));
 };
 

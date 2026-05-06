@@ -31,6 +31,8 @@ const createMapperDeps = () => ({
     scheduledTaskType: "",
     isEnabled: false,
     doNotDeliver: false,
+    hasSecondaryAction: false,
+    secondaryActionPmNodeId: "",
     interval: "",
     intervalShortDescription: "",
     pfInterval: "",
@@ -66,6 +68,10 @@ const createMapperDeps = () => ({
     ...(typeof value === "object" && value ? (value as Record<string, unknown>) : {})
   }),
   getSecondaryActionInspectionLinkState: () => ({ linkedInspectionName: "INS-001" }),
+  getInspectionSecondaryActionPmLinkState: (_failureModeInfo: HierarchyNodeInfo<FailureModePersistenceNode>, inspectionNode) => ({
+    hasSecondaryAction: inspectionNode.id === "ins-1",
+    linkedPmName: inspectionNode.id === "ins-1" ? "PM-001" : ""
+  }),
   getNodeDescription: (node: FailureModePersistenceNode | null | undefined, fallback = "") =>
     String(node?.description || "").trim() || fallback,
   getNodeFullCode: (node: FailureModePersistenceNode | null | undefined, path: FailureModePersistenceNode[] = []) =>
@@ -141,6 +147,8 @@ const buildHierarchy = (): FailureModePersistenceNode[] => [
             insConfig: {
               scheduledTaskType: "Inspection",
               isEnabled: true,
+              hasSecondaryAction: true,
+              secondaryActionPmNodeId: "pm-1",
               interval: "24",
               intervalShortDescription: "monthly",
               pfInterval: "48",
@@ -226,7 +234,9 @@ describe("persistence mappers", () => {
     expect(dbJson["Failure Mode Corrective Cost"]).toBe("10")
     expect(dbJson.effects).toHaveLength(2)
     expect(dbJson.tasks).toHaveLength(3)
-    expect(dbJson.tasks[1]["Scheduled Task Secondary Inspection"]).toBe("INS-001")
+    expect(dbJson.tasks[0]["Scheduled Task Is Secondary Action"]).toBe(true)
+    expect(dbJson.tasks[0]["Scheduled Task Secondary Inspection"]).toBe("PM-001")
+    expect(dbJson.tasks[1]["Scheduled Task Secondary Inspection"]).toBe("")
   })
 
   it("formats and applies derived snapshot values into the db json contract", () => {

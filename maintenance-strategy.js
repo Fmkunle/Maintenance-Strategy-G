@@ -280,6 +280,8 @@ const defaultInsConfig = () => ({
   scheduledTaskType: "",
   isEnabled: true,
   doNotDeliver: false,
+  hasSecondaryAction: false,
+  secondaryActionPmNodeId: "",
   interval: "",
   intervalShortDescription: "",
   pfInterval: "",
@@ -500,6 +502,8 @@ const defaultChildDraftState = () => ({
   insScheduledTaskType: "",
   insIsEnabled: true,
   insDoNotDeliver: false,
+  insHasSecondaryAction: false,
+  insSecondaryActionPmNodeId: "",
   insInterval: "",
   insIntervalShortDescription: "",
   insPfInterval: "",
@@ -777,6 +781,8 @@ const normalizeInsConfig = (value) => ({
   inspectionType: String(value?.inspectionType || "Routine") || "Routine",
   isEnabled: value?.isEnabled !== undefined ? Boolean(value.isEnabled) : true,
   doNotDeliver: Boolean(value?.doNotDeliver),
+  hasSecondaryAction: value?.hasSecondaryAction !== undefined ? Boolean(value.hasSecondaryAction) : false,
+  secondaryActionPmNodeId: typeof value?.secondaryActionPmNodeId === "string" ? value.secondaryActionPmNodeId.trim() : "",
   resources: Array.isArray(value?.resources)
     ? value.resources.map((resource, index) => ({
         id: typeof resource?.id === "string" && resource.id ? resource.id : createId(`ins-resource-${index}`),
@@ -2721,6 +2727,8 @@ const buildInsConfigFromDraft = (draft) => ({
   scheduledTaskType: String(draft?.insScheduledTaskType || "").trim(),
   isEnabled: Boolean(draft?.insIsEnabled),
   doNotDeliver: Boolean(draft?.insDoNotDeliver),
+  hasSecondaryAction: Boolean(draft?.insHasSecondaryAction),
+  secondaryActionPmNodeId: String(draft?.insSecondaryActionPmNodeId || "").trim(),
   interval: String(draft?.insInterval || "").trim(),
   intervalShortDescription: deriveCmIntervalShortDescription(draft?.insInterval),
   pfInterval: String(draft?.insPfInterval || "").trim(),
@@ -3537,6 +3545,10 @@ const getStrategyTaskInspectionPreventedFraction = (effectEstimate, taskNode) =>
   if (!effectEstimate || !taskNode) {
     return 0;
   }
+  const referenceFailureIntervalHours = effectEstimate.referenceFailureIntervalHours || 0;
+  if (!(referenceFailureIntervalHours > 0)) {
+    return 0;
+  }
   const intervalHours = getStrategyTaskIntervalHours(taskNode);
   if (!(intervalHours > 0)) {
     return 0;
@@ -3549,12 +3561,17 @@ const getStrategyTaskInspectionPreventedFraction = (effectEstimate, taskNode) =>
   const productRiskBridge = getProductRiskBridge();
   if (productRiskBridge) {
     return productRiskBridge.calculateInspectionPreventedFraction({
+      referenceFailureIntervalHours,
       inspectionIntervalHours: intervalHours,
       pfIntervalHours,
       detectionProbability,
     });
   }
-  const timingFactor = clampNumber(pfIntervalHours / intervalHours);
+  const usableInspectionWindowHours = Math.max(0, referenceFailureIntervalHours - pfIntervalHours);
+  if (!(usableInspectionWindowHours > 0)) {
+    return 0;
+  }
+  const timingFactor = clampNumber(usableInspectionWindowHours / intervalHours);
   return clampNumber(timingFactor * detectionProbability);
 };
 const getStrategyTaskResidualConsequenceCount = (effectEstimate, residualFailureCount, controlWindowHours = null) =>
@@ -3629,8 +3646,8 @@ const getStrategyWhyStatement = (strategy, recommendedCandidate = null) => {
     return "Inspection alone adds inspection cost, but it does not receive failure-prevention credit until a linked secondary action is enabled.";
   }
 
-  if (strategy.isSecondaryAction) {
-    return strategy.secondaryActionWarning || "This PM only reduces risk when its linked inspection detects the failure in time and triggers the follow-up action.";
+  if (strategy.taskNodeType === "ins" && strategy.hasValidLinkedSecondaryActionPath) {
+    return `This inspection only reduces risk when it catches the failure in time and triggers ${strategy.secondaryActionPmName || "the linked PM"}.`;
   }
 
   if (strategy.taskNodeType === "pm") {
@@ -3675,7 +3692,7 @@ const getStrategyWeaknessFlags = (strategy, recommendedCandidate = null) => {
     flags.push(strategy.secondaryActionWarning);
   }
   if (strategy.taskNodeType === "ins" && !strategy.hasValidLinkedSecondaryActionPath) {
-    flags.push("No linked secondary action");
+    flags.push("No linked secondary PM");
   }
   if (strategy.taskNodeType === "cm") {
     flags.push("Run-to-failure only");
@@ -3699,16 +3716,6 @@ const getStrategyWeaknessFlags = (strategy, recommendedCandidate = null) => {
   return flags;
 };
 const getDecisionComparisonOutcome = (effectEstimate, selectedStrategies = []) => {
-  const enabledSecondaryStrategiesByInspectionId = selectedStrategies
-    .filter(
-      (entry) => entry.taskNode?.type === "pm" && entry.isSecondaryAction && entry.secondaryActionInspectionNodeId && entry.secondaryLinkIsValid
-    )
-    .reduce((lookup, entry) => {
-      const nextEntries = lookup.get(entry.secondaryActionInspectionNodeId) || [];
-      nextEntries.push(entry);
-      lookup.set(entry.secondaryActionInspectionNodeId, nextEntries);
-      return lookup;
-    }, new Map());
   const preventivePathways = [];
   let plannedCost = 0;
   let inspectionCost = 0;
@@ -3716,15 +3723,10 @@ const getDecisionComparisonOutcome = (effectEstimate, selectedStrategies = []) =
   let correctiveCostPerEvent = 0;
 
   selectedStrategies.forEach((entry) => {
-    if (entry.taskNode?.type === "pm" && entry.isSecondaryAction) {
-      secondaryActionCost += entry.secondaryActionCost || 0;
-      return;
-    }
-
     if (entry.taskNode?.type === "ins") {
-      const linkedSecondaryStrategies = enabledSecondaryStrategiesByInspectionId.get(entry.taskNodeId) || [];
       inspectionCost += entry.inspectionScheduledCost || 0;
-      if (linkedSecondaryStrategies.length && entry.inspectionPathPreventedFraction > 0) {
+      secondaryActionCost += entry.secondaryActionCost || 0;
+      if (entry.hasValidLinkedSecondaryActionPath && entry.inspectionPathPreventedFraction > 0) {
         preventivePathways.push({
           preventedFraction: entry.inspectionPathPreventedFraction,
           controlWindowHours: entry.preventiveControlWindowHours,
@@ -3735,54 +3737,47 @@ const getDecisionComparisonOutcome = (effectEstimate, selectedStrategies = []) =
 
     if (entry.taskNode?.type === "pm") {
       plannedCost += entry.plannedCost || 0;
-      preventivePathways.push({
-        preventedFraction: entry.standalonePreventedFraction,
-        controlWindowHours: entry.preventiveControlWindowHours,
-      });
+      if (entry.standalonePreventedFraction > 0) {
+        preventivePathways.push({
+          preventedFraction: entry.standalonePreventedFraction,
+          controlWindowHours: entry.preventiveControlWindowHours,
+        });
+      }
       return;
     }
 
     correctiveCostPerEvent += entry.directExecutionCost || 0;
   });
 
-  const combinedMitigationFactor = preventivePathways.length
+  const combinedPathwayOutcome = preventivePathways.length
     ? (() => {
         const productRiskBridge = getProductRiskBridge();
         if (productRiskBridge) {
-          const combinedPathwayOutcome = productRiskBridge.combinePreventivePathways({
+          return productRiskBridge.combinePreventivePathways({
             pathways: preventivePathways,
             baseControlWindowHours: effectEstimate.baseDormantWindowHours || strategyModelHorizonHours,
             horizonHours: strategyModelHorizonHours,
           });
-          return combinedPathwayOutcome.combinedPreventedFraction;
         }
-        return 1 - preventivePathways.reduce((remainingRiskFactor, pathway) => remainingRiskFactor * (1 - pathway.preventedFraction), 1);
+        return {
+          combinedPreventedFraction: 1 - preventivePathways.reduce((remainingRiskFactor, pathway) => remainingRiskFactor * (1 - pathway.preventedFraction), 1),
+          combinedControlWindowHours: preventivePathways.reduce(
+            (smallestWindow, pathway) =>
+              Math.min(smallestWindow, pathway.controlWindowHours || effectEstimate.baseDormantWindowHours || strategyModelHorizonHours),
+            effectEstimate.baseDormantWindowHours || strategyModelHorizonHours
+          ),
+        };
       })()
-    : 0;
-  const combinedControlWindowHours = preventivePathways.length
-    ? (() => {
-        const productRiskBridge = getProductRiskBridge();
-        if (productRiskBridge) {
-          const combinedPathwayOutcome = productRiskBridge.combinePreventivePathways({
-            pathways: preventivePathways,
-            baseControlWindowHours: effectEstimate.baseDormantWindowHours || strategyModelHorizonHours,
-            horizonHours: strategyModelHorizonHours,
-          });
-          return combinedPathwayOutcome.combinedControlWindowHours;
-        }
-        return preventivePathways.reduce(
-          (smallestWindow, pathway) =>
-            Math.min(smallestWindow, pathway.controlWindowHours || effectEstimate.baseDormantWindowHours || strategyModelHorizonHours),
-          effectEstimate.baseDormantWindowHours || strategyModelHorizonHours
-        );
-      })()
-    : effectEstimate.baseDormantWindowHours || strategyModelHorizonHours;
+    : {
+        combinedPreventedFraction: 0,
+        combinedControlWindowHours: effectEstimate.baseDormantWindowHours || strategyModelHorizonHours,
+      };
 
   const preventiveOutcome = createStrategyOutcomeMetrics(
     effectEstimate,
-    combinedMitigationFactor,
+    combinedPathwayOutcome.combinedPreventedFraction,
     plannedCost + inspectionCost + secondaryActionCost,
-    combinedControlWindowHours
+    combinedPathwayOutcome.combinedControlWindowHours
   );
   const correctiveEventCount = preventiveOutcome.residualFailureCount;
   const correctiveCost = correctiveEventCount * correctiveCostPerEvent;
@@ -3819,6 +3814,114 @@ const getFailureModeInspectionOptions = (failureModeInfo) => {
         isEnabled: Boolean(config.isEnabled),
       };
     });
+};
+const getFailureModePmOptions = (failureModeInfo) => {
+  if (!failureModeInfo || failureModeInfo.node.type !== "cause") {
+    return [];
+  }
+
+  return (failureModeInfo.node.children || [])
+    .filter((child) => child.type === "pm")
+    .map((child) => {
+      const path = [...failureModeInfo.path, child];
+      const taskJson = getTaskJsonEntryForNode(path, child);
+      const config = normalizePmConfig(child.pmConfig);
+      return {
+        node: child,
+        nodeId: child.id,
+        path,
+        taskName: String(getNodeCodeValue(child) || taskJson?.["Task Name"] || child.name || "").trim(),
+        taskDescription: String(getNodeDescription(child) || taskJson?.["Scheduled Task Description"] || "").trim(),
+        isEnabled: Boolean(config.isEnabled),
+      };
+    });
+};
+const getLegacySecondaryActionPmOptionForInspection = (failureModeInfo, inspectionNodeId) => {
+  const linkedInspectionNodeId = String(inspectionNodeId || "").trim();
+  if (!failureModeInfo || failureModeInfo.node.type !== "cause" || !linkedInspectionNodeId) {
+    return null;
+  }
+
+  return (
+    getFailureModePmOptions(failureModeInfo).find((option) => {
+      const config = normalizePmConfig(option.node.pmConfig);
+      return Boolean(config.isSecondaryAction) && String(config.secondaryActionInspectionNodeId || "").trim() === linkedInspectionNodeId;
+    }) || null
+  );
+};
+const getInspectionSecondaryActionSelectionState = (failureModeInfo, inspectionNode) => {
+  const config = normalizeInsConfig(inspectionNode?.insConfig);
+  const hasExplicitSecondaryActionField =
+    inspectionNode?.insConfig && typeof inspectionNode.insConfig === "object"
+      ? Object.prototype.hasOwnProperty.call(inspectionNode.insConfig, "hasSecondaryAction") ||
+        Object.prototype.hasOwnProperty.call(inspectionNode.insConfig, "secondaryActionPmNodeId")
+      : false;
+  if (hasExplicitSecondaryActionField) {
+    return {
+      hasSecondaryAction: Boolean(config.hasSecondaryAction),
+      secondaryActionPmNodeId: String(config.secondaryActionPmNodeId || "").trim(),
+    };
+  }
+
+  const legacyLinkedPm = getLegacySecondaryActionPmOptionForInspection(failureModeInfo, inspectionNode?.id);
+  return {
+    hasSecondaryAction: Boolean(legacyLinkedPm),
+    secondaryActionPmNodeId: legacyLinkedPm?.nodeId || "",
+  };
+};
+const getInspectionSecondaryActionPmLinkState = (failureModeInfo, inspectionNode, secondaryActionSelection = null) => {
+  const pmOptions = getFailureModePmOptions(failureModeInfo);
+  const normalizedSelection =
+    secondaryActionSelection && typeof secondaryActionSelection === "object"
+      ? {
+          hasSecondaryAction: Boolean(secondaryActionSelection.hasSecondaryAction),
+          secondaryActionPmNodeId: String(secondaryActionSelection.secondaryActionPmNodeId || "").trim(),
+        }
+      : getInspectionSecondaryActionSelectionState(failureModeInfo, inspectionNode);
+  const linkedPm = pmOptions.find((option) => option.nodeId === normalizedSelection.secondaryActionPmNodeId) || null;
+  const linkedPmName = linkedPm?.taskName || "";
+
+  if (!normalizedSelection.hasSecondaryAction) {
+    return {
+      hasSecondaryAction: false,
+      linkedPmNodeId: normalizedSelection.secondaryActionPmNodeId,
+      linkedPm,
+      linkedPmName,
+      warningMessage: "",
+      isValid: false,
+    };
+  }
+
+  if (!pmOptions.length) {
+    return {
+      hasSecondaryAction: true,
+      linkedPmNodeId: normalizedSelection.secondaryActionPmNodeId,
+      linkedPm,
+      linkedPmName,
+      warningMessage: "No PM is available to act as the triggered secondary action.",
+      isValid: false,
+    };
+  }
+
+  if (!linkedPm) {
+    return {
+      hasSecondaryAction: true,
+      linkedPmNodeId: normalizedSelection.secondaryActionPmNodeId,
+      linkedPm,
+      linkedPmName,
+      warningMessage: "Choose the PM that should be triggered when this inspection detects the failure.",
+      isValid: false,
+    };
+  }
+
+  return {
+    hasSecondaryAction: true,
+    linkedPmNodeId: normalizedSelection.secondaryActionPmNodeId,
+    linkedPm,
+    linkedPmName,
+    warningMessage: "",
+    isValid: true,
+  };
 };
 const getSecondaryActionInspectionLinkState = (failureModeInfo, inspectionNodeId, isSecondaryAction) => {
   const linkedInspectionNodeId = String(inspectionNodeId || "").trim();
@@ -3873,9 +3976,26 @@ const getSecondaryActionInspectionLinkState = (failureModeInfo, inspectionNodeId
     isValid: true,
   };
 };
-const getPmSecondaryActionLinkState = (failureModeInfo, taskNode) => {
-  const config = normalizePmConfig(taskNode?.pmConfig);
-  return getSecondaryActionInspectionLinkState(failureModeInfo, config.secondaryActionInspectionNodeId, config.isSecondaryAction);
+const syncInspectionSecondaryActionLegacyMirror = (failureModeInfo, inspectionNode) => {
+  if (!failureModeInfo || failureModeInfo.node.type !== "cause" || !inspectionNode || inspectionNode.type !== "ins") {
+    return;
+  }
+
+  const selectionState = getInspectionSecondaryActionSelectionState(failureModeInfo, inspectionNode);
+  (failureModeInfo.node.children || [])
+    .filter((child) => child.type === "pm")
+    .forEach((pmNode) => {
+      const nextConfig = normalizePmConfig(pmNode.pmConfig);
+      const currentlyLinkedToInspection = String(nextConfig.secondaryActionInspectionNodeId || "").trim() === inspectionNode.id;
+      if (selectionState.hasSecondaryAction && pmNode.id === selectionState.secondaryActionPmNodeId) {
+        nextConfig.isSecondaryAction = true;
+        nextConfig.secondaryActionInspectionNodeId = inspectionNode.id;
+      } else if (currentlyLinkedToInspection) {
+        nextConfig.isSecondaryAction = false;
+        nextConfig.secondaryActionInspectionNodeId = "";
+      }
+      pmNode.pmConfig = nextConfig;
+    });
 };
 const collectFailureModeNodeInfos = (nodeInfo, rows = []) => {
   if (!nodeInfo) {
@@ -3947,20 +4067,6 @@ const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hier
     const isTaskEnabled = Boolean(taskConfig?.isEnabled);
     const directExecutionCost = getStrategyTaskDirectExecutionCost(taskNode);
     const detectionProbability = getStrategyTaskDetectionProbabilityValue(taskNode);
-    const isSecondaryAction = Boolean(taskNode?.type === "pm" && taskConfig?.isSecondaryAction);
-    const secondaryLinkState =
-      taskNode?.type === "pm"
-        ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig?.secondaryActionInspectionNodeId, taskConfig?.isSecondaryAction)
-        : null;
-    const linkedInspectionInfo = secondaryLinkState?.linkedInspection || null;
-    const secondaryLinkIsValid = Boolean(secondaryLinkState?.isValid);
-    const secondaryRecommendationLinkIsValid = Boolean(isSecondaryAction && secondaryLinkIsValid && linkedInspectionInfo);
-    const linkedInspectionDetectionProbability = linkedInspectionInfo ? getStrategyTaskDetectionProbabilityValue(linkedInspectionInfo.node) : 0;
-    const inspectionPathPreventedFraction =
-      taskNode?.type === "ins" ? getStrategyTaskInspectionPreventedFraction(effectEstimate, taskNode) : 0;
-    const linkedInspectionPathPreventedFraction = linkedInspectionInfo
-      ? getStrategyTaskInspectionPreventedFraction(effectEstimate, linkedInspectionInfo.node)
-      : 0;
     const intervalHours = getStrategyTaskIntervalHours(taskNode);
     const pfIntervalHours = getStrategyTaskPfIntervalHours(taskNode);
     const cadenceFactor =
@@ -3974,50 +4080,48 @@ const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hier
             )
           : 0;
     const scheduledExecutions = taskNode?.type === "cm" ? effectEstimate.expectedFailureCount : getStrategyTaskExpectedExecutions(taskNode);
+    const inspectionSecondaryActionState =
+      taskNode?.type === "ins" ? getInspectionSecondaryActionPmLinkState(failureModeInfo, taskNode) : null;
+    const linkedPmInfo = inspectionSecondaryActionState?.linkedPm || null;
+    const hasValidLinkedSecondaryActionPath = Boolean(taskNode?.type === "ins" && inspectionSecondaryActionState?.isValid && linkedPmInfo);
+    const inspectionPathPreventedFraction =
+      taskNode?.type === "ins" && hasValidLinkedSecondaryActionPath ? getStrategyTaskInspectionPreventedFraction(effectEstimate, taskNode) : 0;
+    const preventiveControlWindowHours = getStrategyTaskDormantControlWindowHours(effectEstimate, taskNode);
     const inspectionScheduledCost = taskNode?.type === "ins" ? directExecutionCost * scheduledExecutions : 0;
-    const plannedCost = taskNode?.type === "pm" && !isSecondaryAction ? directExecutionCost * scheduledExecutions : 0;
-    const pmResidualFailureCount =
-      taskNode?.type === "pm" && !isSecondaryAction ? getStrategyTaskPmResidualFailureCount(effectEstimate, taskNode) : effectEstimate.expectedFailureCount || 0;
-    const standalonePmPreventedFraction =
-      taskNode?.type === "pm" && !isSecondaryAction ? getStrategyTaskPmPreventedFraction(effectEstimate, taskNode) : 0;
-    const preventiveControlWindowHours =
-      taskNode?.type === "pm" && isSecondaryAction && linkedInspectionInfo
-        ? getStrategyTaskDormantControlWindowHours(effectEstimate, linkedInspectionInfo.node)
-        : getStrategyTaskDormantControlWindowHours(effectEstimate, taskNode);
+    const linkedPmDirectExecutionCost = linkedPmInfo ? getStrategyTaskDirectExecutionCost(linkedPmInfo.node) : 0;
     const secondaryTriggeredExecutions =
-      isSecondaryAction && secondaryRecommendationLinkIsValid && linkedInspectionInfo
-        ? (effectEstimate.expectedFailureCount || 0) * linkedInspectionPathPreventedFraction
+      taskNode?.type === "ins" && hasValidLinkedSecondaryActionPath
+        ? (effectEstimate.expectedFailureCount || 0) * inspectionPathPreventedFraction
         : 0;
-    const secondaryActionCost = isSecondaryAction ? directExecutionCost * secondaryTriggeredExecutions : 0;
+    const secondaryActionCost = taskNode?.type === "ins" ? linkedPmDirectExecutionCost * secondaryTriggeredExecutions : 0;
+    const plannedCost = taskNode?.type === "pm" ? directExecutionCost * scheduledExecutions : 0;
+    const pmResidualFailureCount = taskNode?.type === "pm" ? getStrategyTaskPmResidualFailureCount(effectEstimate, taskNode) : effectEstimate.expectedFailureCount || 0;
+    const standalonePmPreventedFraction = taskNode?.type === "pm" ? getStrategyTaskPmPreventedFraction(effectEstimate, taskNode) : 0;
     const correctiveExecutionCount = taskNode?.type === "cm" ? effectEstimate.expectedFailureCount || 0 : 0;
     const correctiveCost = taskNode?.type === "cm" ? directExecutionCost * correctiveExecutionCount : 0;
-    const standalonePreventedFraction =
-      taskNode?.type === "pm"
-        ? isSecondaryAction
-          ? secondaryRecommendationLinkIsValid
-            ? linkedInspectionPathPreventedFraction
-            : 0
-          : standalonePmPreventedFraction
-        : 0;
-    const modeledCost =
-      taskNode?.type === "ins"
-        ? inspectionScheduledCost
-        : taskNode?.type === "pm"
-          ? isSecondaryAction
-            ? secondaryActionCost
-            : plannedCost
-          : correctiveCost;
-    const outcome =
-      taskNode?.type === "pm" && !isSecondaryAction
-        ? createStrategyOutcomeMetricsFromResidualFailureCount(
-            effectEstimate,
-            pmResidualFailureCount,
-            plannedCost,
-            preventiveControlWindowHours
-          )
-        : createStrategyOutcomeMetrics(effectEstimate, standalonePreventedFraction, modeledCost, preventiveControlWindowHours);
-    const expectedExecutions =
-      taskNode?.type === "cm" ? correctiveExecutionCount : isSecondaryAction ? secondaryTriggeredExecutions : scheduledExecutions;
+    let standalonePreventedFraction = 0;
+    let modeledCost = 0;
+    let outcome = createStrategyOutcomeMetrics(effectEstimate, 0, 0, preventiveControlWindowHours);
+    let expectedExecutions = scheduledExecutions;
+
+    if (taskNode?.type === "ins") {
+      standalonePreventedFraction = inspectionPathPreventedFraction;
+      modeledCost = inspectionScheduledCost + secondaryActionCost;
+      outcome = createStrategyOutcomeMetrics(effectEstimate, standalonePreventedFraction, modeledCost, preventiveControlWindowHours);
+    } else if (taskNode?.type === "pm") {
+      standalonePreventedFraction = standalonePmPreventedFraction;
+      modeledCost = plannedCost;
+      outcome = createStrategyOutcomeMetricsFromResidualFailureCount(
+        effectEstimate,
+        pmResidualFailureCount,
+        plannedCost,
+        preventiveControlWindowHours
+      );
+    } else {
+      modeledCost = correctiveCost;
+      expectedExecutions = correctiveExecutionCount;
+      outcome = createStrategyOutcomeMetrics(effectEstimate, 0, correctiveCost, preventiveControlWindowHours);
+    }
     const netValue = outcome.exposureReduction - outcome.modeledCost;
     const status = getStrategyCardStatus(isTaskEnabled);
     return {
@@ -4043,21 +4147,21 @@ const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hier
       netValue,
       detectionProbability,
       cadenceFactor,
-      isSecondaryAction,
-      secondaryLinkIsValid,
-      secondaryRecommendationLinkIsValid,
-      secondaryActionInspectionNodeId: secondaryLinkState?.linkedInspectionNodeId || "",
-      secondaryActionInspectionName: secondaryLinkState?.linkedInspectionName || "",
-      secondaryActionWarning: secondaryLinkState?.warningMessage || "",
-      linkedInspectionDetectionProbability,
+      isSecondaryAction: Boolean(taskNode?.type === "ins" && inspectionSecondaryActionState?.hasSecondaryAction),
+      hasSecondaryAction: Boolean(taskNode?.type === "ins" && inspectionSecondaryActionState?.hasSecondaryAction),
+      secondaryLinkIsValid: Boolean(hasValidLinkedSecondaryActionPath),
+      secondaryRecommendationLinkIsValid: Boolean(hasValidLinkedSecondaryActionPath),
+      secondaryActionPmNodeId: linkedPmInfo?.nodeId || inspectionSecondaryActionState?.linkedPmNodeId || "",
+      secondaryActionPmName: inspectionSecondaryActionState?.linkedPmName || "",
+      secondaryActionWarning: inspectionSecondaryActionState?.warningMessage || "",
       inspectionPathPreventedFraction,
-      linkedInspectionPathPreventedFraction,
       secondaryTriggeredExecutions,
       inspectionScheduledCost,
       plannedCost,
       secondaryActionCost,
       correctiveCost,
       correctiveExecutionCount,
+      hasValidLinkedSecondaryActionPath,
       weaknessFlags: [],
       whyStatement: "",
       tradeoffStatement: "",
@@ -4074,6 +4178,7 @@ const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hier
         labourLabel: formatHoursLabel(getStrategyTaskLabourHours(taskNode)),
         pfIntervalLabel: formatHoursLabel(pfIntervalHours),
         expectedExecutionLabel: formatExpectedExecutionLabel(expectedExecutions),
+        triggeredSecondaryActionExecutionLabel: formatExpectedExecutionLabel(secondaryTriggeredExecutions),
       },
     };
   });
@@ -4104,7 +4209,23 @@ const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hier
   };
   const candidateStrategies = [];
   baseStrategies.forEach((strategy) => {
-    if (!strategy.taskNode || (strategy.taskNodeType === "pm" && strategy.isSecondaryAction)) {
+    if (!strategy.taskNode) {
+      return;
+    }
+
+    if (strategy.taskNodeType === "ins" && strategy.hasValidLinkedSecondaryActionPath && strategy.secondaryActionPmNodeId) {
+      candidateStrategies.push(
+        createCandidate({
+          id: `package:${strategy.taskNodeId}:${strategy.secondaryActionPmNodeId}`,
+          leadTaskNodeId: strategy.taskNodeId,
+          memberTaskNodeIds: [strategy.taskNodeId, strategy.secondaryActionPmNodeId],
+          packageType: "ins-secondary-pm",
+          preventedFraction: strategy.inspectionPathPreventedFraction,
+          executionCost: strategy.inspectionScheduledCost + strategy.secondaryActionCost,
+          controlWindowHours: strategy.preventiveControlWindowHours,
+          leadStrategyType: strategy.taskNodeType,
+        })
+      );
       return;
     }
 
@@ -4120,33 +4241,6 @@ const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hier
         leadStrategyType: strategy.taskNodeType,
       })
     );
-
-    if (strategy.taskNodeType !== "ins") {
-      return;
-    }
-
-    baseStrategies
-      .filter(
-        (entry) =>
-          entry.taskNodeType === "pm" &&
-          entry.isSecondaryAction &&
-          entry.secondaryRecommendationLinkIsValid &&
-          entry.secondaryActionInspectionNodeId === strategy.taskNodeId
-      )
-      .forEach((secondaryStrategy) => {
-        candidateStrategies.push(
-          createCandidate({
-            id: `package:${strategy.taskNodeId}:${secondaryStrategy.taskNodeId}`,
-            leadTaskNodeId: strategy.taskNodeId,
-            memberTaskNodeIds: [strategy.taskNodeId, secondaryStrategy.taskNodeId],
-            packageType: "ins-secondary-pm",
-            preventedFraction: strategy.inspectionPathPreventedFraction,
-            executionCost: strategy.inspectionScheduledCost + secondaryStrategy.secondaryActionCost,
-            controlWindowHours: strategy.preventiveControlWindowHours,
-            leadStrategyType: strategy.taskNodeType,
-          })
-        );
-      });
   });
   const rankedCandidates = [...candidateStrategies]
     .sort((left, right) => {
@@ -4166,10 +4260,10 @@ const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hier
   const strategyLabelById = new Map(
     baseStrategies.map((strategy) => [strategy.taskNodeId, strategy.scheduledTaskDescription || strategy.taskCode || "Unnamed strategy"])
   );
-  const validSecondaryInspectionIds = new Set(
+  const validSecondaryActionInspectionIds = new Set(
     baseStrategies
-      .filter((strategy) => strategy.isSecondaryAction && strategy.secondaryLinkIsValid && strategy.secondaryActionInspectionNodeId)
-      .map((strategy) => strategy.secondaryActionInspectionNodeId)
+      .filter((strategy) => strategy.taskNodeType === "ins" && strategy.hasValidLinkedSecondaryActionPath)
+      .map((strategy) => strategy.taskNodeId)
   );
   const strategies = baseStrategies.map((strategy) => {
     const isRecommendedLead = Boolean(recommendedCandidate && recommendedCandidate.leadTaskNodeId === strategy.taskNodeId);
@@ -4196,7 +4290,7 @@ const getFailureModeDecisionData = (failureModeInfo, hierarchyNodes = state.hier
         recommendedCandidate?.leadTaskNodeId === strategy.taskNodeId
           ? recommendedCandidate.rank
           : rankedCandidates.find((candidate) => candidate.leadTaskNodeId === strategy.taskNodeId)?.rank || 0,
-      hasValidLinkedSecondaryActionPath: strategy.taskNodeType === "ins" && validSecondaryInspectionIds.has(strategy.taskNodeId),
+      hasValidLinkedSecondaryActionPath: strategy.taskNodeType === "ins" && validSecondaryActionInspectionIds.has(strategy.taskNodeId),
     };
     return {
       ...finalizedStrategy,
@@ -4280,7 +4374,7 @@ const strategyTableColumns = [
   { key: "scheduledTaskDoNotDeliver", label: "Scheduled Task Do Not Deliver", editable: true, inputType: "checkbox" },
   { key: "scheduledTaskIsSecondaryAction", label: "Scheduled Task Is Secondary Action", editable: true, inputType: "checkbox" },
   { key: "scheduledTaskDescription", label: "Scheduled Task Description", editable: true },
-  { key: "scheduledTaskSecondaryInspection", label: "Scheduled Task Secondary Inspection" },
+  { key: "scheduledTaskSecondaryInspection", label: "Scheduled Task Secondary Action" },
   { key: "scheduledTaskInterval", label: "Scheduled Task Interval", editable: true, inputType: "number" },
   { key: "scheduledTaskIntervalShortDescription", label: "Scheduled Task Interval Short Description" },
   { key: "scheduledTaskPfInterval", label: "Scheduled Task PF Interval", editable: true, inputType: "number" },
@@ -4500,10 +4594,8 @@ const buildStrategyTableRow = (taskNodeInfo) => {
       : taskNodeInfo.node.type === "pm"
         ? normalizePmConfig(taskNodeInfo.node.pmConfig)
         : normalizeCmConfig(taskNodeInfo.node.cmConfig);
-  const secondaryInspectionLinkState =
-    taskNodeInfo.node.type === "pm"
-      ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig.secondaryActionInspectionNodeId, taskConfig.isSecondaryAction)
-      : null;
+  const secondaryActionPmLinkState =
+    taskNodeInfo.node.type === "ins" ? getInspectionSecondaryActionPmLinkState(failureModeInfo, taskNodeInfo.node) : null;
 
   return {
     rowId: taskNodeInfo.node.id,
@@ -4530,20 +4622,20 @@ const buildStrategyTableRow = (taskNodeInfo) => {
     scheduledTaskIsEnabled: Boolean(taskJson?.["Scheduled Task Is Enabled"]),
     scheduledTaskDoNotDeliver: Boolean(taskJson?.["Scheduled Task Do Not Deliver"]),
     scheduledTaskIsSecondaryAction:
-      taskNodeInfo.node.type === "pm"
+      taskNodeInfo.node.type === "ins"
         ? Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Is Secondary Action")
           ? Boolean(taskJson?.["Scheduled Task Is Secondary Action"])
-          : Boolean(taskConfig.isSecondaryAction)
+          : Boolean(secondaryActionPmLinkState?.hasSecondaryAction)
         : false,
     scheduledTaskDescription: String(taskJson?.["Scheduled Task Description"] || "").trim(),
     scheduledTaskSecondaryInspection:
-      taskNodeInfo.node.type === "pm"
+      taskNodeInfo.node.type === "ins"
         ? Boolean(
             Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Is Secondary Action")
               ? taskJson?.["Scheduled Task Is Secondary Action"]
-              : taskConfig.isSecondaryAction
+              : secondaryActionPmLinkState?.hasSecondaryAction
           )
-          ? String(taskJson?.["Scheduled Task Secondary Inspection"] || secondaryInspectionLinkState?.linkedInspectionName || "").trim()
+          ? String(taskJson?.["Scheduled Task Secondary Inspection"] || secondaryActionPmLinkState?.linkedPmName || "").trim()
           : ""
         : "",
     scheduledTaskInterval: String(taskJson?.["Scheduled Task Interval"] || "").trim(),
@@ -4903,6 +4995,7 @@ const getPersistenceMapperBuildDependencies = () => ({
   normalizePmConfig,
   normalizeCmConfig,
   getSecondaryActionInspectionLinkState,
+  getInspectionSecondaryActionPmLinkState,
   getNodeDescription,
   getNodeFullCode,
   getNodeCodeValue,
@@ -4968,15 +5061,17 @@ const buildFailureModeDbJson = (causeNode, path = []) => {
     .map((taskNode) => {
       if (taskNode.type === "ins") {
         const config = normalizeInsConfig(taskNode.insConfig);
+        const secondaryActionLinkState = getInspectionSecondaryActionPmLinkState({ node: causeNode, path }, taskNode);
         return {
           "Task Name": getNodeCodeValue(taskNode),
           "Task Strategy": "INS",
           "Scheduled Task Type": String(config.scheduledTaskType || "").trim(),
           "Scheduled Task Is Enabled": Boolean(config.isEnabled),
           "Scheduled Task Do Not Deliver": Boolean(config.doNotDeliver),
-          "Scheduled Task Is Secondary Action": false,
+          "Scheduled Task Is Secondary Action": Boolean(secondaryActionLinkState?.hasSecondaryAction),
           "Scheduled Task Description": getNodeDescription(taskNode),
-          "Scheduled Task Secondary Inspection": "",
+          "Scheduled Task Secondary Inspection":
+            Boolean(secondaryActionLinkState?.hasSecondaryAction) ? secondaryActionLinkState?.linkedPmName || "" : "",
           "Scheduled Task Interval": String(config.interval || "").trim(),
           "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
           "Scheduled Task PF Interval": String(config.pfInterval || "").trim(),
@@ -4987,19 +5082,15 @@ const buildFailureModeDbJson = (causeNode, path = []) => {
       }
 
       const config = taskNode.type === "pm" ? normalizePmConfig(taskNode.pmConfig) : normalizeCmConfig(taskNode.cmConfig);
-      const secondaryLinkState =
-        taskNode.type === "pm"
-          ? getSecondaryActionInspectionLinkState({ node: causeNode, path }, config.secondaryActionInspectionNodeId, config.isSecondaryAction)
-          : null;
       return {
         "Task Name": getNodeCodeValue(taskNode),
         "Task Strategy": taskNode.type.toUpperCase(),
         "Scheduled Task Type": String(config.type || "").trim(),
         "Scheduled Task Is Enabled": Boolean(config.isEnabled),
         "Scheduled Task Do Not Deliver": Boolean(config.doNotDeliver),
-        "Scheduled Task Is Secondary Action": taskNode.type === "pm" ? Boolean(config.isSecondaryAction) : false,
+        "Scheduled Task Is Secondary Action": false,
         "Scheduled Task Description": getNodeDescription(taskNode),
-        "Scheduled Task Secondary Inspection": taskNode.type === "pm" && config.isSecondaryAction ? secondaryLinkState?.linkedInspectionName || "" : "",
+        "Scheduled Task Secondary Inspection": "",
         "Scheduled Task Interval": String(config.intervalHours || "").trim(),
         "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
         "Scheduled Task PF Interval": String(config.pfInterval || "").trim(),
@@ -5198,8 +5289,9 @@ const createPmConfigDraft = (node) => {
       : [],
   };
 };
-const createInsConfigDraft = (node) => {
+const createInsConfigDraft = (node, failureModeInfo = null) => {
   const config = normalizeInsConfig(node?.insConfig);
+  const secondaryActionLinkState = getInspectionSecondaryActionPmLinkState(failureModeInfo, node);
   return {
     ...defaultChildDraftState(),
     insName: getNodeCodeValue(node),
@@ -5208,6 +5300,8 @@ const createInsConfigDraft = (node) => {
     insScheduledTaskType: String(config.scheduledTaskType || ""),
     insIsEnabled: Boolean(config.isEnabled),
     insDoNotDeliver: Boolean(config.doNotDeliver),
+    insHasSecondaryAction: Boolean(secondaryActionLinkState?.hasSecondaryAction),
+    insSecondaryActionPmNodeId: String(secondaryActionLinkState?.linkedPmNodeId || config.secondaryActionPmNodeId || ""),
     insInterval: String(config.interval || ""),
     insIntervalShortDescription: String(config.intervalShortDescription || ""),
     insPfInterval: String(config.pfInterval || ""),
@@ -5341,7 +5435,7 @@ const openExistingTaskEditor = (nodeInfo) => {
   }
 
   childDraftState = {
-    ...createInsConfigDraft(nodeInfo.node),
+    ...createInsConfigDraft(nodeInfo.node, { node: nodeInfo.parent, path: nodeInfo.path.slice(0, -1) }),
     isOpen: true,
     parentId: nodeInfo.parent.id,
     childType: "ins",
@@ -6180,20 +6274,6 @@ const renderChildCreator = (nodeInfo, actions) => {
     const taskCode = getNextAutoGeneratedCode(nodeInfo.node, selectedChildType);
     const taskLabel = selectedChildType === "cm" ? "CM" : "PM";
     const intervalShortDescription = deriveCmIntervalShortDescription(childDraftState.cmIntervalHours);
-    const secondaryInspectionOptions = selectedChildType === "pm" ? getFailureModeInspectionOptions(nodeInfo) : [];
-    const secondaryInspectionLinkState =
-      selectedChildType === "pm"
-        ? getSecondaryActionInspectionLinkState(nodeInfo, childDraftState.cmSecondaryActionInspectionNodeId, childDraftState.cmIsSecondaryAction)
-        : null;
-    const secondaryInspectionOptionsMarkup = secondaryInspectionOptions
-      .map(
-        (option) => `
-          <option value="${escapeHtml(option.nodeId)}" ${childDraftState.cmSecondaryActionInspectionNodeId === option.nodeId ? "selected" : ""}>
-            ${escapeHtml(option.taskName)}${option.isEnabled ? "" : " (Disabled)"}
-          </option>
-        `
-      )
-      .join("");
     const cmResourceRows =
       childDraftState.cmResources.length > 0
         ? childDraftState.cmResources
@@ -6358,12 +6438,6 @@ const renderChildCreator = (nodeInfo, actions) => {
                           <input id="childCreatorCmIsFixedInput" type="checkbox" ${childDraftState.cmIsFixed ? "checked" : ""}>
                           <span>Is Fixed</span>
                         </label>
-                        <label class="cm-task-editor__flag">
-                          <input id="childCreatorCmIsSecondaryActionInput" type="checkbox" ${
-                            childDraftState.cmIsSecondaryAction ? "checked" : ""
-                          }>
-                          <span>Is secondary action</span>
-                        </label>
                       `
                       : ""
                   }
@@ -6395,30 +6469,6 @@ const renderChildCreator = (nodeInfo, actions) => {
                          <div class="asset-child-creator__placeholder-cell" aria-hidden="true"></div>`
                   }
                 </div>
-                ${
-                  selectedChildType === "pm"
-                    ? `
-                      <div class="cm-task-editor__grid">
-                        <label class="cm-task-editor__field cm-task-editor__field--full">
-                          <span class="cm-task-editor__label">Triggering Inspection</span>
-                          <select
-                            class="cm-task-editor__control"
-                            id="childCreatorCmSecondaryInspectionInput"
-                            ${childDraftState.cmIsSecondaryAction ? "" : "disabled"}
-                          >
-                            <option value="">${secondaryInspectionOptions.length ? "Select inspection" : "No inspections available"}</option>
-                            ${secondaryInspectionOptionsMarkup}
-                          </select>
-                        </label>
-                      </div>
-                      ${
-                        childDraftState.cmIsSecondaryAction && secondaryInspectionLinkState?.warningMessage
-                          ? `<div class="maintenance-notice" role="status">${escapeHtml(secondaryInspectionLinkState.warningMessage)}</div>`
-                          : ""
-                      }
-                    `
-                    : ""
-                }
                 <div class="cm-task-editor__grid">
                   <label class="cm-task-editor__field">
                     <span class="cm-task-editor__label">Task PF Interval</span>
@@ -6502,6 +6552,20 @@ const renderChildCreator = (nodeInfo, actions) => {
   if (showInsTaskEditor) {
     const insCode = getNextAutoGeneratedCode(nodeInfo.node, "ins");
     const intervalShortDescription = deriveCmIntervalShortDescription(childDraftState.insInterval);
+    const secondaryActionPmOptions = getFailureModePmOptions(nodeInfo);
+    const secondaryActionPmLinkState = getInspectionSecondaryActionPmLinkState(nodeInfo, { type: "ins", id: childDraftState.editNodeId || "draft-ins" }, {
+      hasSecondaryAction: childDraftState.insHasSecondaryAction,
+      secondaryActionPmNodeId: childDraftState.insSecondaryActionPmNodeId,
+    });
+    const secondaryActionPmOptionsMarkup = secondaryActionPmOptions
+      .map(
+        (option) => `
+          <option value="${escapeHtml(option.nodeId)}" ${childDraftState.insSecondaryActionPmNodeId === option.nodeId ? "selected" : ""}>
+            ${escapeHtml(option.taskName)}${option.isEnabled ? "" : " (Routine PM disabled)"}
+          </option>
+        `
+      )
+      .join("");
     const insResourceRows =
       childDraftState.insResources.length > 0
         ? childDraftState.insResources
@@ -6609,7 +6673,29 @@ const renderChildCreator = (nodeInfo, actions) => {
                 <input id="childCreatorInsDoNotDeliverInput" type="checkbox" ${childDraftState.insDoNotDeliver ? "checked" : ""}>
                 <span>Task Do Not Deliver</span>
               </label>
+              <label class="cm-task-editor__flag">
+                <input id="childCreatorInsHasSecondaryActionInput" type="checkbox" ${childDraftState.insHasSecondaryAction ? "checked" : ""}>
+                <span>Enable secondary PM action</span>
+              </label>
             </div>
+            <div class="cm-task-editor__grid">
+              <label class="cm-task-editor__field cm-task-editor__field--full">
+                <span class="cm-task-editor__label">Triggered PM</span>
+                <select
+                  class="cm-task-editor__control"
+                  id="childCreatorInsSecondaryActionPmInput"
+                  ${childDraftState.insHasSecondaryAction ? "" : "disabled"}
+                >
+                  <option value="">${secondaryActionPmOptions.length ? "Select PM" : "No PMs available"}</option>
+                  ${secondaryActionPmOptionsMarkup}
+                </select>
+              </label>
+            </div>
+            ${
+              childDraftState.insHasSecondaryAction && secondaryActionPmLinkState?.warningMessage
+                ? `<div class="maintenance-notice" role="status">${escapeHtml(secondaryActionPmLinkState.warningMessage)}</div>`
+                : ""
+            }
             <div class="cm-task-editor__grid">
               <label class="cm-task-editor__field">
                 <span class="cm-task-editor__label">${getRequiredFieldLabel("Task Interval")}</span>
@@ -7507,8 +7593,7 @@ const buildNodeInspectPanelViewModel = (nodeInfo) => {
           : normalizeCmConfig(node.cmConfig);
     const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
     const failureModeInfo = failureModeNode ? findNodeInfo(state.hierarchy, failureModeNode.id) : null;
-    const secondaryInspectionLinkState =
-      node.type === "pm" ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig.secondaryActionInspectionNodeId, taskConfig.isSecondaryAction) : null;
+    const secondaryActionPmLinkState = node.type === "ins" ? getInspectionSecondaryActionPmLinkState(failureModeInfo, node) : null;
     const hasEnabledValue = Boolean(taskJson) && Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Is Enabled");
     const hasDoNotDeliverValue = Boolean(taskJson) && Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Do Not Deliver");
     const items = [
@@ -7524,21 +7609,21 @@ const buildNodeInspectPanelViewModel = (nodeInfo) => {
       ),
     ];
 
-    if (node.type === "pm") {
+    if (node.type === "ins") {
       items.push(
         buildNodeInspectFieldViewModel(
           "Secondary Action",
           getNodeInspectBooleanLabel(
             Object.prototype.hasOwnProperty.call(taskJson || {}, "Scheduled Task Is Secondary Action")
               ? Boolean(taskJson?.["Scheduled Task Is Secondary Action"])
-              : Boolean(taskConfig.isSecondaryAction)
+              : Boolean(secondaryActionPmLinkState?.hasSecondaryAction)
           )
         ),
         buildNodeInspectFieldViewModel(
-          "Triggering Inspection",
+          "Triggered PM",
           taskJson?.["Scheduled Task Secondary Inspection"] ||
-            secondaryInspectionLinkState?.linkedInspectionName ||
-            (taskConfig.isSecondaryAction ? "Not linked" : "Not required")
+            secondaryActionPmLinkState?.linkedPmName ||
+            (secondaryActionPmLinkState?.hasSecondaryAction ? "Not linked" : "Not required")
         )
       );
     }
@@ -7555,7 +7640,7 @@ const buildNodeInspectPanelViewModel = (nodeInfo) => {
       title: "Task Details",
       gridVariant: "triple",
       items,
-      notice: node.type === "pm" ? secondaryInspectionLinkState?.warningMessage || "" : "",
+      notice: node.type === "ins" ? secondaryActionPmLinkState?.warningMessage || "" : "",
     });
   }
 
@@ -7736,8 +7821,7 @@ const renderNodeInspectPanel = (nodeInfo) => {
           : normalizeCmConfig(node.cmConfig);
     const failureModeNode = getNearestAncestorNodeFromPath(path, "cause");
     const failureModeInfo = failureModeNode ? findNodeInfo(state.hierarchy, failureModeNode.id) : null;
-    const secondaryInspectionLinkState =
-      node.type === "pm" ? getSecondaryActionInspectionLinkState(failureModeInfo, taskConfig.secondaryActionInspectionNodeId, taskConfig.isSecondaryAction) : null;
+    const secondaryActionPmLinkState = node.type === "ins" ? getInspectionSecondaryActionPmLinkState(failureModeInfo, node) : null;
     const hasEnabledValue = Boolean(taskJson) && Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Is Enabled");
     const hasDoNotDeliverValue = Boolean(taskJson) && Object.prototype.hasOwnProperty.call(taskJson, "Scheduled Task Do Not Deliver");
     detailSectionsMarkup += `
@@ -7757,24 +7841,24 @@ const renderNodeInspectPanel = (nodeInfo) => {
             getNodeInspectBooleanLabel(hasDoNotDeliverValue ? Boolean(taskJson?.["Scheduled Task Do Not Deliver"]) : Boolean(taskConfig.doNotDeliver))
           )}
           ${
-            node.type === "pm"
+            node.type === "ins"
               ? getNodeInspectValueMarkup(
                   "Secondary Action",
                   getNodeInspectBooleanLabel(
                     Object.prototype.hasOwnProperty.call(taskJson || {}, "Scheduled Task Is Secondary Action")
                       ? Boolean(taskJson?.["Scheduled Task Is Secondary Action"])
-                      : Boolean(taskConfig.isSecondaryAction)
+                      : Boolean(secondaryActionPmLinkState?.hasSecondaryAction)
                   )
                 )
               : ""
           }
           ${
-            node.type === "pm"
+            node.type === "ins"
               ? getNodeInspectValueMarkup(
-                  "Triggering Inspection",
+                  "Triggered PM",
                   taskJson?.["Scheduled Task Secondary Inspection"] ||
-                    secondaryInspectionLinkState?.linkedInspectionName ||
-                    (taskConfig.isSecondaryAction ? "Not linked" : "Not required")
+                    secondaryActionPmLinkState?.linkedPmName ||
+                    (secondaryActionPmLinkState?.hasSecondaryAction ? "Not linked" : "Not required")
                 )
               : ""
           }
@@ -7785,8 +7869,8 @@ const renderNodeInspectPanel = (nodeInfo) => {
           ${getNodeInspectValueMarkup("Labour", taskJson?.["Scheduled Task Labor Labor"] || taskConfig.labourDurationHours || taskConfig.laborLabor || "")}
         </div>
         ${
-          node.type === "pm" && secondaryInspectionLinkState?.warningMessage
-            ? `<div class="maintenance-notice" role="status">${escapeHtml(secondaryInspectionLinkState.warningMessage)}</div>`
+          node.type === "ins" && secondaryActionPmLinkState?.warningMessage
+            ? `<div class="maintenance-notice" role="status">${escapeHtml(secondaryActionPmLinkState.warningMessage)}</div>`
             : ""
         }
       </section>
@@ -8145,7 +8229,7 @@ const renderStrategyTableCell = (row, column) => {
   if (column.editable) {
     if (column.inputType === "checkbox") {
       const isSecondaryActionCheckbox = column.key === "scheduledTaskIsSecondaryAction";
-      const isSecondaryActionEditable = !isSecondaryActionCheckbox || row.taskNodeType === "pm";
+      const isSecondaryActionEditable = !isSecondaryActionCheckbox || row.taskNodeType === "ins";
       return `
         <td class="strategy-grid__cell strategy-grid__cell--checkbox">
           <input
@@ -8443,15 +8527,15 @@ const buildStrategyComparisonPanelViewModel = (decisionData) => {
     stats: [
       { label: "Included", value: `${comparison.enabledCount} / ${comparison.totalCount}` },
       {
-        label: "10-year cost",
-        value: formatCurrency(comparison.totalModeledCost, { compact: comparison.totalModeledCost >= 1000 }),
+        label: "10-year total expected cost",
+        value: formatCurrency(comparison.totalExpectedCost, { compact: comparison.totalExpectedCost >= 1000 }),
       },
       {
         label: "10-year residual exposure",
         value: formatCurrency(comparison.residualExposure, { compact: comparison.residualExposure >= 1000 }),
       },
     ],
-    residualWidthPercent: Math.max(8, residualRatio * 100),
+    residualWidthPercent: residualRatio * 100,
     untreatedLabel: "Untreated",
     residualLabel: "After selection",
   };
@@ -8477,11 +8561,17 @@ const buildStrategyDecisionExpandedDetailViewModel = (strategy) => {
     },
   ];
 
-  if (strategy.taskNodeType === "pm") {
+  if (strategy.taskNodeType === "ins") {
     metrics.push({
-      label: "Triggering inspection",
-      value: strategy.secondaryActionInspectionName || (strategy.isSecondaryAction ? "Not linked" : "Not required"),
+      label: "Triggered PM",
+      value: strategy.secondaryActionPmName || (strategy.hasSecondaryAction ? "Not linked" : "Not required"),
     });
+    if (strategy.secondaryTriggeredExecutions > 0) {
+      metrics.push({
+        label: "Triggered PM executions (10-year)",
+        value: strategy.technicalDetails.triggeredSecondaryActionExecutionLabel || "Not set",
+      });
+    }
   }
 
   metrics.push(
@@ -8536,7 +8626,7 @@ const buildStrategyDecisionCardViewModel = (strategy, expandedTaskNodeId = "") =
     inclusionLabel: strategy.scheduledTaskIsEnabled ? "Included" : "Not included",
     residualLabel: strategy.selectedSetIncludesOtherStrategies ? "Current selection residual exposure" : "10-year residual exposure",
     residualValue: formatCurrency(displayedResidualExposure, { compact: displayedResidualExposure >= 1000 }),
-    costValue: formatCurrency(strategy.modeledCost, { compact: strategy.modeledCost >= 1000 }),
+    costValue: formatCurrency(strategy.totalExpectedCost, { compact: strategy.totalExpectedCost >= 1000 }),
     detailId: strategyWorkspaceRendererDetailId,
   };
 };
@@ -8648,7 +8738,7 @@ const buildStrategyAuditCellViewModel = (row, column) => {
   if (column.editable) {
     if (column.inputType === "checkbox") {
       const isSecondaryActionCheckbox = column.key === "scheduledTaskIsSecondaryAction";
-      const isSecondaryActionEditable = !isSecondaryActionCheckbox || row.taskNodeType === "pm";
+      const isSecondaryActionEditable = !isSecondaryActionCheckbox || row.taskNodeType === "ins";
       return {
         kind: "editableCheckbox",
         taskNodeId: row.taskNodeId,
@@ -8816,8 +8906,8 @@ const renderComparisonPanel = (decisionData) => {
           <strong>${escapeHtml(`${comparison.enabledCount} / ${comparison.totalCount}`)}</strong>
         </article>
         <article class="strategy-impact-stat">
-          <span>10-year cost</span>
-          <strong>${escapeHtml(formatCurrency(comparison.totalModeledCost, { compact: comparison.totalModeledCost >= 1000 }))}</strong>
+          <span>10-year total expected cost</span>
+          <strong>${escapeHtml(formatCurrency(comparison.totalExpectedCost, { compact: comparison.totalExpectedCost >= 1000 }))}</strong>
         </article>
         <article class="strategy-impact-stat">
           <span>10-year residual exposure</span>
@@ -8827,7 +8917,7 @@ const renderComparisonPanel = (decisionData) => {
       <div class="strategy-impact-bar" aria-label="Baseline versus residual exposure">
         <div class="strategy-impact-bar__track">
           <span class="strategy-impact-bar__baseline"></span>
-          <span class="strategy-impact-bar__residual" style="width:${Math.max(8, residualRatio * 100)}%;"></span>
+          <span class="strategy-impact-bar__residual" style="width:${residualRatio * 100}%;"></span>
         </div>
         <div class="strategy-impact-bar__legend">
           <span>Untreated</span>
@@ -8891,8 +8981,15 @@ const renderStrategyDecisionDetails = (strategy, detailId) => `
         <div><dt>Expected executions (10-year)</dt><dd>${escapeHtml(strategy.technicalDetails.expectedExecutionLabel || "Not set")}</dd></div>
         <div><dt>Per-intervention cost</dt><dd>${escapeHtml(formatCurrency(strategy.directExecutionCost, { compact: strategy.directExecutionCost >= 1000 }))}</dd></div>
         ${
-          strategy.taskNodeType === "pm"
-            ? `<div><dt>Triggering inspection</dt><dd>${escapeHtml(strategy.secondaryActionInspectionName || (strategy.isSecondaryAction ? "Not linked" : "Not required"))}</dd></div>`
+          strategy.taskNodeType === "ins"
+            ? `<div><dt>Triggered PM</dt><dd>${escapeHtml(strategy.secondaryActionPmName || (strategy.hasSecondaryAction ? "Not linked" : "Not required"))}</dd></div>`
+            : ""
+        }
+        ${
+          strategy.taskNodeType === "ins" && strategy.secondaryTriggeredExecutions > 0
+            ? `<div><dt>Triggered PM executions (10-year)</dt><dd>${escapeHtml(
+                strategy.technicalDetails.triggeredSecondaryActionExecutionLabel || "Not set"
+              )}</dd></div>`
             : ""
         }
         <div><dt>${escapeHtml(strategy.selectedSetIncludesOtherStrategies ? "Current selection residual exposure" : "10-year residual exposure")}</dt><dd>${escapeHtml(
@@ -8953,8 +9050,8 @@ const renderStrategyDecisionCard = (strategy, expandedTaskNodeId = "") => {
           <strong>${escapeHtml(formatCurrency(displayedResidualExposure, { compact: displayedResidualExposure >= 1000 }))}</strong>
         </div>
         <div>
-          <span>10-year cost</span>
-          <strong>${escapeHtml(formatCurrency(strategy.modeledCost, { compact: strategy.modeledCost >= 1000 }))}</strong>
+          <span>10-year total cost</span>
+          <strong>${escapeHtml(formatCurrency(strategy.totalExpectedCost, { compact: strategy.totalExpectedCost >= 1000 }))}</strong>
         </div>
       </div>
       <div class="strategy-option-card__actions">
@@ -9372,6 +9469,9 @@ const updateStrategyTableTaskField = (taskNodeId, fieldKey, nextValue) => {
       case "scheduledTaskDoNotDeliver":
         config.doNotDeliver = Boolean(nextValue);
         break;
+      case "scheduledTaskIsSecondaryAction":
+        config.hasSecondaryAction = Boolean(nextValue);
+        break;
       case "scheduledTaskInterval":
         config.interval = String(nextValue || "").trim();
         config.intervalShortDescription = deriveCmIntervalShortDescription(config.interval);
@@ -9392,6 +9492,9 @@ const updateStrategyTableTaskField = (taskNodeId, fieldKey, nextValue) => {
         break;
     }
     info.node.insConfig = config;
+    const failureModeNode = getNearestAncestorNodeFromPath(info.path, "cause");
+    const failureModeInfo = failureModeNode ? findNodeInfo(state.hierarchy, failureModeNode.id) : null;
+    syncInspectionSecondaryActionLegacyMirror(failureModeInfo, info.node);
   } else {
     const config = info.node.type === "pm" ? normalizePmConfig(info.node.pmConfig) : normalizeCmConfig(info.node.cmConfig);
     switch (fieldKey) {
@@ -9477,6 +9580,8 @@ const saveExistingTaskNode = (nodeId, draft) => {
     info.node.name = normalizedCode;
     info.node.description = String(draft?.description || "").trim();
     info.node.insConfig = buildInsConfigFromDraft(draft);
+    const failureModeInfo = info.parent ? findNodeInfo(state.hierarchy, info.parent.id) : null;
+    syncInspectionSecondaryActionLegacyMirror(failureModeInfo, info.node);
   }
 
   closeChildCreator();
@@ -9597,6 +9702,9 @@ const createChildNode = (parentId, childType, draft) => {
   const nodeName = shortCodeHierarchyTypes.has(childType) ? codeSegment : fullCode;
   const nextNode = createNode(childType, codeSegment, nodeName, description, equipmentContext, failureConfig, cmConfig, pmConfig, insConfig);
   info.node.children.push(nextNode);
+  if (childType === "ins") {
+    syncInspectionSecondaryActionLegacyMirror(info, nextNode);
+  }
   if (childType === "cm" && draft?.copyToPmOnSave) {
     const nextPmCode = getNextAutoGeneratedCode(info.node, "pm");
     const nextPmNode = createNode(
@@ -10319,6 +10427,18 @@ const syncChildCreatorDraftField = (target) => {
 
   if (target.id === "childCreatorInsDoNotDeliverInput" && target instanceof HTMLInputElement) {
     childDraftState.insDoNotDeliver = target.checked;
+  }
+
+  if (target.id === "childCreatorInsHasSecondaryActionInput" && target instanceof HTMLInputElement) {
+    childDraftState.insHasSecondaryAction = target.checked;
+    renderSelectedNodePanel();
+    return;
+  }
+
+  if (target.id === "childCreatorInsSecondaryActionPmInput") {
+    childDraftState.insSecondaryActionPmNodeId = target.value;
+    renderSelectedNodePanel();
+    return;
   }
 
   if (target.id === "childCreatorInsIntervalInput") {

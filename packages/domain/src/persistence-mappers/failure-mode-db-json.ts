@@ -58,6 +58,10 @@ export interface FailureModeDbJsonBuilderDeps<TNode extends FailureModePersisten
     inspectionNodeId: string,
     isSecondaryAction: boolean
   ) => { linkedInspectionName?: string | null } | null
+  getInspectionSecondaryActionPmLinkState: (
+    failureModeInfo: Pick<HierarchyNodeInfo<TNode>, "node" | "path">,
+    inspectionNode: TNode
+  ) => { hasSecondaryAction?: boolean | null; linkedPmName?: string | null } | null
   getNodeDescription: (node: TNode | null | undefined, fallback?: string) => string
   getNodeFullCode: (node: TNode | null | undefined, path?: TNode[]) => string
   getNodeCodeValue: (node: TNode | null | undefined, fallback?: string) => string
@@ -193,15 +197,17 @@ export const buildFailureModeDbJson = <TNode extends FailureModePersistenceNode>
     .map((taskNode) => {
       if (taskNode.type === "ins") {
         const config = deps.normalizeInsConfig(taskNode.insConfig)
+        const secondaryActionLinkState = deps.getInspectionSecondaryActionPmLinkState({ node: causeNode, path }, taskNode as TNode)
         return {
           "Task Name": deps.getNodeCodeValue(taskNode as TNode),
           "Task Strategy": "INS",
           "Scheduled Task Type": String(config.scheduledTaskType || "").trim(),
           "Scheduled Task Is Enabled": Boolean(config.isEnabled),
           "Scheduled Task Do Not Deliver": Boolean(config.doNotDeliver),
-          "Scheduled Task Is Secondary Action": false,
+          "Scheduled Task Is Secondary Action": Boolean(secondaryActionLinkState?.hasSecondaryAction),
           "Scheduled Task Description": deps.getNodeDescription(taskNode as TNode),
-          "Scheduled Task Secondary Inspection": "",
+          "Scheduled Task Secondary Inspection":
+            Boolean(secondaryActionLinkState?.hasSecondaryAction) ? secondaryActionLinkState?.linkedPmName || "" : "",
           "Scheduled Task Interval": String(config.interval || "").trim(),
           "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
           "Scheduled Task PF Interval": String(config.pfInterval || "").trim(),
@@ -213,14 +219,6 @@ export const buildFailureModeDbJson = <TNode extends FailureModePersistenceNode>
 
       const config =
         taskNode.type === "pm" ? deps.normalizePmConfig(taskNode.pmConfig) : deps.normalizeCmConfig(taskNode.cmConfig)
-      const secondaryLinkState =
-        taskNode.type === "pm"
-          ? deps.getSecondaryActionInspectionLinkState(
-              { node: causeNode, path },
-              String(config.secondaryActionInspectionNodeId || ""),
-              Boolean(config.isSecondaryAction)
-            )
-          : null
 
       return {
         "Task Name": deps.getNodeCodeValue(taskNode as TNode),
@@ -228,10 +226,9 @@ export const buildFailureModeDbJson = <TNode extends FailureModePersistenceNode>
         "Scheduled Task Type": String(config.type || "").trim(),
         "Scheduled Task Is Enabled": Boolean(config.isEnabled),
         "Scheduled Task Do Not Deliver": Boolean(config.doNotDeliver),
-        "Scheduled Task Is Secondary Action": taskNode.type === "pm" ? Boolean(config.isSecondaryAction) : false,
+        "Scheduled Task Is Secondary Action": false,
         "Scheduled Task Description": deps.getNodeDescription(taskNode as TNode),
-        "Scheduled Task Secondary Inspection":
-          taskNode.type === "pm" && Boolean(config.isSecondaryAction) ? secondaryLinkState?.linkedInspectionName || "" : "",
+        "Scheduled Task Secondary Inspection": "",
         "Scheduled Task Interval": String(config.intervalHours || "").trim(),
         "Scheduled Task Interval Short Description": String(config.intervalShortDescription || "").trim(),
         "Scheduled Task PF Interval": String(config.pfInterval || "").trim(),

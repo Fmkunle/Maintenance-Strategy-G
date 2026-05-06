@@ -19,8 +19,9 @@ describe("risk engine", () => {
     expect(profile.expectedFailureCount).toBeCloseTo(87.6, 1);
   });
 
-  it("calculates inspection prevention from PF timing and detection probability", () => {
+  it("calculates inspection prevention from failure timing and detection probability", () => {
     const preventedFraction = calculateInspectionPreventedFraction({
+      referenceFailureIntervalHours: 100,
       inspectionIntervalHours: 100,
       pfIntervalHours: 50,
       detectionProbability: 0.8
